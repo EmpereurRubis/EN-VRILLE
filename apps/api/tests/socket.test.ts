@@ -65,6 +65,42 @@ async function server(store: Store = new MemoryStore()) {
 }
 
 describe("Socket.IO multijoueur réel et HTTP", () => {
+  it("sépare l'animateur, sécurise le passage d'un joueur et diffuse les réactions sans réponses cachées", async () => {
+    const { server: api, url } = await server();
+    const sockets = await Promise.all(Array.from({ length: 4 }, () => connect(url)));
+    const created = await event(sockets[0]!, "room:create", { name: "Animateur", avatar: AVATARS[0], hostPlays: false });
+    expect(created.ok).toBe(true);
+    expect(created.room!.players[0]!.spectator).toBe(true);
+    const code = created.session!.code, ids: string[] = [];
+    for (let i = 1; i < 4; i++) {
+      const joined = await event(sockets[i]!, "room:join", { code, name: `Participant ${i}`, avatar: AVATARS[i] });
+      ids.push(joined.session!.playerId);
+      await event(sockets[i]!, "room:ready", { ready: true });
+    }
+    expect((await event(sockets[0]!, "room:configure", {
+      ...structuredClone(DEFAULT_CONFIG), playlist: [{ gameId: "mythos", rounds: 1 }], reactionsEnabled: false,
+    })).ok).toBe(true);
+    expect((await event(sockets[1]!, "room:react", { reaction: "😂" })).ok).toBe(false);
+    await event(sockets[0]!, "room:configure", {
+      ...structuredClone(DEFAULT_CONFIG), playlist: [{ gameId: "mythos", rounds: 1 }],
+    });
+    await event(sockets[0]!, "room:start");
+    for (let i = 0; i < 3; i++) await event(sockets[0]!, "room:advance");
+    await event(sockets[1]!, "room:action", { type: "answer", text: "La réponse vraiment cachée" });
+    const reacted = await event(sockets[2]!, "room:react", { reaction: "😂" });
+    expect(reacted.ok).toBe(true); expect(reacted.room!.reactions[0]?.reaction).toBe("😂");
+    expect(JSON.stringify(reacted.room)).not.toContain("La réponse vraiment cachée");
+    expect((await event(sockets[2]!, "room:react", { reaction: "👏" })).ok).toBe(false);
+    expect((await event(sockets[3]!, "room:react", { reaction: "<script>" })).ok).toBe(false);
+    expect((await event(sockets[3]!, "room:react", { reaction: "👏", playerId: ids[0] })).ok).toBe(false);
+    expect((await event(sockets[2]!, "room:skip-player", { playerId: ids[2] })).ok).toBe(false);
+    const skipped = await event(sockets[0]!, "room:skip-player", { playerId: ids[2] });
+    expect(skipped.ok).toBe(true); expect(skipped.room!.progress[0]).toMatchObject({ completed: 1, total: 2 });
+    expect((await event(sockets[3]!, "room:action", { type: "answer", text: "Tour déjà passé" })).ok).toBe(false);
+    const finished = await event(sockets[2]!, "room:action", { type: "answer", text: "Dernière réponse" });
+    expect(finished.room!.phase).toBe("reveal");
+    expect(api.engine.getRoom(code).round!.participantIds).not.toContain(created.session!.playerId);
+  });
   it("acquitte avec la phase courante après une sauvegarde retardée", async () => {
     class DelayedStore extends MemoryStore {
       private gate?: Promise<void>;
@@ -107,7 +143,7 @@ describe("Socket.IO multijoueur réel et HTTP", () => {
       playlist: [{ gameId: "mythos", rounds: 1 }],
     });
     await event(sockets[0]!, "room:start");
-    await event(sockets[0]!, "room:advance");
+    for (let step = 0; step < 3; step++) await event(sockets[0]!, "room:advance");
     const latest: (RoomSnapshot | undefined)[] = sockets.map(() => undefined);
     sockets.forEach((socket, index) =>
       socket.on("room:state", (snapshot: RoomSnapshot) => {
@@ -133,15 +169,15 @@ describe("Socket.IO multijoueur réel et HTTP", () => {
           .toBe(index + 1);
       }
       await expect
-        .poll(() => latest.every((snapshot) => snapshot?.phase === "voting"))
+        .poll(() => latest.every((snapshot) => snapshot?.phase === "reveal"))
         .toBe(true);
       expect(returned).toHaveLength(0);
       store.release();
       const acknowledgements = await Promise.all(pending);
       expect(acknowledgements.map((result) => result.room?.phase)).toEqual([
-        "voting",
-        "voting",
-        "voting",
+        "reveal",
+        "reveal",
+        "reveal",
       ]);
       expect(acknowledgements.every((result) => result.ok)).toBe(true);
     } finally {
@@ -195,7 +231,7 @@ describe("Socket.IO multijoueur réel et HTTP", () => {
       [1, 2].map((i) => event(sockets[i]!, "room:ready", { ready: true })),
     );
     expect((await event(sockets[0]!, "room:start")).ok).toBe(true);
-    await event(sockets[0]!, "room:advance");
+    for (let step = 0; step < 3; step++) await event(sockets[0]!, "room:advance");
     await event(sockets[0]!, "room:action", {
       type: "answer",
       text: "Le secret du salon A",
@@ -225,7 +261,8 @@ describe("Socket.IO multijoueur réel et HTTP", () => {
       type: "answer",
       text: "Réponse C",
     });
-    expect(last.room!.phase).toBe("voting");
+    expect(last.room!.phase).toBe("reveal");
+    await event(sockets[0]!, "room:advance");
     expect(last.room!.round!.answers.every((a) => !a.authorId)).toBe(true);
     const real = api.engine.getRoom(code);
     const own = real.round!.answers.find((a) => a.authorId === ids[0])!;
@@ -242,9 +279,9 @@ describe("Socket.IO multijoueur réel et HTTP", () => {
         type: "vote",
         targetId: real.round!.answers.find((a) => a.authorId !== ids[i])!.id,
       });
-    const result = await event(sockets[0]!, "room:advance");
-    expect(result.room!.phase).toBe("results");
-    expect(result.room!.players.some((p) => p.score > 0)).toBe(true);
+    expect(real.phase).toBe("results");
+    expect(api.engine.snapshot(real, ids[0]!).players.some((p) => p.score > 0)).toBe(true);
+    await event(sockets[0]!, "room:advance");
     await event(sockets[0]!, "room:advance");
     expect(real.phase).toBe("podium");
     sockets[1]!.disconnect();

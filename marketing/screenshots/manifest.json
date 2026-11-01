@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-11-01T12:23:17.911Z",
+  "platform": "Windows x64",
+  "executable": "EN-VRILLE.exe",
+  "renderer": "app://game",
+  "width": 1920,
+  "height": 1080,
+  "players": 8,
+  "protocolVersion": 1,
+  "games": [
+    "mythos",
+    "pitch",
+    "court",
+    "who",
+    "captions"
+  ],
+  "source": "Captures du véritable exécutable Windows pendant une partie de recette, sans retouche."
+}

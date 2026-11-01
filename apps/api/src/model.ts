@@ -6,6 +6,7 @@ import type {
   Product,
   RoomConfig,
   RoundResult,
+  ReactionView,
 } from "@en-vrille/shared";
 
 export interface Player {
@@ -15,6 +16,7 @@ export interface Player {
   avatar: string;
   color: string;
   connected: boolean;
+  disconnectedAt?: number;
   ready: boolean;
   spectator: boolean;
   waiting?: boolean;
@@ -44,6 +46,8 @@ export interface Round {
   verdicts: Record<string, boolean>;
   bestVotes: Record<string, string>;
   submitted: string[];
+  prepared: string[];
+  missions: Record<string, { word: string; completed: boolean }>;
   presentationIndex: number;
   courtStep?: string;
   roles?: CourtRoles;
@@ -59,12 +63,17 @@ export interface Room {
   config: RoomConfig;
   players: Player[];
   phase: Phase;
+  phaseStartedAt: number;
+  phaseExcludedIds: string[];
+  reactions: ReactionView[];
+  lastReactionAt: Record<string, number>;
   playlist: PlaylistItem[];
   gameIndex: number;
   roundNumber: number;
   round?: Round;
   deadline: number | null;
   paused: boolean;
+  pausedAt?: number;
   remaining: number | null;
   message: string;
   createdAt: number;

@@ -18,6 +18,12 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "smoke": "tsx scripts/smoke.ts",
+    "desktop:build": "npm run build -w @en-vrille/desktop",
+    "desktop:dist": "npm run dist:win -w @en-vrille/desktop",
+    "desktop:test": "npm run test -w @en-vrille/desktop && npm run test:app -w @en-vrille/desktop",
+    "steam:prepare": "npm run steam:prepare -w @en-vrille/desktop",
+    "assets:store": "node scripts/generate-store-assets.mjs",
+    "capture:store": "tsx scripts/capture-store.ts",
     "check": "npm run typecheck && npm test && npm run build"
   },
   "devDependencies": {

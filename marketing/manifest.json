@@ -1,0 +1,93 @@
+{
+  "title": "EN VRILLE !",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2026 Empereur Rubis",
+  "palette": {
+    "red": "#ef344a",
+    "bright": "#ff6477",
+    "cream": "#fff1db",
+    "ink": "#151316",
+    "rose": "#753041"
+  },
+  "generator": "node scripts/generate-store-assets.mjs",
+  "originalArt": "Vrill and custom outlined lettering; no external fonts or licensed stock assets.",
+  "specifications": {
+    "overview": "https://partner.steamgames.com/doc/store/assets",
+    "store": "https://partner.steamgames.com/doc/store/assets/standard",
+    "library": "https://partner.steamgames.com/doc/store/assets/libraryassets",
+    "rules": "https://partner.steamgames.com/doc/store/assets/rules",
+    "verified": "2026-11-01"
+  },
+  "assets": [
+    {
+      "id": "header-capsule",
+      "source": "source/header-capsule.svg",
+      "file": "assets/header-capsule.png",
+      "width": 920,
+      "height": 430,
+      "transparent": false,
+      "usage": "Steam store header capsule",
+      "sha256": "7d6f2602c8ac3e85831c562ff86febe219e25573b692f0feea73fd89db5df612"
+    },
+    {
+      "id": "small-capsule",
+      "source": "source/small-capsule.svg",
+      "file": "assets/small-capsule.png",
+      "width": 462,
+      "height": 174,
+      "transparent": false,
+      "usage": "Steam store small capsule",
+      "sha256": "68cdbe0d9602b76a96b2556fa0c271d21ddcecf742439f09e0671b575fbda46e"
+    },
+    {
+      "id": "main-capsule",
+      "source": "source/main-capsule.svg",
+      "file": "assets/main-capsule.png",
+      "width": 1232,
+      "height": 706,
+      "transparent": false,
+      "usage": "Steam store main capsule",
+      "sha256": "02f7a70a5d8ba22ca980f56b76cf7badb426bf080a1c5eff463d80d7659c0ea5"
+    },
+    {
+      "id": "vertical-capsule",
+      "source": "source/vertical-capsule.svg",
+      "file": "assets/vertical-capsule.png",
+      "width": 748,
+      "height": 896,
+      "transparent": false,
+      "usage": "Steam store vertical capsule",
+      "sha256": "e369fbec3bd4905d7f796561c3a556282a43b3b7478c52a237f95e8320bb78ef"
+    },
+    {
+      "id": "library-capsule",
+      "source": "source/library-capsule.svg",
+      "file": "assets/library-capsule.png",
+      "width": 600,
+      "height": 900,
+      "transparent": false,
+      "usage": "Steam library capsule",
+      "sha256": "01d81b212ab37503a17d4bc632361d56b7bda0baffff6fa0ce5697a8b4483c29"
+    },
+    {
+      "id": "library-hero",
+      "source": "source/library-hero.svg",
+      "file": "assets/library-hero.png",
+      "width": 3840,
+      "height": 1240,
+      "transparent": false,
+      "usage": "Steam library hero artwork, no title or text",
+      "sha256": "aaec5a166d31372138db9bc17c13fd939ffdf822eea596c28516949f395f9710"
+    },
+    {
+      "id": "library-logo",
+      "source": "source/library-logo.svg",
+      "file": "assets/library-logo.png",
+      "width": 1280,
+      "height": 720,
+      "transparent": true,
+      "usage": "Steam library logo, transparent background",
+      "sha256": "8afd0a491229f0e9fca26fcca246effd2526df974137ae05e789e2ed7c4eae88"
+    }
+  ]
+}

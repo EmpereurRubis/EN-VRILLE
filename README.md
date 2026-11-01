@@ -1,6 +1,12 @@
 # EN VRILLE
 
-Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux en français, une soirée personnalisée ou aléatoire, et un téléphone par joueur. Le navigateur du PC peut être affiché sur une télévision ; les joueurs distants voient le même état en temps réel.
+Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux en français, un jeu Windows avec sa scène TV, une soirée personnalisée ou aléatoire et un téléphone par joueur. Le présentateur anime la scène tandis que chaque manette conserve ses réponses, produits, notes et missions privés. Le client PC embarque son interface ; les salons utilisent le serveur Docker.
+
+## Application Windows
+
+Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, la version portable et `apps/desktop/release/win-unpacked/EN-VRILLE.exe`. Le dossier complet peut être lancé sans Node.js ni navigateur installé. Le serveur se règle dans les paramètres du jeu ; sa valeur initiale est `https://envrille.erubis.fr`. Les invités rejoignent gratuitement dans leur navigateur.
+
+Le guide [PC et Steam](docs/PC-Steam.md) décrit la construction, les tests, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
 
 ## Démarrer sur Windows / VS Code
 
@@ -13,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-Ouvrir **http://localhost:5173**, choisir un pseudo et créer un salon. Pour tester seul les interactions, ouvrir trois onglets et rejoindre avec des identités différentes. Pour jouer, prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Le créateur est aussi joueur ; un écran spectateur peut rejoindre sans participer.
+Ouvrir **http://localhost:5173**, préparer le programme, choisir un pseudo et créer un salon. Pour tester seul les interactions, ouvrir trois onglets et rejoindre avec des identités différentes. Pour jouer, prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Le créateur peut participer ou rester animateur. Le lien « Écran TV » permet de rejoindre avec une session spectateur indépendante.
 
 Pour les téléphones sur le même Wi-Fi, utiliser `http://ADRESSE_IP_LAN_DU_PC:5173` sur **tous** les appareils, y compris le PC qui crée le salon. Autoriser les connexions à Node sur le réseau privé Windows. Les invitations utilisent l’origine publique configurée ; copier `.env.example` vers `.env` puis régler `PUBLIC_URL=http://ADRESSE_IP_LAN_DU_PC:5173`. Le mode local fonctionne sans Internet une fois les dépendances installées.
 
@@ -30,26 +36,33 @@ Les tests navigateur utilisent Chrome déjà installé sous Windows ; ailleurs, 
 
 ## Jouer
 
-1. L’hôte crée un salon et partage son code, son lien ou son QR code.
+1. L’hôte choisit Sur mesure ou Surprise, prépare les jeux et options, puis crée le salon et partage son code, son lien ou son QR code.
 2. Les joueurs choisissent leur pseudo et leur avatar, puis se déclarent prêts.
 3. L’hôte prépare une playlist : ajout, répétition, ordre et nombre de manches ; ou sélectionne le mode aléatoire et ses jeux autorisés.
-4. Chaque écran indique l’action attendue. Les temps sont gérés par le serveur ; les absents ne bloquent pas les manches. Les présentations et débats se font à voix haute, en présentiel ou avec votre outil vocal habituel.
-5. Les votes, révélations, classements et le podium sont synchronisés. L’hôte peut mettre en pause ou passer à l’étape suivante.
+4. Le bouton « Afficher la scène » transforme le PC en plateau public ; « Afficher ma manette » retrouve les actions privées. Un spectateur utilise directement la scène. Les présentations et débats se font à voix haute, en présentiel ou avec votre outil vocal habituel.
+5. Le serveur compte les participants réellement concernés : réponses, préparations, notes complètes ou seuls jurés pour le verdict. Les actions complètes clôturent l’attente. Après une déconnexion, un délai de dix secondes permet de reprendre sa session avant l’exclusion du quorum courant ; l’hôte peut aussi passer un joueur.
+6. Les réponses sont révélées anonymement avant le vote, puis les auteurs et points apparaissent aux résultats. Les prises de parole du Tribunal et des vendeurs attendent toujours le signal de l’hôte, même lorsque leur minuteur est terminé. L’hôte peut mettre en pause et contrôler l’enchaînement automatique des autres séquences.
 
 Le Plateau des Mythos et Sous-titres Interdits rapportent 100 points par vote et un bonus de 150 aux gagnants ex æquo. Qui parmi nous récompense la prédiction du choix majoritaire (100 points) et la personne désignée (50), avec un mode sans points. Les vendeurs sont notés sur humour, conviction et créativité (1 à 5) ; le mode « inventions » redistribue les produits sans qu’un joueur reçoive le sien. Au Tribunal, les jurés votent le verdict : une égalité acquitte l’accusé. Le procureur ou la défense gagnent selon le verdict ; les jurés ne gagnent pas automatiquement pour avoir suivi la majorité. Les coefficients et l’équilibrage sont configurables.
 
 Un rafraîchissement conserve l’identité grâce à une session privée propre à l’onglet. Ne partagez pas votre jeton de reconnexion. Un nouveau participant arrivé pendant une manche attend une étape compatible en spectateur. L’écran TV peut rester spectateur et afficher la soirée sans devenir une manette.
 
+Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. La voix utilise les voix françaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par l’hôte et sont limitées à une toutes les deux secondes par joueur.
+
+Le mode global sans points conserve les actions et résultats sans modifier les scores. Les missions secrètes optionnelles demandent de glisser un mot dans une réponse ou une invention compatible et rapportent un bonus fixe de 50 points ; leur consigne reste sur la manette du joueur. Ce bonus est lui aussi annulé dans le mode sans points.
+
 ## Architecture et contrats
 
 ```text
 apps/web/                 React + TypeScript + Vite + Tailwind + Framer Motion
+apps/desktop/             Electron, ressources locales, build Windows et SteamPipe
 apps/api/                 Express + Socket.IO, moteur autoritaire, stockage
 packages/shared/          Types, catalogue des jeux et événements communs
 packages/content/         Questions, produits, accusations et médias SVG originaux
 deploy/                   Dockerfiles et configuration Nginx
 tests/e2e/                Parcours Playwright
 .github/workflows/        Tests, builds et publication GHCR
+marketing/                Fiche Steam, sources graphiques et captures Windows réelles
 docker-compose.yml        L’unique stack Portainer de production
 ```
 
@@ -63,13 +76,15 @@ Les événements Socket.IO sont définis dans `packages/shared/src/index.ts` :
 | --- | --- |
 | `room:create`, `room:join`, `room:resume` | Créer, rejoindre, retrouver une session |
 | `room:ready`, `room:configure`, `room:start` | Préparer et démarrer la soirée |
-| `room:action` | Réponse, produit, vote, notation ou verdict |
+| `room:action` | Réponse, produit, préparation terminée, vote, notation ou verdict |
 | `room:advance`, `room:pause` | Commandes réservées à l’hôte |
+| `room:skip-player` | Passer un participant pour l’action courante, réservé à l’hôte |
+| `room:react` | Réaction éphémère avec limite par joueur |
 | `room:replay`, `room:leave` | Rejouer ou quitter |
 
 Chaque requête reçoit un acquittement `{ ok, error?, session?, room? }`. Le serveur émet `room:state` individuellement après les changements. Les clients transmettent une intention ; aucun identifiant de votant fourni dans une action ne fait autorité.
 
-La machine suit `lobby → intro → writing / prepare / presenting → voting → results → transition → podium`, avec plusieurs présentations pour les ventes et des interventions successives au Tribunal. Chaque jeu définit sa préparation, les entrées autorisées, le vote et le calcul des points. Pour ajouter un jeu, étendre le catalogue et le contrat partagé, le moteur, la bibliothèque et sa vue React.
+La machine suit `lobby → party-intro → intro → rules → writing / prepare / presenting → reveal → voting → results → leaderboard → transition → podium`. Chaque jeu utilise les étapes adaptées : plusieurs présentations pour les ventes, interventions successives au Tribunal, vote direct pour Qui parmi nous. `phaseStartedAt`, les échéances et `progress` viennent du serveur ; les révélations et compteurs de la scène s’appuient sur ces données. Chaque jeu définit sa préparation, les entrées autorisées, le vote et le calcul des points. Pour ajouter un jeu, étendre le catalogue et le contrat partagé, le moteur, la bibliothèque et sa vue React.
 
 Le stockage PostgreSQL utilise **pg et des migrations SQL idempotentes**, sans imposer Prisma. Il conserve les états de salon en JSONB, y compris les scores, sessions et manches, et les contenus administrés dans une table distincte. L’initialisation est intégrée au démarrage de l’API ; aucune commande de migration manuelle n’est requise dans Portainer.
 
@@ -111,7 +126,7 @@ Dans **Environment variables**, saisir :
 
 | Variable | Valeur |
 | --- | --- |
-| `PUBLIC_URL` | `https://vrille.erubis.fr` |
+| `PUBLIC_URL` | `https://envrille.erubis.fr` |
 | `APP_BIND` | `127.0.0.1` si le proxy tourne sur l’hôte ; sinon IP LAN de l’hôte accessible au proxy |
 | `APP_PORT` | `8080` (ou un autre port libre) |
 | `POSTGRES_DB` | `en_vrille` |
@@ -129,18 +144,18 @@ Les volumes nommés **en-vrille-postgres** et **en-vrille-media** restent indép
 
 ### 3. DNS, HTTPS et reverse proxy existant
 
-Créer l’enregistrement DNS **A** `vrille.erubis.fr` vers l’IPv4 publique du serveur. Ajouter un AAAA uniquement si IPv6 fonctionne aussi. Votre proxy existant conserve la terminaison TLS sur 80/443 ; aucun second proxy global n’est installé.
+Créer l’enregistrement DNS **A** `envrille.erubis.fr` vers l’IPv4 publique du serveur. Ajouter un AAAA uniquement si IPv6 fonctionne aussi. Votre proxy existant conserve la terminaison TLS sur 80/443 ; aucun second proxy global n’est installé.
 
 Avec **Nginx Proxy Manager**, ajouter un Proxy Host :
 
-- Domain names : `vrille.erubis.fr`.
+- Domain names : `envrille.erubis.fr`.
 - Scheme : `http` ; Forward hostname/IP : adresse de l’hôte Docker ; Forward port : `APP_PORT`.
 - Activer **Websockets Support**.
 - SSL : demander un certificat Let’s Encrypt, activer **Force SSL**.
 
 Si NPM est lui-même dans un conteneur, `127.0.0.1` désigne ce conteneur : utiliser l’IP LAN de l’hôte Docker et mettre `APP_BIND` à cette IP. Restreindre ce port par le pare-feu au réseau/proxy souhaité. Avec Traefik, configurer un service HTTP vers le même port et une route TLS vers votre domaine. Le Nginx embarqué transmet `/api`, `/media`, `/uploads` et `/socket.io` à `api:3001` sur le réseau Docker ; le navigateur reste sous un seul domaine.
 
-Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoindre depuis un téléphone **en 4G/5G**, puis un autre navigateur. Vérifier les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code. Tester l’Internet réel ne peut pas être remplacé par une vérification sur localhost. Depuis le checkout local, `npm run smoke -- https://vrille.erubis.fr` crée un salon de test à cinq joueurs et vérifie les cinq jeux, les deux modes de vente et la reconnexion via de vraies connexions WebSocket.
+Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoindre depuis un téléphone **en 4G/5G**, puis un autre navigateur. Vérifier les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code. Tester l’Internet réel ne peut pas être remplacé par une vérification sur localhost. Depuis le checkout local, `npm run smoke -- https://envrille.erubis.fr` crée un salon de test à huit joueurs et vérifie les cinq jeux, les deux modes de vente et la reconnexion via de vraies connexions WebSocket.
 
 ### 4. Mettre à jour et revenir en arrière
 
@@ -185,7 +200,7 @@ L’administration est accessible depuis l’interface et protégée par `ADMIN_
 
 ## Périmètre de cette version
 
-Cette version vise le socle navigateur multijoueur et les cinq jeux, les deux modes de vente, la persistance, les contenus et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les **rôles secrets supplémentaires**, l’**application installable Tauri**, les **envois de vidéos par l’hôte** et l’**hébergement à plusieurs réplicas** restent des extensions futures ; aucun bouton ne prétend les activer.
+Cette version comprend le client Windows Electron, les interfaces scène et manette, le présentateur, les cinq jeux, les deux modes de vente, les missions secrètes, la persistance, les contenus et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les **envois de vidéos par l’hôte**, les fonctionnalités **Steamworks** et l’**hébergement à plusieurs réplicas** restent à intégrer ; aucun bouton ne prétend les activer.
 
 La compilation et les tests locaux ne prouvent pas le déploiement sur votre serveur. La publication effective GHCR, le certificat TLS, la configuration du DNS/proxy et le test depuis Internet nécessitent les accès à vos services et doivent être vérifiés sur leur environnement.
 

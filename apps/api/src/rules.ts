@@ -4,7 +4,7 @@ import { GAME_IDS } from "@en-vrille/shared";
 import type { GameId, PlaylistItem, RoomConfig } from "@en-vrille/shared";
 
 export const gameSchema = z.enum(GAME_IDS);
-export const configSchema: z.ZodType<RoomConfig> = z
+export const configSchema = z
   .object({
     mode: z.enum(["custom", "random"]),
     playlist: z
@@ -30,6 +30,10 @@ export const configSchema: z.ZodType<RoomConfig> = z
     allowVoteChange: z.boolean(),
     allowSelfVoteWho: z.boolean(),
     whoNoPoints: z.boolean(),
+    noPoints: z.boolean().default(false),
+    reactionsEnabled: z.boolean().default(true),
+    secretRoles: z.boolean().default(false),
+    autoAdvance: z.boolean().default(true),
     leaderboard: z.enum(["round", "game", "final"]),
     adult: z.boolean(),
     disabledCategories: z.array(z.string().max(60)).max(50),
@@ -50,6 +54,7 @@ export const configSchema: z.ZodType<RoomConfig> = z
   );
 
 export const actionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("prepared") }).strict(),
   z
     .object({
       type: z.literal("answer"),

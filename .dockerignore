@@ -15,6 +15,9 @@ test-results
 playwright-report
 .local
 Prompt.md
+PromptPC.md
+apps/desktop
+marketing
 *.log
 *.dump
 *.backup

@@ -5,7 +5,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Server, type Socket } from "socket.io";
 import { z } from "zod";
-import { GAMES, AVATARS } from "@en-vrille/shared";
+import { GAMES, AVATARS, PROTOCOL_VERSION } from "@en-vrille/shared";
 import type { Ack, Session } from "@en-vrille/shared";
 import type { ContentItem } from "@en-vrille/content";
 import { GameEngine, type EngineOptions } from "./engine.js";
@@ -105,6 +105,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
     );
   const allowedOrigins = new Set([
     new URL(publicUrl).origin,
+    "app://game",
     ...(process.env.ALLOWED_ORIGINS || "").split(",").filter(Boolean),
   ]);
   const allowOrigin = (origin: string | undefined) =>
@@ -156,6 +157,15 @@ export async function createGameServer(options: GameServerOptions = {}) {
     allowRequest: (req, callback) =>
       callback(null, allowOrigin(req.headers.origin)),
   });
+  io.use((socket, next) => {
+    const version: unknown = socket.handshake.auth?.protocolVersion;
+    // Existing browser clients predate protocol negotiation and still use the version 1 event contract.
+    if (version === undefined || version === PROTOCOL_VERSION) return next();
+    next(Object.assign(
+      new Error("Cette version du jeu est incompatible avec le serveur. Mettez le jeu à jour puis reconnectez-vous."),
+      { data: { code: "PROTOCOL_MISMATCH", supportedProtocol: PROTOCOL_VERSION } },
+    ));
+  });
   const engine = new GameEngine({
     store,
     publicUrl,
@@ -176,7 +186,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
         );
   };
   const health = (_req: express.Request, res: express.Response) =>
-    res.json({ ok: true, service: "en-vrille-api", storage: store.kind });
+    res.json({ ok: true, service: "en-vrille-api", storage: store.kind, protocolVersion: PROTOCOL_VERSION });
   app.get("/health", health);
   app.get("/api/health", health);
   app.get(["/ready", "/api/ready"], (_req, res) => {
@@ -185,9 +195,9 @@ export async function createGameServer(options: GameServerOptions = {}) {
       .then(() =>
         res
           .status(engine.persistenceError ? 503 : 200)
-          .json({ ok: !engine.persistenceError, storage: store.kind }),
+          .json({ ok: !engine.persistenceError, storage: store.kind, protocolVersion: PROTOCOL_VERSION }),
       )
-      .catch(() => res.status(503).json({ ok: false, storage: store.kind }));
+      .catch(() => res.status(503).json({ ok: false, storage: store.kind, protocolVersion: PROTOCOL_VERSION }));
   });
   app.use("/api", (req, res, next) => {
     if (!limiter.allow(`http:${req.ip}`, 240, 60_000)) {
@@ -515,8 +525,8 @@ export async function createGameServer(options: GameServerOptions = {}) {
       noSession();
       if (!limiter.allow(`create:${address}`, 15, 3600_000))
         throw new Error("Trop de salons créés. Réessayez plus tard.");
-      const p = profile.parse(data);
-      const { room, session } = engine.create(p.name, p.avatar);
+      const p = profile.extend({ hostPlays: z.boolean().optional() }).parse(data);
+      const { room, session } = engine.create(p.name, p.avatar, p.hostPlays);
       attach(socket, session);
       return {
         ok: true,
@@ -580,6 +590,18 @@ export async function createGameServer(options: GameServerOptions = {}) {
       const action = actionSchema.parse(data),
         i = identity(socket);
       engine.action(i.code, i.playerId, action);
+      return state();
+    });
+    register("room:react", (data) => {
+      const p = z.object({ reaction: z.string().max(16) }).strict().parse(data),
+        i = identity(socket);
+      engine.react(i.code, i.playerId, p.reaction);
+      return state();
+    });
+    register("room:skip-player", (data) => {
+      const p = z.object({ playerId: z.string().uuid() }).strict().parse(data),
+        i = identity(socket);
+      engine.skipPlayer(i.code, i.playerId, p.playerId);
       return state();
     });
     register("room:advance", (data) => {

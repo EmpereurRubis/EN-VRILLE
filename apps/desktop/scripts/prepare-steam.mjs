@@ -1,0 +1,25 @@
+import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
+
+const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const source = path.join(desktop, 'release', 'win-unpacked');
+const output = path.join(desktop, 'steam', 'output');
+const executable = await readFile(path.join(source, 'EN-VRILLE.exe'));
+if (executable.subarray(0, 2).toString() !== 'MZ') throw new Error('Construis d’abord la distribution Windows x64.');
+const { version } = JSON.parse(await readFile(path.join(desktop, 'package.json'), 'utf8'));
+await mkdir(output, { recursive: true });
+const contentTarget = path.resolve(output, 'content');
+if (path.relative(path.resolve(output), contentTarget) !== 'content') throw new Error('Invalid generated content directory.');
+await rm(contentTarget, { force: true, recursive: true });
+await cp(source, contentTarget, { recursive: true });
+const appId = process.env.STEAM_APP_ID;
+const depotId = process.env.STEAM_DEPOT_ID;
+const configured = /^\d+$/.test(appId || '') && /^\d+$/.test(depotId || '');
+const appValue = configured ? appId : 'YOUR_OFFICIAL_APP_ID';
+const depotValue = configured ? depotId : 'YOUR_OFFICIAL_WINDOWS_DEPOT_ID';
+await writeFile(path.join(output, 'app_build.vdf'), `"AppBuild"\n{\n  "AppID" "${appValue}"\n  "Desc" "EN VRILLE ${version} Windows x64"\n  "BuildOutput" "build-log"\n  "ContentRoot" "content"\n  "Preview" "1"\n  "Depots"\n  {\n    "${depotValue}" "depot_build.vdf"\n  }\n}\n`);
+await writeFile(path.join(output, 'depot_build.vdf'), `"DepotBuild"\n{\n  "DepotID" "${depotValue}"\n  "FileMapping"\n  {\n    "LocalPath" "*"\n    "DepotPath" "."\n    "Recursive" "1"\n  }\n  "FileExclusion" "*.pdb"\n}\n`);
+await writeFile(path.join(output, 'manifest.json'), JSON.stringify({ version, platform: 'win32', arch: 'x64', executable: 'EN-VRILLE.exe', executableSha256: createHash('sha256').update(executable).digest('hex'), protocolVersion: 1, steamConfigured: configured, previewOnly: true }, null, 2));
+console.log(`SteamPipe content prepared: ${output}. Preview only. ${configured ? 'Official IDs read from environment.' : 'Replace placeholders with official Steamworks IDs before upload.'}`);

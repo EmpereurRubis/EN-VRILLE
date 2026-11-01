@@ -14,9 +14,12 @@ async function phase(page: Page, value: string) {
   await expect(page.getByTestId("phase")).toHaveAttribute("data-phase", value);
 }
 async function advance(host: Page, nextPhase: string) {
-  await host
-    .getByRole("button", { name: "Étape suivante", exact: true })
-    .click();
+  for (let step = 0; step < 5; step++) {
+    const current = await host.getByTestId("phase").getAttribute("data-phase");
+    if (current === nextPhase) break;
+    await host.getByRole("button", { name: "Étape suivante", exact: true }).click();
+    await expect(host.getByTestId("phase")).not.toHaveAttribute("data-phase", current!);
+  }
   await phase(host, nextPhase);
 }
 function emit(socket: Socket, event: string, data: unknown = {}): Promise<Ack> {
@@ -69,6 +72,7 @@ async function seed() {
       presentationSeconds: 180,
       transitionSeconds: 60,
       allowVoteChange: true,
+      autoAdvance: false,
     });
     await emit(sockets[0]!, "room:start");
     await emit(sockets[0]!, "room:pause", { paused: true });
@@ -100,7 +104,7 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
       page.on("pageerror", (error) => errors.push(error.message));
       pages.push(page);
       await page.goto("/");
-      await phase(page, "intro");
+      await phase(page, "party-intro");
     }
     const host = pages[0]!;
     await host.getByRole("button", { name: "Reprendre", exact: true }).click();
@@ -180,7 +184,7 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
               .nth(card)
               .getByRole("button", { name: "Valider mes notes", exact: true })
               .click();
-            await expect(
+            if (card < 3) await expect(
               cards
                 .nth(card)
                 .getByRole("button", {
@@ -192,14 +196,16 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
         }),
       );
       await advance(host, "results");
-      await expect(host.locator(".product-reveal")).toHaveCount(5);
+      await host.getByRole("button", { name: "Afficher la scène", exact: true }).click();
+      await expect(host.locator(".show-product-grid article")).toHaveCount(5);
     }
 
     await presentationsAndRatings(products);
     for (const product of products)
       await expect(
-        host.locator(".product-reveal").filter({ hasText: product }),
-      ).toContainText("Imaginé par");
+        host.locator(".show-product-grid article").filter({ hasText: product }),
+      ).toContainText("Inventé par");
+    await host.getByRole("button", { name: "Afficher ma manette", exact: true }).click();
     await advance(host, "transition");
     await advance(host, "intro");
 
@@ -213,9 +219,10 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
     expect(new Set(randomProducts).size).toBe(5);
     expect(randomProducts.every((name) => !products.includes(name))).toBe(true);
     await presentationsAndRatings(randomProducts);
-    await expect(host.locator(".product-reveal").first()).not.toContainText(
-      "Imaginé par",
+    await expect(host.locator(".show-product-grid article").first()).not.toContainText(
+      "Inventé par",
     );
+    await host.getByRole("button", { name: "Afficher ma manette", exact: true }).click();
     await advance(host, "transition");
     await advance(host, "intro");
 
@@ -268,13 +275,16 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
           })
           .click();
       }
-      await expect(page.locator(".vote-confirmation")).toBeVisible();
+      if (i < pages.length - 1)
+        await expect(page.locator(".vote-confirmation")).toBeVisible();
     }
     expect(jurors).toBe(1);
     await advance(host, "results");
-    await expect(host.locator(".verdict-stamp")).toHaveText("NON COUPABLE !");
+    await host.getByRole("button", { name: "Afficher la scène", exact: true }).click();
+    await expect(host.locator(".show-result-title h2")).toHaveText("Innocent !");
     await expect(pages[1]!.getByText(note, { exact: true })).toHaveCount(0);
-    await expect(host.locator(".round-points")).not.toContainText(names[4]!);
+    await expect(host.locator(".show-stage")).not.toContainText(note);
+    await host.getByRole("button", { name: "Afficher ma manette", exact: true }).click();
     await advance(host, "transition");
     await advance(host, "intro");
 
@@ -290,16 +300,17 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
           .locator(".vote-option")
           .filter({ hasText: names[index === 0 ? 1 : 0]! })
           .click();
-        await expect(page.locator(".vote-confirmation")).toBeVisible();
       }),
     );
     await advance(host, "results");
-    await expect(host.locator(".who-results > div").first()).toContainText(
+    await host.getByRole("button", { name: "Afficher la scène", exact: true }).click();
+    await expect(host.locator(".show-vote-bars > div").first()).toContainText(
       names[0]!,
     );
-    await expect(host.locator(".who-results > div").first()).toContainText(
+    await expect(host.locator(".show-vote-bars > div").first()).toContainText(
       "4 votes",
     );
+    await host.getByRole("button", { name: "Afficher ma manette", exact: true }).click();
     await advance(host, "transition");
     await advance(host, "intro");
 
@@ -336,6 +347,7 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
           pages[1]!.getByText(captions[0]!, { exact: true }),
         ).toHaveCount(0);
     }
+    await advance(host, "voting");
     await Promise.all(
       pages.map(async (page, index) => {
         await phase(page, "voting");
@@ -346,21 +358,24 @@ test("cinq navigateurs : inventions privées, ventes, tribunal, soupçons et lé
           .locator(".vote-option")
           .filter({ hasText: captions[(index + 1) % 5]! })
           .click();
-        await expect(page.locator(".vote-confirmation")).toBeVisible();
       }),
     );
     await advance(host, "results");
-    await expect(host.locator(".revealed-answer")).toHaveCount(5);
-    await expect(host.locator(".round-points > div")).toHaveCount(5);
+    await host.getByRole("button", { name: "Afficher la scène", exact: true }).click();
+    await expect(host.locator(".show-authors article")).toHaveCount(5);
+    await expect(host.locator(".show-score-gains > div")).toHaveCount(5);
+    await host.getByRole("button", { name: "Afficher ma manette", exact: true }).click();
     await advance(host, "podium");
     await Promise.all(pages.map((page) => phase(page, "podium")));
-    await expect(host.locator(".podium-player")).toHaveCount(3);
     await expect(host.locator(".leaderboard-row")).toHaveCount(5);
     expect(
       (await host.locator(".leaderboard-score > strong").allInnerTexts()).every(
         (score) => Number(score.replace(/\D/g, "")) > 0,
       ),
     ).toBe(true);
+    await host.getByRole("button", { name: "Afficher la scène", exact: true }).click();
+    await expect(host.locator(".show-podium-place")).toHaveCount(3);
+    await expect(host.locator(".show-final-ranking li")).toHaveCount(5);
     expect(errors).toEqual([]);
   } finally {
     for (const context of contexts) await context.close();

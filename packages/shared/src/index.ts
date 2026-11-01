@@ -1,3 +1,5 @@
+/** Increment only when the client/server event contract becomes incompatible. */
+export const PROTOCOL_VERSION = 1;
 export const GAME_IDS = [
   "mythos",
   "pitch",
@@ -8,12 +10,16 @@ export const GAME_IDS = [
 export type GameId = (typeof GAME_IDS)[number];
 export type Phase =
   | "lobby"
+  | "party-intro"
   | "intro"
+  | "rules"
   | "writing"
   | "prepare"
   | "presenting"
+  | "reveal"
   | "voting"
   | "results"
+  | "leaderboard"
   | "transition"
   | "podium";
 export interface GameInfo {
@@ -131,6 +137,10 @@ export interface RoomConfig {
   allowVoteChange: boolean;
   allowSelfVoteWho: boolean;
   whoNoPoints: boolean;
+  noPoints: boolean;
+  reactionsEnabled: boolean;
+  secretRoles: boolean;
+  autoAdvance: boolean;
   leaderboard: "round" | "game" | "final";
   adult: boolean;
   disabledCategories: string[];
@@ -158,6 +168,10 @@ export const DEFAULT_CONFIG: RoomConfig = {
   allowVoteChange: true,
   allowSelfVoteWho: false,
   whoNoPoints: false,
+  noPoints: false,
+  reactionsEnabled: true,
+  secretRoles: false,
+  autoAdvance: true,
   leaderboard: "round",
   adult: false,
   disabledCategories: [],
@@ -233,7 +247,9 @@ export interface RoundView {
 }
 export interface PrivateView {
   id: string;
+  eligible: boolean;
   submitted: boolean;
+  prepared: boolean;
   voted: boolean;
   answer?: string;
   answerId?: string;
@@ -241,11 +257,30 @@ export interface PrivateView {
   vote?: string;
   ratings?: Record<string, [number, number, number]>;
   courtRole?: string;
+  secretMission?: { word: string; instruction: string; completed: boolean };
+}
+export interface ParticipationProgress {
+  kind: "ready" | "answers" | "products" | "prepared" | "votes" | "ratings" | "verdicts" | "bonus-votes";
+  label: string;
+  completed: number;
+  total: number;
+}
+export const REACTIONS = ["😂", "😱", "👏", "💀", "🤡", "❤️"] as const;
+export interface ReactionView {
+  id: string;
+  playerId: string;
+  reaction: string;
+  createdAt: number;
 }
 export interface RoomSnapshot {
   code: string;
   hostId: string;
   phase: Phase;
+  phaseStartedAt: number;
+  progress: ParticipationProgress[];
+  manualAdvanceRequired: boolean;
+  awaitingHost: boolean;
+  reactions: ReactionView[];
   config: RoomConfig;
   players: PlayerView[];
   playlist: PlaylistItem[];
@@ -256,6 +291,7 @@ export interface RoomSnapshot {
   me: PrivateView;
   deadline: number | null;
   paused: boolean;
+  pausedAt?: number;
   serverTime: number;
   inviteUrl: string;
   message: string;
@@ -274,6 +310,7 @@ export interface Ack {
   session?: Session;
 }
 export type Action =
+  | { type: "prepared" }
   | { type: "answer"; text: string }
   | { type: "product"; name: string; description: string }
   | { type: "vote"; targetId: string }
@@ -287,7 +324,7 @@ export type Action =
   | { type: "verdict"; guilty: boolean; bestPlayerId?: string };
 export interface ClientEvents {
   "room:create": (
-    data: { name: string; avatar: string },
+    data: { name: string; avatar: string; hostPlays?: boolean },
     ack: (result: Ack) => void,
   ) => void;
   "room:join": (
@@ -302,6 +339,8 @@ export interface ClientEvents {
     ack: (result: Ack) => void,
   ) => void;
   "room:action": (data: Action, ack: (result: Ack) => void) => void;
+  "room:react": (data: { reaction: string }, ack: (result: Ack) => void) => void;
+  "room:skip-player": (data: { playerId: string }, ack: (result: Ack) => void) => void;
   "room:advance": (
     data: { skip?: boolean },
     ack: (result: Ack) => void,

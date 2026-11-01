@@ -1,0 +1,68 @@
+name: Construire le jeu PC Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'packages/content/**'
+      - 'package-lock.json'
+      - '.github/workflows/desktop-windows.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'packages/content/**'
+      - 'package-lock.json'
+      - '.github/workflows/desktop-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test -w @en-vrille/desktop
+      - run: npm run typecheck
+      - name: Construire installateur, version portable et contenu local
+        run: npm run dist:win -w @en-vrille/desktop
+      - name: Tester le véritable exécutable Windows
+        run: npm run test:packaged -w @en-vrille/desktop
+      - name: Préparer le dépôt SteamPipe sans publication
+        run: npm run steam:prepare -w @en-vrille/desktop
+      - uses: actions/upload-artifact@v4
+        with:
+          name: EN-VRILLE-Windows-x64
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/SHA256SUMS.txt
+            apps/desktop/steam/output/
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desktop-test-evidence
+          path: apps/desktop/release/test-evidence/
+          retention-days: 7

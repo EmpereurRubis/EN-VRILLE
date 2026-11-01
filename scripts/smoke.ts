@@ -19,6 +19,7 @@ type Client = {
   session?: Session;
 };
 const clients: Client[] = [];
+const lastRequestAt = new WeakMap<Client, number>();
 async function waitFor(
   check: () => boolean | Promise<boolean>,
   message: string,
@@ -33,11 +34,13 @@ async function waitFor(
 function assert(value: unknown, message: string): asserts value {
   if (!value) throw new Error(message);
 }
-async function connect() {
+async function connect(desktop = false) {
   const socket: Client["socket"] = io(address, {
     transports: ["websocket"],
     reconnection: false,
     timeout: 10000,
+    auth: { protocolVersion: 1, clientKind: desktop ? "desktop" : "web" },
+    ...(desktop ? { extraHeaders: { Origin: "app://game" } } : {}),
   });
   const client: Client = { socket };
   clients.push(client);
@@ -55,6 +58,9 @@ async function send(
   event: keyof ClientEvents,
   payload: unknown = {},
 ) {
+  // A full playlist runs faster than human input; stay within the public event limit.
+  await delay(Math.max(0, 165 - (Date.now() - (lastRequestAt.get(client) || 0))));
+  lastRequestAt.set(client, Date.now());
   const ack = await new Promise<Ack>((resolve, reject) => {
     (
       client.socket.timeout(12000).emit as unknown as (
@@ -91,10 +97,13 @@ try {
         `Asset indisponible : ${asset}`,
       );
   }
-  const host = await connect();
+  const desktopHealth = await fetch(`${address}/api/health`, { headers: { Origin: "app://game" } });
+  assert(desktopHealth.ok && desktopHealth.headers.get("access-control-allow-origin") === "app://game", "L’API n’accepte pas l’origine du jeu PC.");
+  assert((await desktopHealth.json()).protocolVersion === 1, "Protocole PC incompatible.");
+  const host = await connect(true);
   await send(host, "room:create", { name: "Test Hôte", avatar: AVATARS[0] });
   assert(host.session, "Session hôte manquante.");
-  for (let index = 1; index < 5; index++) {
+  for (let index = 1; index < 8; index++) {
     const player = await connect();
     await send(player, "room:join", {
       code: host.session.code,
@@ -107,6 +116,7 @@ try {
     ...DEFAULT_CONFIG,
     allowVoteChange: true,
     balanced: false,
+    autoAdvance: false,
     playlist: [
       { gameId: "mythos", rounds: 1 },
       { gameId: "pitch", rounds: 1, pitchMode: "invented" },
@@ -118,7 +128,7 @@ try {
   });
   await send(host, "room:start");
   const completed = new Set<string>();
-  for (let guard = 0; guard < 120; guard++) {
+  for (let guard = 0; guard < 240; guard++) {
     const room = host.room!;
     assert(!room.paused, room.message);
     if (room.phase === "podium") break;
@@ -142,10 +152,29 @@ try {
             type: "answer",
             text: `Réponse originale du joueur ${index} : le grille-pain a tout organisé.`,
           });
+        const latest = host.room!;
+        if (index < clients.length - 1) {
+          const progress = latest.progress.find((item) =>
+            item.kind === "answers" || item.kind === "products",
+          );
+          assert(
+            progress?.completed === index + 1 && progress.total === 8,
+            `Compteur de participation incorrect après ${index + 1}/8 envois.`,
+          );
+          const other = clients[(index + 1) % clients.length].room!;
+          assert(other.round!.answers.length === 0, "Réponse divulguée pendant l’écriture.");
+        }
       }
       await waitFor(
         () => host.room?.phase !== "writing",
         "Les réponses complètes n’ont pas fait avancer la manche.",
+      );
+    } else if (room.phase === "prepare") {
+      for (const player of clients)
+        await send(player, "room:action", { type: "prepared" });
+      await waitFor(
+        () => host.room?.phase !== "prepare",
+        "La préparation complète n’a pas fait avancer la manche.",
       );
     } else if (room.phase === "voting") {
       for (const [index, player] of clients.entries()) {
@@ -193,7 +222,10 @@ try {
           });
         }
       }
-      await send(host, "room:advance");
+      await waitFor(
+        () => host.room?.phase !== "voting",
+        "Les votes complets n’ont pas clôturé le scrutin.",
+      );
     } else {
       if (room.phase === "results")
         completed.add(`${room.gameIndex}:${room.round!.gameId}`);
@@ -230,7 +262,7 @@ try {
       }
     }, "L’API n’a pas redémarré correctement.");
   }
-  const resumed = await connect();
+  const resumed = await connect(true);
   await send(resumed, "room:resume", session);
   assert(
     resumed.room!.players.find((player) => player.id === session.playerId)!
@@ -238,7 +270,7 @@ try {
     "Score perdu à la reconnexion.",
   );
   console.log(
-    `OK ${address} : 5 joueurs, 5 jeux, 2 modes de vente, votes, podium, reconnexion${process.env.SMOKE_RESTART_API === "1" ? " et persistance après redémarrage API" : ""}.`,
+    `OK ${address} : 8 joueurs, compteurs exacts, 5 jeux, 2 modes de vente, votes, podium, reconnexion${process.env.SMOKE_RESTART_API === "1" ? " et persistance après redémarrage API" : ""}.`,
   );
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

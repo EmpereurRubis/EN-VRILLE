@@ -37,7 +37,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --workspace @en-vrille/api --workspace @en-vrille/web --workspace @en-vrille/shared --workspace @en-vrille/content --include-workspace-root
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
@@ -72,7 +72,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm ci --workspace @en-vrille/api --workspace @en-vrille/web --workspace @en-vrille/shared --workspace @en-vrille/content --include-workspace-root
       - name: Construire les images de production
         run: |
           docker build -t en-vrille-web:test -f deploy/web.Dockerfile .

@@ -15,6 +15,8 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
     .getByRole("button", { name: "Créer une partie", exact: true })
     .first()
     .click();
+  await host.getByRole("button", { name: "Préparer le programme", exact: true }).click();
+  await host.getByRole("button", { name: "Continuer", exact: true }).click();
   await host
     .getByRole("textbox", { name: "Ton pseudo", exact: true })
     .fill("Camille");
@@ -33,8 +35,10 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
   const bobContext = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
+  const tvContext = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
   const alice = await aliceContext.newPage();
   const bob = await bobContext.newPage();
+  const tv = await tvContext.newPage();
   try {
     for (const [guest, name] of [
       [alice, "Alex"],
@@ -55,6 +59,9 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
     }
     await expect(host.getByText("3/12 joueurs", { exact: true })).toBeVisible();
     await expect(alice.getByTestId("room-code")).toHaveText(code);
+    await tv.goto(`/?room=${code}&screen=1`);
+    await tv.getByRole("button", { name: "Rejoindre le salon", exact: true }).click();
+    await expect(tv.locator(".show-stage")).toBeVisible();
     expect(
       await alice.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -79,10 +86,11 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
     await host
       .getByRole("button", { name: "Lancer la soirée", exact: true })
       .click();
-    await phase(host, "intro");
-    await host
-      .getByRole("button", { name: "Étape suivante", exact: true })
-      .click();
+    await phase(host, "party-intro");
+    for (const next of ["intro", "rules", "writing"]) {
+      await host.getByRole("button", { name: "Étape suivante", exact: true }).click();
+      await phase(host, next);
+    }
     await phase(host, "writing");
 
     const answers = [
@@ -99,10 +107,13 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
         .getByRole("button", { name: "Envoyer ma réponse", exact: true })
         .click();
       if (index === 0)
-        await expect(alice.getByText(answers[0], { exact: true })).toHaveCount(
-          0,
-        );
+        for (const other of [alice, tv])
+          await expect(other.getByText(answers[0], { exact: true })).toHaveCount(0);
     }
+    await phase(host, "reveal");
+    await expect(tv.locator(".show-reveal-answers > div").first()).toBeVisible();
+    await tv.screenshot({ path: ".local/scene-tv.png", fullPage: true });
+    await host.getByRole("button", { name: "Étape suivante", exact: true }).click();
     await phase(host, "voting");
     for (const [index, player] of [host, alice, bob].entries()) {
       await phase(player, "voting");
@@ -111,9 +122,6 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
         .filter({ hasText: answers[(index + 1) % 3] })
         .click();
     }
-    await host
-      .getByRole("button", { name: "Étape suivante", exact: true })
-      .click();
     await phase(host, "results");
     await phase(alice, "results");
     await host.reload();
@@ -122,6 +130,8 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
     await host
       .getByRole("button", { name: "Étape suivante", exact: true })
       .click();
+    await phase(host, "leaderboard");
+    await host.getByRole("button", { name: "Étape suivante", exact: true }).click();
     await phase(host, "podium");
     await phase(bob, "podium");
     await expect(
@@ -132,6 +142,7 @@ test("trois navigateurs : lobby, réponses privées, votes, podium et reconnexio
   } finally {
     await aliceContext.close();
     await bobContext.close();
+    await tvContext.close();
   }
 });
 
@@ -163,6 +174,8 @@ test("accueil mobile, catalogue, accessibilité du dialogue et animations rédui
     .getByRole("button", { name: "Créer une partie", exact: true })
     .first()
     .click();
+  await page.getByRole("button", { name: "Préparer le programme", exact: true }).click();
+  await page.getByRole("button", { name: "Continuer", exact: true }).click();
   await expect(
     page.getByRole("textbox", { name: "Ton pseudo", exact: true }),
   ).toBeVisible();

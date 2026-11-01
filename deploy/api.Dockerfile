@@ -5,7 +5,7 @@ COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 COPY packages/shared/package.json packages/shared/package.json
 COPY packages/content/package.json packages/content/package.json
-RUN npm ci
+RUN npm ci --workspace @en-vrille/api --workspace @en-vrille/web --workspace @en-vrille/shared --workspace @en-vrille/content --include-workspace-root
 COPY apps/api apps/api
 COPY packages packages
 RUN npm run build --workspace @en-vrille/api

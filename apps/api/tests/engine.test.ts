@@ -36,6 +36,13 @@ async function setup(
   };
 }
 
+function participation(engine: GameEngine, room: import("../src/model.js").Room, host: string) {
+  while (["party-intro", "intro", "rules"].includes(room.phase)) engine.advance(room.code, host);
+}
+function finishResults(engine: GameEngine, room: import("../src/model.js").Room, host: string) {
+  engine.advance(room.code, host);
+  if (room.phase === "leaderboard") engine.advance(room.code, host);
+}
 describe("moteur autoritaire", () => {
   it("ne divulgue aucun produit attribué dans la consigne publique avant les présentations", async () => {
     const { engine, room, host, sessions } = await setup([
@@ -58,7 +65,7 @@ describe("moteur autoritaire", () => {
     expect(() =>
       engine.action(room.code, host, { type: "answer", text: "trop tôt" }),
     ).toThrow();
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.action(room.code, host, {
       type: "answer",
       text: "La réponse secrète d’Alice",
@@ -71,7 +78,8 @@ describe("moteur autoritaire", () => {
     expect(JSON.stringify(privateSnapshot)).not.toContain("tokenHash");
     for (const id of ids.slice(1))
       engine.action(room.code, id, { type: "answer", text: `Réponse ${id}` });
-    expect(room.phase).toBe("voting");
+    expect(room.phase).toBe("reveal");
+    engine.advance(room.code, host);
     expect(
       engine.snapshot(room, host).round!.answers.every((a) => !a.authorId),
     ).toBe(true);
@@ -85,15 +93,13 @@ describe("moteur autoritaire", () => {
       const answer = room.round!.answers.find((a) => a.authorId !== id)!;
       engine.action(room.code, id, { type: "vote", targetId: answer.id });
     }
-    expect(engine.snapshot(room, host).round?.voteCounts).toBeUndefined();
-    engine.advance(room.code, host);
     expect(room.phase).toBe("results");
     expect(
       engine.snapshot(room, host).round!.answers.every((a) => !!a.authorId),
     ).toBe(true);
     const total = room.players.reduce((n, p) => n + p.score, 0);
     expect(total).toBeGreaterThan(0);
-    engine.advance(room.code, host);
+    finishResults(engine, room, host);
     expect(room.phase).toBe("podium");
     expect(room.players.reduce((n, p) => n + p.score, 0)).toBe(total);
     await engine.flush();
@@ -104,13 +110,13 @@ describe("moteur autoritaire", () => {
     clock(3000);
     engine.pause(room.code, host, true);
     clock(120_000);
-    expect(room.phase).toBe("intro");
+    expect(room.phase).toBe("party-intro");
     expect(room.deadline).toBeNull();
     engine.pause(room.code, host, false);
-    clock(4999);
-    expect(room.phase).toBe("intro");
+    clock(2999);
+    expect(room.phase).toBe("party-intro");
     clock(1);
-    expect(room.phase).toBe("writing");
+    expect(room.phase).toBe("intro");
   });
   it("admet les arrivants en spectateur et les intègre à la manche suivante", async () => {
     const { engine, room, host } = await setup([
@@ -123,7 +129,7 @@ describe("moteur autoritaire", () => {
         .snapshot(room, late.session.playerId)
         .players.find((p) => p.id === late.session.playerId)?.spectator,
     ).toBe(true);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     expect(() =>
       engine.action(room.code, late.session.playerId, {
         type: "answer",
@@ -132,21 +138,24 @@ describe("moteur autoritaire", () => {
     ).toThrow("prochaine");
     engine.advance(room.code, host);
     engine.advance(room.code, host);
-    engine.advance(room.code, host);
+    finishResults(engine, room, host);
     expect(room.roundNumber).toBe(2);
     expect(room.round?.participantIds).toContain(late.session.playerId);
   });
   it("les absents ne bloquent ni la collecte ni la clôture automatique", async () => {
     const { engine, room, host, sessions, clock } = await setup();
     engine.start(room.code, host);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.disconnect(room.code, sessions[4]!.playerId);
     for (const session of sessions.slice(0, 4))
       engine.action(room.code, session.playerId, {
         type: "answer",
         text: "Réponse présente",
       });
-    expect(room.phase).toBe("voting");
+    expect(room.phase).toBe("writing");
+    clock(10_000);
+    expect(room.phase).toBe("reveal");
+    engine.advance(room.code, host);
     clock(room.config.voteSeconds * 1000);
     expect(room.phase).toBe("results");
     expect(room.players.every((p) => p.score === 0)).toBe(true);
@@ -156,7 +165,7 @@ describe("moteur autoritaire", () => {
       { gameId: "pitch", rounds: 1, pitchMode: "invented" },
     ]);
     engine.start(room.code, host);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.action(room.code, host, {
       type: "product",
       name: "Mon grille-pain déprimé",
@@ -182,7 +191,7 @@ describe("moteur autoritaire", () => {
       allowVoteChange: false,
     });
     engine.start(room.code, host);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.action(room.code, host, {
       type: "vote",
       targetId: sessions[1]!.playerId,
@@ -213,13 +222,12 @@ describe("moteur autoritaire", () => {
     ]);
     engine.configure(room.code, host, { ...room.config, leaderboard: "final" });
     engine.start(room.code, host);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     for (const s of sessions)
       engine.action(room.code, s.playerId, {
         type: "vote",
         targetId: s.playerId === host ? sessions[1]!.playerId : host,
       });
-    engine.advance(room.code, host);
     const snapshot = engine.snapshot(room, host);
     expect(snapshot.scoresVisible).toBe(false);
     expect(
@@ -240,7 +248,7 @@ describe("moteur autoritaire", () => {
     );
     engine.start(room.code, host);
     const firstRoles = structuredClone(room.round!.roles!);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.action(room.code, host, {
       type: "answer",
       text: "Notes privées pour ma plaidoirie",
@@ -272,7 +280,7 @@ describe("moteur autoritaire", () => {
     expect(
       JSON.stringify(engine.snapshot(room, sessions[1]!.playerId)),
     ).not.toContain("Notes privées");
-    engine.advance(room.code, host);
+    finishResults(engine, room, host);
     expect(room.round!.roles!.accused).not.toBe(firstRoles.accused);
     expect(sessions).toHaveLength(6);
   });
@@ -350,7 +358,7 @@ describe("moteur autoritaire", () => {
               targetId: round.answers.find((a) => a.authorId !== id)!.id,
             });
         }
-        engine.advance(room.code, host);
+        expect(room.phase).toBe("results");
       } else engine.advance(room.code, host);
     }
     expect(safety).toBeLessThan(120);
@@ -374,7 +382,7 @@ describe("moteur autoritaire", () => {
   it("restaure scores, réponses privées et identités avec une soirée mise en pause", async () => {
     const { engine, store, room, host, sessions } = await setup();
     engine.start(room.code, host);
-    engine.advance(room.code, host);
+    participation(engine, room, host);
     engine.action(room.code, host, { type: "answer", text: "Persistant" });
     await engine.flush();
     const restored = new GameEngine({ store, now: () => 1_000_100 });

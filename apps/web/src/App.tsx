@@ -51,6 +51,8 @@ import {
 import {
   AVATARS,
   DEFAULT_CONFIG,
+  PROTOCOL_VERSION,
+  REACTIONS,
   GAMES,
   type Ack,
   type Action,
@@ -63,11 +65,17 @@ import {
   type Session,
 } from "@en-vrille/shared";
 import { useTheme, type ThemePreference } from "./theme";
+import { ShowProvider, ShowSettings, MainMenu, SceneStage, FullscreenButton, IntroSplash } from "./show";
+import "./show/show.css";
+import { desktop, isDesktop, serverOrigin, serverFetch, serverResource, validateServerUrl } from "./backend";
 
-const socket: Socket<ServerEvents, ClientEvents> = io({
+const socket: Socket<ServerEvents, ClientEvents> = io(serverOrigin || undefined, {
   autoConnect: true,
   reconnection: true,
+  auth: { protocolVersion: PROTOCOL_VERSION, clientKind: isDesktop ? "desktop" : "web" },
 });
+const sessionStore = isDesktop ? localStorage : sessionStorage;
+const SESSION_STORAGE_KEY = isDesktop ? `vrille-session:${serverOrigin}` : "vrille-session";
 type Event = keyof ClientEvents;
 type Screen = "home" | "games" | "rules";
 const icons: Record<GameId, typeof Sparkles> = {
@@ -170,13 +178,13 @@ function App() {
   const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
-  const [dialog, setDialog] = useState<"create" | "join" | "settings" | null>(
+  const [dialog, setDialog] = useState<"create" | "join" | "settings" | "credits" | null>(
     null,
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [connected, setConnected] = useState(socket.connected);
-  const [volume, setVolume] = useState(() => saved("vrille-volume", 35));
+  const [connectionError, setConnectionError] = useState("");
   const [reduced, setReduced] = useState(() =>
     saved(
       "vrille-reduced",
@@ -184,8 +192,6 @@ function App() {
     ),
   );
   const [toast, setToast] = useState("");
-  const audio = useRef<AudioContext | null>(null);
-  const lastPhase = useRef("");
   const resumedSocket = useRef<string | undefined>(undefined);
   const notify = useCallback((message: string) => {
     setToast(message);
@@ -221,8 +227,8 @@ function App() {
           if (!ack?.ok)
             setError(ack?.error || "Cette action n’a pas pu être effectuée.");
           if (ack?.session)
-            sessionStorage.setItem(
-              "vrille-session",
+            sessionStore.setItem(
+              SESSION_STORAGE_KEY,
               JSON.stringify(ack.session),
             );
           if (ack?.room) setRoom(ack.room);
@@ -235,82 +241,47 @@ function App() {
   useEffect(() => {
     const connect = () => {
       setConnected(true);
+      setConnectionError("");
       try {
         const s = JSON.parse(
-          sessionStorage.getItem("vrille-session") || "null",
+          sessionStore.getItem(SESSION_STORAGE_KEY) || "null",
         ) as Session | null;
         if (s && resumedSocket.current !== socket.id) {
           resumedSocket.current = socket.id;
           void request("room:resume", s).then((ack) => {
-            if (!ack.ok) sessionStorage.removeItem("vrille-session");
+            if (!ack.ok) sessionStore.removeItem(SESSION_STORAGE_KEY);
           });
         }
       } catch {
-        sessionStorage.removeItem("vrille-session");
+        sessionStore.removeItem(SESSION_STORAGE_KEY);
       }
     };
     const disconnect = () => setConnected(false);
+    const connectionFailed = (error: Error) => setConnectionError(error.message || "Le serveur ne répond pas.");
     socket.on("connect", connect);
     socket.on("disconnect", disconnect);
+    socket.on("connect_error", connectionFailed);
     socket.on("room:state", setRoom);
     socket.on("server:error", setError);
     if (socket.connected) connect();
     return () => {
       socket.off("connect", connect);
       socket.off("disconnect", disconnect);
+      socket.off("connect_error", connectionFailed);
       socket.off("room:state", setRoom);
       socket.off("server:error", setError);
     };
   }, [request]);
   useEffect(() => {
-    localStorage.setItem("vrille-volume", JSON.stringify(volume));
-  }, [volume]);
-  useEffect(() => {
-    localStorage.setItem("vrille-reduced", JSON.stringify(reduced));
+    try { localStorage.setItem("vrille-reduced", JSON.stringify(reduced)); } catch { /* optional storage */ }
   }, [reduced]);
-  useEffect(() => {
-    if (!room) return;
-    if (
-      lastPhase.current &&
-      lastPhase.current !== room.phase &&
-      volume > 0 &&
-      audio.current
-    ) {
-      const ctx = audio.current;
-      const gain = ctx.createGain();
-      const tone = ctx.createOscillator();
-      gain.gain.setValueAtTime(volume / 600, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
-      tone.type = "sine";
-      tone.frequency.setValueAtTime(
-        room.phase === "results" ? 660 : 440,
-        ctx.currentTime,
-      );
-      tone.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.16);
-      tone.connect(gain);
-      gain.connect(ctx.destination);
-      tone.start();
-      tone.stop(ctx.currentTime + 0.23);
-    }
-    lastPhase.current = room.phase;
-  }, [room?.phase, volume]);
   useEffect(() => {
     if (new URLSearchParams(location.search).has("room")) setDialog("join");
   }, []);
-  const unlockAudio = () => {
-    if (!audio.current) {
-      try {
-        audio.current = new AudioContext();
-      } catch {
-        /* audio is optional */
-      }
-    }
-    void audio.current?.resume();
-  };
   const leave = async () => {
     const ack = await request("room:leave");
     if (ack.ok) {
-      sessionStorage.removeItem("vrille-session");
+      sessionStore.removeItem(SESSION_STORAGE_KEY);
       setRoom(null);
       setScreen("home");
       setError("");
@@ -319,9 +290,9 @@ function App() {
   const admin = location.pathname.startsWith("/admin");
   return (
     <MotionConfig reducedMotion={reduced ? "always" : "user"}>
+      <ShowProvider reducedMotion={reduced}>
       <div
-        className={`app ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
-        onPointerDown={unlockAudio}
+        className={`app ${isDesktop ? "desktop-client" : ""} ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
       >
         <header className="site-header">
           <button
@@ -354,6 +325,7 @@ function App() {
             </nav>
           )}
           <div className="header-actions">
+            <FullscreenButton />
             {room && (
               <span className="room-chip">
                 SALON <strong>{room.code}</strong>
@@ -392,10 +364,9 @@ function App() {
             )}
           </div>
         </header>
-        {!connected && (
+        {!connected && !isDesktop && (
           <div className="connection-banner" role="status">
-            <LoaderCircle size={16} className="spin" /> Connexion au serveur…
-            Votre partie est conservée.
+            <LoaderCircle size={16} className="spin" /> {connectionError || "Connexion au serveur… Votre partie est conservée."}
           </div>
         )}
         {error && (
@@ -406,11 +377,14 @@ function App() {
             </button>
           </div>
         )}
+        {isDesktop && !connected && !room && <DesktopConnection compact problem={connectionError} hasRoom={false} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>}
         <main>
-          {admin ? (
+          {isDesktop && !connected && room ? (
+            <DesktopConnection problem={connectionError} hasRoom={!!room} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>
+          ) : admin ? (
             <Admin />
           ) : room ? (
-            <Room room={room} request={request} notify={notify} />
+            <Room room={room} request={request} notify={notify} onLeave={() => void leave()} />
           ) : (
             <AnimatePresence mode="wait">
               <motion.div
@@ -421,12 +395,16 @@ function App() {
                 transition={{ duration: 0.2 }}
               >
                 {screen === "home" ? (
-                  <Home
-                    create={() => setDialog("create")}
-                    join={() => setDialog("join")}
-                    games={() => setScreen("games")}
-                    rules={() => setScreen("rules")}
-                  />
+                  <>
+                    <IntroSplash />
+                    <MainMenu
+                      onCreate={() => setDialog("create")}
+                      onJoin={() => setDialog("join")}
+                      onRules={() => setScreen("rules")}
+                      onSettings={() => setDialog("settings")}
+                      onCredits={() => setDialog("credits")}
+                    />
+                  </>
                 ) : screen === "games" ? (
                   <GameCatalogue create={() => setDialog("create")} />
                 ) : (
@@ -441,16 +419,17 @@ function App() {
             <span className="footer-logo"><BrandMark /></span>
             <p>Des bons potes. Des mauvaises idées.</p>
             <span>Fait pour jouer ensemble.</span>
-            <a href="/admin" aria-label="Administration des contenus">
+            {!isDesktop && <a href="/admin" aria-label="Administration des contenus">
               <Shield size={16} />
-            </a>
+            </a>}
           </footer>
         )}
         <AnimatePresence>
           {dialog && (
             <Modal
               title={
-                dialog === "settings"
+                dialog === "credits" ? "Dans les coulisses."
+                : dialog === "settings"
                   ? "À votre sauce."
                   : dialog === "create"
                     ? "On lance les hostilités ?"
@@ -473,17 +452,8 @@ function App() {
                       <option value="dark">Sombre</option>
                     </select>
                   </label>
-                  <label className="field-label">
-                    Volume des effets <strong>{volume}%</strong>
-                    <input
-                      aria-label="Volume des effets"
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={volume}
-                      onChange={(e) => setVolume(Number(e.target.value))}
-                    />
-                  </label>
+                  <ShowSettings />
+                  {isDesktop && <ServerSettings />}
                   <Toggle
                     label="Réduire les animations"
                     description="Un peu moins de mouvement, toujours autant de mauvaise foi."
@@ -497,20 +467,30 @@ function App() {
                     C’est tout bon <Check size={18} />
                   </button>
                 </div>
+              ) : dialog === "credits" ? (
+                <div className="settings-content">
+                  <p><strong>EN VRILLE !</strong> — un jeu original de soirée par ERubis.</p>
+                  <p>Cinq mini-jeux, un présentateur dessiné pour l’émission, des illustrations originales et des sons synthétisés sur votre appareil.</p>
+                  <p className="muted">React · Socket.IO · PostgreSQL · Icônes Lucide · Typographie système.</p>
+                  <button className="button primary full" onClick={() => setDialog(null)}>Retour au plateau</button>
+                </div>
+              ) : dialog === "create" ? (
+                <CreateWizard busy={busy} submit={async (data, config) => {
+                  setBusy(true);
+                  const ack = await request("room:create", data);
+                  if (ack.ok) {
+                    const configured = await request("room:configure", config);
+                    if (configured.ok) setDialog(null);
+                  }
+                  setBusy(false);
+                }} />
               ) : (
-                <IdentityForm
-                  mode={dialog}
-                  busy={busy}
-                  submit={async (data) => {
-                    setBusy(true);
-                    const ack = await request(
-                      dialog === "create" ? "room:create" : "room:join",
-                      data,
-                    );
-                    setBusy(false);
-                    if (ack.ok) setDialog(null);
-                  }}
-                />
+                <IdentityForm mode="join" busy={busy} submit={async (data) => {
+                  setBusy(true);
+                  const ack = await request("room:join", data);
+                  setBusy(false);
+                  if (ack.ok) setDialog(null);
+                }} />
               )}
             </Modal>
           )}
@@ -530,8 +510,49 @@ function App() {
           )}
         </AnimatePresence>
       </div>
+      </ShowProvider>
     </MotionConfig>
   );
+}
+
+function DesktopConnection({ problem, hasRoom, onSettings, onRetry, compact = false }: {
+  problem: string; hasRoom: boolean; onSettings: () => void; onRetry: () => void; compact?: boolean;
+}) {
+  const Title = compact ? "h2" : "h1";
+  return <section className={`desktop-connection ${compact ? "desktop-connection-compact" : ""}`} aria-live="polite">
+    <div className="desktop-connection-signal"><Radio size={50}/>{!problem && <span/>}</div>
+    <div className="eyebrow">EN VRILLE · LIAISON AVEC LE PLATEAU</div>
+    <Title>{problem ? "Le plateau est momentanément indisponible." : hasRoom ? "On vous remet à l’antenne…" : "Connexion au plateau…"}</Title>
+    <p>{hasRoom ? "Votre place est conservée. Le jeu tentera de retrouver votre salon dès le retour de la connexion." : "Le menu et les ressources du jeu sont installés sur votre PC. Une connexion au serveur est nécessaire pour organiser une soirée."}</p>
+    <code>{serverOrigin}</code>
+    {problem && <p className="desktop-connection-detail">{problem}</p>}
+    <div><button className="button primary" onClick={onRetry}>Réessayer <ArrowRight size={18}/></button><button className="button outline" onClick={onSettings}>Réglages de connexion <Settings size={18}/></button></div>
+    <small>La reconnexion est automatique. Vérifiez votre accès Internet et l’adresse du serveur.</small>
+  </section>;
+}
+
+function ServerSettings() {
+  const [address, setAddress] = useState(serverOrigin);
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const bridge = desktop;
+  if (!bridge) return null;
+  return <section className="desktop-server-settings">
+    <h3>Connexion du jeu PC</h3>
+    <p className="small muted">Version {bridge.version} · Protocole {bridge.protocolVersion}</p>
+    <label className="field-label">Adresse du serveur<input type="url" aria-label="Adresse du serveur" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="https://envrille.erubis.fr"/></label>
+    <p className="fineprint">Les joueurs rejoignent l’adresse Web indiquée par le salon. Changer de serveur recharge le jeu et ferme la connexion actuelle.</p>
+    {message && <p role="alert" className="desktop-setting-error">{message}</p>}
+    <button className="button outline full" disabled={saving} onClick={() => {
+      try {
+        const url = validateServerUrl(address);
+        setSaving(true); setMessage("");
+        void bridge.setServerUrl(url).then(() => {
+          window.location.reload();
+        }).catch((error: unknown) => { setSaving(false); setMessage(error instanceof Error ? error.message : "L’adresse n’a pas pu être enregistrée."); });
+      } catch (error) { setMessage(error instanceof Error ? error.message : "Adresse invalide."); }
+    }}>{saving ? "Reconnexion…" : "Enregistrer et reconnecter"}<ArrowRight size={17}/></button>
+  </section>;
 }
 
 function Home({
@@ -814,7 +835,7 @@ function GameCatalogue({ create }: { create: () => void }) {
 }
 const gameRules: Record<GameId, string> = {
   mythos:
-    "Répondez à une question improbable, puis votez pour la meilleure explication. Les réponses sont anonymes jusqu’à la révélation et impossible de voter pour soi.",
+    "Répondez à une question improbable, découvrez les réponses puis votez pour la meilleure explication. Les auteurs restent anonymes jusqu’aux résultats et impossible de voter pour soi.",
   pitch:
     "Préparez une vente à l’oral. Si vous inventez les objets, le jeu les échange : personne ne vend sa propre invention. Notez l’humour, la conviction et la créativité de chaque vendeur de 1 à 5.",
   court:
@@ -825,17 +846,20 @@ const gameRules: Record<GameId, string> = {
 };
 
 function Rules({ create }: { create: () => void }) {
+  const [step, setStep] = useState(0);
   return (
     <section className="page-width inner-page rules-page">
       <div className="eyebrow">ÇA SE COMPREND AVANT LA PREMIÈRE CHIPS</div>
       <h1 className="page-title">On joue comment ?</h1>
+      <div className="tutorial-controls" aria-label="Choisir une étape du tutoriel">{["Créer", "Rejoindre", "Configurer", "Participer", "Célébrer"].map((label, index) => <button key={label} aria-pressed={step === index} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</div>
       <div className="rules-layout">
         <div>
+          <div className="tutorial-screens" aria-hidden="true"><div className="tutorial-stage"><Monitor size={64}/><strong>{["UN CODE POUR TOUT LE MONDE", "LA SCÈNE RACONTE", "VOTRE PROGRAMME", "LE SPECTACLE EN DIRECT", "LA SOIRÉE A SES LÉGENDES"][step]}</strong><span>La scène</span></div><div className="tutorial-controller"><Gamepad2 size={32}/><strong>{["ABCDEF", "C’est votre manette !", "5 jeux", "À vous de jouer", "+150 PTS"][step]}</strong><span>Votre téléphone</span></div></div>
           {[
             [
               "1",
               "Un hôte, un salon.",
-              "Cliquez sur « Créer une partie », choisissez un pseudo et partagez le code. Aucun compte à créer.",
+              "Cliquez sur « Créer une partie », composez le programme, choisissez un pseudo et partagez le code. Aucun compte à créer.",
             ],
             [
               "2",
@@ -858,7 +882,7 @@ function Rules({ create }: { create: () => void }) {
               "Le classement cumule les points de toute la soirée. En cas d’égalité, les vainqueurs partagent leur victoire. Une reconnexion retrouve votre place.",
             ],
           ].map(([n, title, text]) => (
-            <article className="rule" key={n}>
+            <article className="rule" key={n} hidden={Number(n) - 1 !== step}>
               <span>{n}</span>
               <div>
                 <h2>{title}</h2>
@@ -866,6 +890,7 @@ function Rules({ create }: { create: () => void }) {
               </div>
             </article>
           ))}
+          <div className="wizard-navigation"><button className="button outline" disabled={step === 0} onClick={() => setStep((value) => value - 1)}><ArrowLeft size={17}/>Précédent</button>{step < 4 ? <button className="button primary" onClick={() => setStep((value) => value + 1)}>Étape suivante <ArrowRight size={17}/></button> : <button className="button primary" onClick={create}>Créer ma soirée <ArrowRight size={17}/></button>}</div>
         </div>
         <aside className="rules-aside">
           <Mascot small />
@@ -954,6 +979,63 @@ function Modal({
   );
 }
 
+function CreateWizard({ busy, submit }: {
+  busy: boolean;
+  submit: (data: { name: string; avatar: string; hostPlays?: boolean }, config: RoomConfig) => void;
+}) {
+  const [step, setStep] = useState(0);
+  const [config, setConfig] = useState<RoomConfig>(() => structuredClone(DEFAULT_CONFIG));
+  const update = <K extends keyof RoomConfig>(key: K, value: RoomConfig[K]) => setConfig((previous) => ({ ...previous, [key]: value }));
+  return (
+    <div className="creation-wizard">
+      <ol className="wizard-steps" aria-label="Étapes de création">
+        {["L’ambiance", "Le programme", "Votre place"].map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined}><span>{index + 1}</span>{label}</li>)}
+      </ol>
+      {step === 0 ? <>
+        <h2>Qui choisit le programme ?</h2>
+        <div className="creation-modes">
+          <button className={config.mode === "custom" ? "selected" : ""} aria-pressed={config.mode === "custom"} onClick={() => update("mode", "custom")}><Gamepad2 size={34}/><strong>Sur mesure</strong><span>Choisissez vos jeux, leur ordre et leurs manches.</span></button>
+          <button className={config.mode === "random" ? "selected" : ""} aria-pressed={config.mode === "random"} onClick={() => update("mode", "random")}><Shuffle size={34}/><strong>Surprise !</strong><span>Le hasard compose votre émission.</span></button>
+        </div>
+        <button className="button primary full" onClick={() => setStep(1)}>Préparer le programme <ArrowRight size={18}/></button>
+      </> : step === 1 ? <>
+        <h2>{config.mode === "custom" ? "Composez votre soirée." : "Dosez la surprise."}</h2>
+        {config.mode === "custom" ? <>
+          <div className="wizard-playlist">
+            {config.playlist.map((item, index) => <div className="wizard-game" key={`${item.gameId}-${index}`}>
+              <strong>{gameInfo(item.gameId).shortName}</strong>
+              <NumberField label={`Manches ${index + 1}`} value={item.rounds} min={1} max={10} onChange={(rounds) => update("playlist", config.playlist.map((entry, i) => i === index ? { ...entry, rounds } : entry))}/>
+              {item.gameId === "pitch" && <select aria-label={`Mode des produits ${index + 1}`} value={item.pitchMode || "random"} onChange={(event) => update("playlist", config.playlist.map((entry, i) => i === index ? { ...entry, pitchMode: event.target.value as "random" | "invented" } : entry))}><option value="invented">Produits inventés</option><option value="random">Produits du jeu</option></select>}
+              <div className="wizard-game-actions">
+                <button aria-label={`Monter le jeu ${index + 1}`} className="mini-button" disabled={index === 0} onClick={() => { const entries = [...config.playlist]; [entries[index - 1], entries[index]] = [entries[index], entries[index - 1]]; update("playlist", entries); }}><ArrowUp size={15}/></button>
+                <button aria-label={`Supprimer le jeu ${index + 1}`} className="mini-button remove" onClick={() => update("playlist", config.playlist.filter((_, i) => i !== index))}><X size={15}/></button>
+              </div>
+            </div>)}
+          </div>
+          <div className="allowed-games">{GAMES.map((game) => <button key={game.id} disabled={config.playlist.length >= 12} onClick={() => update("playlist", [...config.playlist, { gameId: game.id, rounds: 1, ...(game.id === "pitch" ? { pitchMode: "invented" as const } : {}) }])}><Plus size={15}/>{game.shortName}</button>)}</div>
+        </> : <>
+          <div className="field-grid"><NumberField label="Nombre de jeux" value={config.randomCount} min={1} max={12} onChange={(value) => update("randomCount", value)}/><NumberField label="Manches par jeu (0 = surprise)" value={config.randomRounds} min={0} max={10} onChange={(value) => update("randomRounds", value)}/></div>
+          <div className="allowed-games">{GAMES.map((game) => <button className={config.allowedGames.includes(game.id) ? "selected" : ""} aria-pressed={config.allowedGames.includes(game.id)} key={game.id} onClick={() => update("allowedGames", config.allowedGames.includes(game.id) ? config.allowedGames.filter((id) => id !== game.id) : [...config.allowedGames, game.id])}>{game.shortName}</button>)}</div>
+          <Toggle label="Autoriser les répétitions" checked={config.allowRepeats} onChange={(value) => update("allowRepeats", value)}/>
+        </>}
+        <details className="wizard-options"><summary>Personnaliser les options</summary>
+          <div className="field-grid"><NumberField label="Réponse (secondes)" value={config.answerSeconds} min={15} max={180} onChange={(value) => update("answerSeconds", value)}/><NumberField label="Vote (secondes)" value={config.voteSeconds} min={10} max={120} onChange={(value) => update("voteSeconds", value)}/><NumberField label="Repère oral (secondes)" value={config.presentationSeconds} min={15} max={180} onChange={(value) => update("presentationSeconds", value)}/></div>
+          <Toggle label="Jouer sans points" checked={config.noPoints} onChange={(value) => update("noPoints", value)}/>
+          <Toggle label="Réactions du public" checked={config.reactionsEnabled} onChange={(value) => update("reactionsEnabled", value)}/>
+          <Toggle label="Missions secrètes" description="Un mot à glisser dans les réponses écrites et les inventions : +50 points si la mission est réussie." checked={config.secretRoles} onChange={(value) => update("secretRoles", value)}/>
+          <Toggle label="Enchaîner les scènes automatiquement" description="Les prises de parole restent toujours sous le contrôle de l’hôte." checked={config.autoAdvance} onChange={(value) => update("autoAdvance", value)}/>
+          <Toggle label="Humour adulte" checked={config.adult} onChange={(value) => update("adult", value)}/>
+        </details>
+        <p className="fineprint">Le casting et tous les réglages pourront être ajustés dans le salon. Le Tribunal demande 5 joueurs ; les autres jeux, 3.</p>
+        <div className="wizard-navigation"><button className="button outline" onClick={() => setStep(0)}><ArrowLeft size={17}/>Retour</button><button className="button primary" disabled={config.mode === "custom" ? !config.playlist.length : !config.allowedGames.length} onClick={() => setStep(2)}>Continuer <ArrowRight size={17}/></button></div>
+      </> : <>
+        <button className="text-button" onClick={() => setStep(1)}><ArrowLeft size={16}/>Modifier le programme</button>
+        <IdentityForm mode="create" busy={busy} submit={(data) => submit(data, config)}/>
+      </>}
+    </div>
+  );
+}
+
 function IdentityForm({
   mode,
   busy,
@@ -966,6 +1048,7 @@ function IdentityForm({
     avatar: string;
     code?: string;
     spectator?: boolean;
+    hostPlays?: boolean;
   }) => void;
 }) {
   const params = new URLSearchParams(location.search);
@@ -975,6 +1058,7 @@ function IdentityForm({
   );
   const [code, setCode] = useState(params.get("room")?.toUpperCase() || "");
   const [spectator, setSpectator] = useState(params.get("screen") === "1");
+  const [hostPlays, setHostPlays] = useState(!isDesktop);
   return (
     <form
       onSubmit={(e) => {
@@ -982,11 +1066,11 @@ function IdentityForm({
         localStorage.setItem("vrille-name", JSON.stringify(name));
         localStorage.setItem("vrille-avatar", JSON.stringify(avatar));
         submit({
-          name: spectator ? "Écran TV" : name.trim(),
+          name: mode === "join" && spectator ? "Écran TV" : name.trim(),
           avatar,
           ...(mode === "join"
             ? { code: code.toUpperCase().trim(), spectator }
-            : {}),
+            : { hostPlays }),
         });
       }}
     >
@@ -1007,7 +1091,7 @@ function IdentityForm({
           />
         </label>
       )}
-      {!spectator && (
+      {(mode === "create" || !spectator) && (
         <>
           <label className="field-label">
             Ton pseudo
@@ -1048,6 +1132,7 @@ function IdentityForm({
           description="Affichage collectif sans participer ni voter."
         />
       )}
+      {mode === "create" && <Toggle checked={hostPlays} onChange={setHostPlays} label="Je participe aussi" description="Désactivez pour animer uniquement : votre écran ne comptera pas comme joueur."/>}
       <button className="button primary full" type="submit" disabled={busy}>
         {busy ? (
           <LoaderCircle className="spin" size={20} />
@@ -1100,35 +1185,50 @@ function Toggle({
 }
 type Request = (event: Event, payload?: unknown) => Promise<Ack>;
 
-function Room({
-  room,
-  request,
-  notify,
-}: {
-  room: RoomSnapshot;
-  request: Request;
-  notify: (v: string) => void;
-}) {
+function Room({ room, request, notify, onLeave }: { room: RoomSnapshot; request: Request; notify: (v: string) => void; onLeave: () => void; }) {
   const host = room.me.id === room.hostId;
-  const me = room.players.find((p) => p.id === room.me.id);
+  const me = room.players.find((player) => player.id === room.me.id)!;
+  const [view, setView] = useState<"controller" | "stage">(isDesktop || me.spectator ? "stage" : "controller");
+  const stage = (me.spectator && !host) || view === "stage";
   return (
-    <div
-      data-testid="phase"
-      data-phase={room.phase}
-      className={`room-page page-width ${me?.spectator ? "tv-mode" : ""}`}
-    >
-      {room.phase === "lobby" ? (
-        <Lobby room={room} request={request} notify={notify} host={host} />
-      ) : (
-        <Gameplay
-          room={room}
-          request={request}
-          host={host}
-          spectator={!!me?.spectator}
-        />
-      )}
+    <div data-testid="phase" data-phase={room.phase} className={`room-page ${stage ? "scene-room" : "page-width controller-room"}`}>
+      {(!me.spectator || host) && <div className="room-view-switch" aria-label="Choisir son écran">
+        <button className={stage ? "" : "selected"} aria-pressed={!stage} onClick={() => setView("controller")}><Gamepad2 size={17}/>{me.spectator ? "Afficher la régie" : "Afficher ma manette"}</button>
+        <button className={stage ? "selected" : ""} aria-pressed={stage} onClick={() => setView("stage")}><Monitor size={17}/>Afficher la scène</button>
+      </div>}
+      {stage ? <SceneStage room={room} host={host} request={request} onController={me.spectator && !host ? undefined : () => setView("controller")} onMenu={onLeave}/>
+        : room.phase === "lobby" ? host ? <Lobby room={room} request={request} notify={notify} host={host}/> : <ControllerLobby room={room} request={request}/>
+        : <Gameplay room={room} request={request} host={host} spectator={me.spectator} onMenu={onLeave}/>}
     </div>
   );
+}
+
+function Participation({ room }: { room: RoomSnapshot }) {
+  return <div className="participation-list" aria-live="polite" aria-atomic="true">{(room.progress || []).map((progress) => <div className="participation" key={progress.kind}>
+    <div><strong>{progress.completed} / {progress.total}</strong><span>{progress.label}</span></div>
+    <div className="participation-track" role="progressbar" aria-label={progress.label} aria-valuemin={0} aria-valuemax={progress.total || 1} aria-valuenow={progress.completed}><motion.span animate={{ width: `${progress.total ? Math.min(100, progress.completed / progress.total * 100) : 0}%` }}/></div>
+  </div>)}</div>;
+}
+
+function Reactions({ room, request }: { room: RoomSnapshot; request: Request }) {
+  const [cooldown, setCooldown] = useState(false);
+  if (!room.config.reactionsEnabled) return null;
+  return <div className="controller-reactions" role="group" aria-label="Réagir à l’émission">{REACTIONS.map((reaction) => <button key={reaction} aria-label={`Réaction ${reaction}`} disabled={cooldown} onClick={() => { setCooldown(true); void request("room:react", { reaction }); window.setTimeout(() => setCooldown(false), 2100); }}>{reaction}</button>)}</div>;
+}
+
+function ControllerIdentity({ room }: { room: RoomSnapshot }) {
+  const me = room.players.find((player) => player.id === room.me.id)!;
+  return <div className="controller-identity"><Avatar player={me}/><div><strong>{me.name}</strong><small>Votre manette privée · Salon <span data-testid="room-code">{room.code}</span></small></div><span>{room.config.noPoints ? "POUR LE FUN" : !room.scoresVisible ? "SUSPENSE" : <><strong>{me.score.toLocaleString("fr-FR")}</strong> PTS</>}</span></div>;
+}
+
+function ControllerLobby({ room, request }: { room: RoomSnapshot; request: Request }) {
+  const me = room.players.find((player) => player.id === room.me.id)!;
+  return <div className="controller-shell">
+    <ControllerIdentity room={room}/>
+    <section className="panel controller-panel"><div className="eyebrow">LE CASTING PREND PLACE</div><h1>{me.ready ? "Vous êtes dans le casting !" : "Prêt à entrer en scène ?"}</h1><p>L’hôte prépare le programme. Votre téléphone vous indiquera quoi faire à chaque étape.</p><Participation room={room}/><button className={`button full large ${me.ready ? "green" : "primary"}`} aria-label="Je suis prêt" onClick={() => void request("room:ready", { ready: !me.ready })}>{me.ready ? <><Check size={21}/>Je suis prêt !</> : <>Je suis prêt <ArrowRight size={21}/></>}</button></section>
+    <div className="controller-casting">{room.players.filter((player) => !player.spectator).map((player) => <motion.div key={player.id} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}><Avatar player={player}/><span>{player.name}</span>{player.ready && <Check size={15}/>}</motion.div>)}</div>
+    <Reactions room={room} request={request}/>
+  </div>;
 }
 
 function Lobby({
@@ -1147,7 +1247,7 @@ function Lobby({
   const [starting, setStarting] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   useEffect(() => {
-    void fetch("/api/catalog")
+    void serverFetch("/api/catalog")
       .then((r) => r.json())
       .then((data) => setCategories(data.categories || []))
       .catch(() => {});
@@ -1202,6 +1302,7 @@ function Lobby({
           {active.length}/12 joueurs
         </span>
       </div>
+      <Participation room={room}/>
       <div className="lobby-layout">
         <div className="lobby-left">
           <section className="panel invite-panel">
@@ -1214,7 +1315,7 @@ function Lobby({
                 <Copy size={16} />
                 Copier l’invitation
               </button>
-              <a className="invite-url" href={room.inviteUrl}>
+              <a className="invite-url" href={room.inviteUrl} onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(room.inviteUrl).catch(() => notify("Copiez le lien d’invitation pour l’ouvrir dans votre navigateur.")); } }}>
                 {room.inviteUrl}
               </a>
             </div>
@@ -1293,6 +1394,7 @@ function Lobby({
               target="_blank"
               rel="noreferrer"
               href={`${room.inviteUrl}${room.inviteUrl.includes("?") ? "&" : "?"}screen=1`}
+              onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(`${room.inviteUrl}${room.inviteUrl.includes("?") ? "&" : "?"}screen=1`).catch(() => notify("Copiez le lien d’invitation et ajoutez &screen=1 dans votre navigateur.")); } }}
             >
               <Monitor size={17} />
               Ouvrir un écran TV
@@ -1608,6 +1710,32 @@ function Lobby({
                 </label>
               </div>
               <Toggle
+                label="Jouer sans points"
+                checked={config.noPoints}
+                disabled={!host}
+                onChange={(value) => update("noPoints", value)}
+              />
+              <Toggle
+                label="Réactions du public"
+                checked={config.reactionsEnabled}
+                disabled={!host}
+                onChange={(value) => update("reactionsEnabled", value)}
+              />
+              <Toggle
+                label="Missions secrètes"
+                description="Un mot à glisser dans une réponse écrite ou une invention pour gagner 50 points."
+                checked={config.secretRoles}
+                disabled={!host}
+                onChange={(value) => update("secretRoles", value)}
+              />
+              <Toggle
+                label="Enchaîner les scènes automatiquement"
+                description="Les prises de parole attendent toujours le signal de l’hôte."
+                checked={config.autoAdvance}
+                disabled={!host}
+                onChange={(value) => update("autoAdvance", value)}
+              />
+              <Toggle
                 label="Votes anonymes"
                 checked={config.anonymousVotes}
                 disabled={!host}
@@ -1832,318 +1960,61 @@ function Countdown({ room }: { room: RoomSnapshot }) {
   );
 }
 
-function Gameplay({
-  room,
-  request,
-  host,
-  spectator,
-}: {
-  room: RoomSnapshot;
-  request: Request;
-  host: boolean;
-  spectator: boolean;
-}) {
+function Gameplay({ room, request, host, spectator, onMenu }: { room: RoomSnapshot; request: Request; host: boolean; spectator: boolean; onMenu: () => void; }) {
   const r = room.round;
-  const g = r
-    ? gameInfo(r.gameId)
-    : gameInfo(room.playlist[room.gameIndex]?.gameId || "mythos");
+  const g = gameInfo(r?.gameId || room.playlist[room.gameIndex]?.gameId || "mythos");
   const Icon = icons[g.id];
-  const me = room.players.find((p) => p.id === room.me.id)!;
-  const player = (id?: string) => room.players.find((p) => p.id === id);
-  const phaseNames: Record<string, string> = {
-    intro: "ÉCHAUFFEZ LES NEURONES",
-    writing:
-      g.id === "pitch" ? "INVENTEZ L’INVENDABLE" : "À VOS MAUVAISES IDÉES",
-    prepare: "LE CALME AVANT LE DRAME",
-    presenting:
-      g.id === "court" ? "LA SÉANCE EST OUVERTE" : "C’EST L’HEURE DU PITCH",
-    voting: "LE JURY, C’EST VOUS",
-    results: "L’HEURE DE VÉRITÉ",
-    transition: "ON REMET ÇA ?",
-    podium: "LA GLOIRE. OU PRESQUE.",
-  };
+  const me = room.players.find((player) => player.id === room.me.id)!;
+  const player = (id?: string) => room.players.find((entry) => entry.id === id);
   const action = (data: Action) => request("room:action", data);
-  if (room.phase === "podium")
-    return <Podium room={room} request={request} host={host} />;
-  return (
-    <>
-      <div className="game-topbar">
-        <div className="game-breadcrumb">
-          <span style={{ background: g.color }}>
-            <Icon size={20} />
-          </span>
-          <strong>{g.shortName}</strong>
-          <span className="muted">/</span>
-          <small>
-            Manche {room.roundNumber} / {room.totalRounds}
-          </small>
-        </div>
-        <Countdown room={room} />
-      </div>
-      {room.paused && (
-        <div className="pause-banner">
-          <Pause size={19} />
-          Pause technique. Même les génies ont besoin d’un verre d’eau.
-        </div>
-      )}
-      <div className="gameplay-layout">
-        <section
-          className={`play-panel panel phase-${room.phase} play-${g.id}`}
-          style={styleColor(g.color)}
-        >
-          <div className="eyebrow">
-            <span className="tiny-star">✳</span>
-            {phaseNames[room.phase]}
-          </div>
-          {room.phase === "intro" && (
-            <div className="intro-content">
-              <span className="intro-icon">
-                <Icon size={70} />
-              </span>
-              <h1>{g.name}</h1>
-              <p className="lead">{gameRules[g.id]}</p>
-              <div className="pill">
-                {g.id === "court"
-                  ? "Les rôles tournent. La mauvaise foi reste."
-                  : "Le serveur s’occupe des points. Occupez-vous des dégâts."}
-              </div>
-            </div>
-          )}
-          {r && !["intro", "transition"].includes(room.phase) && (
-            <>
-              <h1 className="game-prompt">{r.prompt}</h1>
-              <span className="category-tag">{r.category}</span>
-              {r.mediaUrl && (
-                <div className="prompt-media">
-                  {r.mediaUrl.match(/\.(mp4|webm)(\?|$)/i) ? (
-                    <video
-                      src={r.mediaUrl}
-                      controls
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                    />
-                  ) : (
-                    <img
-                      src={r.mediaUrl}
-                      alt="Média à légender pour cette manche"
-                    />
-                  )}
-                </div>
-              )}
-            </>
-          )}
-          {r &&
-            room.phase === "writing" &&
-            (spectator ? (
-              <SpectatorMessage />
-            ) : g.id === "pitch" ? (
-              <ProductForm
-                key={r.id}
-                submitted={room.me.submitted}
-                product={room.me.product}
-                action={action}
-              />
-            ) : (
-              <WritingForm
-                key={r.id}
-                answer={room.me.answer}
-                submitted={room.me.submitted}
-                action={action}
-              />
-            ))}
-          {r && room.phase === "prepare" && (
-            <div className="preparation">
-              {g.id === "pitch" ? (
-                <>
-                  <h2>
-                    {spectator
-                      ? "Les commerciaux préparent leurs arguments."
-                      : "Voici votre mission (presque) impossible."}
-                  </h2>
-                  {!spectator && room.me.product && (
-                    <ProductCard product={room.me.product} />
-                  )}
-                  <p>
-                    Préparez votre présentation à l’oral. Les autres noteront
-                    votre humour, votre conviction et votre créativité.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <CourtCast room={room} />
-                  {!spectator && (
-                    <div className="role-secret">
-                      <Gavel size={22} />
-                      <div>
-                        <span>VOTRE RÔLE</span>
-                        <strong>
-                          {roleLabels[room.me.courtRole || ""] || "Participant"}
-                        </strong>
-                      </div>
-                    </div>
-                  )}
-                  <p>
-                    Préparez votre intervention. Le procès commence dans
-                    quelques instants. Les notes sont privées.
-                  </p>
-                  {!spectator && (
-                    <WritingForm
-                      key={`${r.id}-notes`}
-                      answer={room.me.answer}
-                      submitted={room.me.submitted}
-                      action={action}
-                      notes
-                    />
-                  )}
-                </>
-              )}
-            </div>
-          )}
-          {r &&
-            room.phase === "presenting" &&
-            (g.id === "pitch" ? (
-              <div className="presentation-content">
-                <div className="speaker-badge">
-                  {player(r.currentSpeakerId) && (
-                    <Avatar player={player(r.currentSpeakerId)!} />
-                  )}
-                  <div>
-                    <small>AU MICRO MAINTENANT</small>
-                    <h2>
-                      {player(r.currentSpeakerId)?.name || "Le vendeur"}
-                      {r.currentSpeakerId === me.id ? ", à vous !" : ""}
-                    </h2>
-                  </div>
-                </div>
-                {r.currentProduct && <ProductCard product={r.currentProduct} />}
-                <p className="lead">
-                  {r.currentSpeakerId === me.id
-                    ? "Votre public est suspendu à vos lèvres. Enfin, on espère."
-                    : "Écoutez la présentation. Gardez vos notes pour le vote final."}
-                </p>
-                <span className="pill">
-                  Passage {r.presentationIndex + 1} /{" "}
-                  {room.players.filter((p) => !p.spectator).length}
-                </span>
-              </div>
-            ) : (
-              <div className="court-stage">
-                <CourtCast room={room} />
-                <div className="court-step">
-                  <Gavel size={33} />
-                  <div>
-                    <small>LA PAROLE EST À…</small>
-                    <h2>{courtSteps[r.courtStep || ""] || r.courtStep}</h2>
-                    <p>
-                      {courtHints[r.courtStep || ""] ||
-                        "Le juge mène les échanges. Le jury prend des notes."}
-                    </p>
-                  </div>
-                </div>
-                {room.me.courtRole && (
-                  <p className="pill">
-                    Vous êtes :{" "}
-                    {roleLabels[room.me.courtRole] || room.me.courtRole}
-                  </p>
-                )}
-              </div>
-            ))}
-          {r &&
-            room.phase === "voting" &&
-            (spectator ? (
-              <>
-                <SpectatorMessage />
-                <PublicVoting room={room} />
-              </>
-            ) : g.id === "pitch" ? (
-              <Ratings room={room} action={action} />
-            ) : g.id === "court" ? (
-              <CourtVote room={room} action={action} />
-            ) : (
-              <Voting room={room} action={action} />
-            ))}
-          {r && room.phase === "results" && <Results room={room} />}
-          {room.phase === "transition" && <Transition room={room} />}
-          {["writing", "prepare", "voting"].includes(room.phase) && r && (
-            <div className="submission-progress">
-              <span>
-                {room.phase === "voting" ? (
-                  <>
-                    <Check size={16} />
-                    {r.votedCount} / {r.eligibleCount} votes reçus
-                  </>
-                ) : (
-                  <>
-                    <MessageCircle size={16} />
-                    {r.submittedCount} / {r.eligibleCount} propositions reçues
-                  </>
-                )}
-              </span>
-              <span>ÇA TRAVAILLE DUR. EN THÉORIE.</span>
-            </div>
-          )}
-        </section>
-        <aside className="game-sidebar">
-          <Leaderboard room={room} compact />
-          <div className="panel host-controls">
-            {host ? (
-              <>
-                <div className="eyebrow">
-                  <Crown size={14} /> AUX COMMANDES
-                </div>
-                <button
-                  className="button primary full"
-                  onClick={() => void request("room:advance")}
-                  aria-label="Étape suivante"
-                >
-                  Étape suivante <ArrowRight size={17} />
-                </button>
-                <button
-                  className="button outline full"
-                  onClick={() =>
-                    void request("room:pause", { paused: !room.paused })
-                  }
-                >
-                  {room.paused ? (
-                    <>
-                      <Play size={16} />
-                      Reprendre
-                    </>
-                  ) : (
-                    <>
-                      <Pause size={16} />
-                      Mettre en pause
-                    </>
-                  )}
-                </button>
-                {g.id === "who" && room.phase === "voting" && (
-                  <button
-                    className="text-button"
-                    onClick={() => void request("room:advance", { skip: true })}
-                  >
-                    <Shuffle size={16} />
-                    Passer cette question
-                  </button>
-                )}
-                <small>Le jeu avance aussi automatiquement.</small>
-              </>
-            ) : (
-              <>
-                <Radio size={24} />
-                <p>
-                  {spectator
-                    ? "Vous profitez du spectacle. Les joueurs répondent sur leur écran."
-                    : "Tout est synchronisé. Votre seule mission : jouer le jeu."}
-                </p>
-              </>
-            )}
-          </div>
-        </aside>
-      </div>
-    </>
-  );
+  if (spectator) return <div className="controller-shell"><section className="panel controller-panel"><div className="eyebrow">RÉGIE DE L’ÉMISSION</div><h1>{g.shortName}</h1><ControllerWaiting title="Vous animez le plateau." text="Donnez les signaux de l’émission ici. Les joueurs participent sur leurs manettes."/><Participation room={room}/></section><HostControls room={room} request={request}/>{room.phase === "podium" && <button className="button outline full" onClick={onMenu}>Retour au menu principal</button>}</div>;
+  const showPrompt = r && ["writing", "prepare", "presenting", "reveal", "voting"].includes(room.phase);
+  const waiting = !["writing", "prepare", "presenting", "voting"].includes(room.phase);
+  const phaseTitle: Record<string, string> = {
+    "party-intro": "Bienvenue dans l’émission !", intro: g.name, rules: "Le présentateur vous explique.",
+    writing: g.id === "pitch" ? "Inventez l’invendable." : "À vos mauvaises idées !", prepare: "Préparez votre passage.", presenting: "Le micro est ouvert.",
+    reveal: "Place aux révélations.", voting: g.id === "court" ? "Le verdict vous appartient." : "À vous de choisir.", results: "Votre manche en chiffres.", leaderboard: "Le classement bouge.", transition: "La suite se prépare.", podium: "Vous avez fait le show !",
+  };
+  return <div className="controller-shell">
+    <ControllerIdentity room={room}/>
+    <div className="game-topbar"><div className="game-breadcrumb"><span style={{ background: g.color }}><Icon size={20}/></span><strong>{g.shortName}</strong><small>Manche {room.roundNumber}/{room.totalRounds}</small></div><Countdown room={room}/></div>
+    {room.paused && <div className="pause-banner"><Pause size={18}/>Pause de l’émission. Vos réponses sont conservées.</div>}
+    <section className={`panel controller-panel phase-${room.phase} play-${g.id}`} style={styleColor(g.color)}>
+      <div className="eyebrow">VOTRE MANETTE · {room.manualAdvanceRequired ? "L’HÔTE DONNE LE SIGNAL" : "EN DIRECT"}</div>
+      <h1>{phaseTitle[room.phase]}</h1>
+      {showPrompt && <><p className="controller-prompt">{r.prompt}</p>{r.mediaUrl && <div className="prompt-media">{r.mediaUrl.match(/\.(mp4|webm)(\?|$)/i) ? <video src={serverResource(r.mediaUrl)} controls muted playsInline loop/> : <img src={serverResource(r.mediaUrl)} alt="Média à légender pour cette manche"/>}</div>}</>}
+      {room.me.secretMission && ["writing", "prepare", "presenting"].includes(room.phase) && <div className="private-mission"><Shield size={20}/><div><small>MISSION SECRÈTE · VOUS SEUL LA VOYEZ</small><p>{room.me.secretMission.instruction}</p>{room.me.secretMission.completed && <strong><Check size={15}/>Mission remplie</strong>}</div></div>}
+      {r && room.phase === "writing" && (room.me.eligible ? g.id === "pitch" ? <ProductForm key={r.id} submitted={room.me.submitted} product={room.me.product} action={action}/> : <WritingForm key={r.id} answer={room.me.answer} submitted={room.me.submitted} action={action}/> : <ControllerWaiting title="Vous profitez de cette manche." text="Votre place vous attend à la prochaine étape."/>)}
+      {r && room.phase === "prepare" && <div className="preparation">
+        {g.id === "pitch" ? <><p>Votre produit à vendre reste privé jusqu’à votre passage.</p>{room.me.product && <ProductCard product={room.me.product}/>}<p>Préparez un argumentaire oral. Le public notera humour, conviction et créativité.</p></> : <><div className="role-secret"><Gavel size={24}/><div><span>VOTRE RÔLE</span><strong>{roleLabels[room.me.courtRole || ""] || "Participant"}</strong></div></div><p>Préparez vos arguments. Vos notes restent sur votre manette.</p><WritingForm key={`${r.id}-notes`} answer={room.me.answer} submitted={room.me.submitted} action={action} notes/></>}
+        {room.me.eligible && !room.me.prepared ? <button className="button primary full" onClick={() => void action({ type: "prepared" })}>Je suis prêt pour mon passage <Check size={19}/></button> : <ControllerWaiting title="Votre préparation est terminée." text="Le plateau attend les autres participants."/>}
+      </div>}
+      {r && room.phase === "presenting" && (g.id === "pitch" ? <div className="presentation-content"><div className="speaker-badge">{player(r.currentSpeakerId) && <Avatar player={player(r.currentSpeakerId)!}/>}<div><small>AU MICRO MAINTENANT</small><h2>{player(r.currentSpeakerId)?.name || "Le vendeur"}{r.currentSpeakerId === me.id ? ", à vous !" : ""}</h2></div></div>{r.currentProduct && <ProductCard product={r.currentProduct}/>}<p>{r.currentSpeakerId === me.id ? "Vendez ce chef-d’œuvre à l’oral. L’hôte vous laissera terminer." : "Écoutez le vendeur. Vous noterez les présentations ensuite."}</p><p className="manual-note">Le chronomètre est un repère : seul l’hôte donne la parole au suivant.</p><span className="pill">Passage {r.presentationIndex + 1} / {room.players.filter((player) => !player.spectator).length}</span></div> : <div className="court-stage"><div className="role-secret"><Gavel size={22}/><div><span>VOTRE RÔLE</span><strong>{roleLabels[room.me.courtRole || ""] || "Participant"}</strong></div></div><div className="court-step"><h2>{courtSteps[r.courtStep || ""]}</h2><p>{courtHints[r.courtStep || ""]}</p></div>{room.me.answer && <blockquote className="private-notes"><small>VOS NOTES PRIVÉES</small>{room.me.answer}</blockquote>}<p className="manual-note">L’hôte distribue la parole. Aucun orateur n’est coupé automatiquement.</p></div>)}
+      {r && room.phase === "voting" && (room.me.eligible ? g.id === "pitch" ? <Ratings room={room} action={action}/> : g.id === "court" ? <CourtVote room={room} action={action}/> : <Voting room={room} action={action}/> : <ControllerWaiting title="Le public fait son choix." text="Vous ne participez pas à ce vote. Profitez du suspense !"/>)}
+      {room.phase === "reveal" && <ControllerWaiting title="Les réponses font leur entrée." text="Découvrez-les sur la scène. Le vote arrive juste après."/>}
+      {r && room.phase === "results" && <><div className="personal-result"><strong>{room.config.noPoints ? "Merci pour le spectacle !" : !room.scoresVisible ? "Le score garde son suspense." : `${me.delta >= 0 ? "+" : ""}${me.delta} PTS`}</strong><p>{r.results.filter((result) => result.playerId === me.id).map((result) => result.reason).join(" · ") || "Les auteurs et les résultats sont révélés sur la scène."}</p></div>{r.answers.find((answer) => answer.authorId === me.id) && <blockquote>{r.answers.find((answer) => answer.authorId === me.id)?.text}</blockquote>}</>}
+      {["leaderboard", "podium"].includes(room.phase) && <Leaderboard room={room} final={room.phase === "podium"}/>}
+      {waiting && !["reveal", "results", "leaderboard", "podium"].includes(room.phase) && <ControllerWaiting title={room.phase === "rules" ? "Un œil sur la scène, un pouce sur la manette." : "Le spectacle continue sur la scène."} text={room.phase === "rules" ? gameRules[g.id] : "Votre prochaine consigne apparaîtra ici automatiquement."}/>}
+      <Participation room={room}/>
+    </section>
+    <Reactions room={room} request={request}/>
+    {host && <HostControls room={room} request={request}/>}
+    {room.phase === "podium" && <button className="button outline full" onClick={onMenu}>Retour au menu principal <ArrowRight size={18}/></button>}
+  </div>;
+}
+
+function ControllerWaiting({ title, text }: { title: string; text: string }) {
+  return <div className="controller-waiting"><motion.span animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}><Radio size={35}/></motion.span><h2>{title}</h2><p>{text}</p></div>;
+}
+
+function HostControls({ room, request }: { room: RoomSnapshot; request: Request }) {
+  return <section className="panel controller-host-controls"><div className="eyebrow"><Crown size={15}/>À LA RÉGIE</div>
+    {room.phase === "podium" ? <><button className="button primary full" onClick={() => void request("room:replay")}>Rejouer le même programme <Shuffle size={18}/></button><button className="button outline full" onClick={() => { void request("room:replay").then((ack) => { if (ack.ok) return request("room:configure", structuredClone(DEFAULT_CONFIG)); }); }}>Préparer une nouvelle soirée <Plus size={18}/></button></> : <button className="button primary" aria-label="Étape suivante" onClick={() => void request("room:advance")}>{room.phase === "presenting" ? "Terminer cette prise de parole" : "Étape suivante"}<ArrowRight size={18}/></button>}
+    {room.phase !== "podium" && <button className="button outline" onClick={() => void request("room:pause", { paused: !room.paused })}>{room.paused ? <><Play size={17}/>Reprendre</> : <><Pause size={17}/>Mettre en pause</>}</button>}
+    {room.round?.gameId === "who" && room.phase === "voting" && <button className="text-button" onClick={() => void request("room:advance", { skip: true })}>Passer cette question <Shuffle size={16}/></button>}
+    {room.phase === "presenting" && <p className="small muted">Le temps indiqué n’interrompt jamais l’oral. Donnez le signal quand le joueur a terminé.</p>}
+    {["writing", "prepare", "voting", "presenting"].includes(room.phase) && <details><summary>Un joueur ne peut plus participer ?</summary><p className="small muted">Après une déconnexion, une courte grâce permet de revenir. Vous pouvez aussi passer sa participation pour cette étape.</p><div className="skip-player-list">{room.players.filter((player) => !player.spectator).map((player) => <button className="text-button" key={player.id} onClick={() => void request("room:skip-player", { playerId: player.id })}>Passer {player.name}{!player.connected && " (déconnecté)"}</button>)}</div></details>}
+  </section>;
 }
 
 function WritingForm({
@@ -3057,7 +2928,7 @@ function Admin() {
   const [draft, setDraft] = useState<Partial<AdminItem>>(empty);
   const [uploading, setUploading] = useState(false);
   const call = async (path: string, method = "GET", body?: unknown) => {
-    const response = await fetch(`/api/admin/content${path}`, {
+    const response = await serverFetch(`/api/admin/content${path}`, {
       method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -3099,7 +2970,7 @@ function Admin() {
           reject(new Error("Lecture du fichier impossible."));
         reader.readAsDataURL(file);
       });
-      const response = await fetch("/api/admin/media", {
+      const response = await serverFetch("/api/admin/media", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -3344,7 +3215,7 @@ function Admin() {
                 {draft.mediaUrl && (
                   <div className="prompt-media">
                     <img
-                      src={draft.mediaUrl}
+                      src={serverResource(draft.mediaUrl)}
                       alt="Aperçu du média administré"
                     />
                   </div>
