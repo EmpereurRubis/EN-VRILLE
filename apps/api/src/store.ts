@@ -56,15 +56,31 @@ export class FileStore extends MemoryStore {
   }
   private persist() {
     const snapshot = JSON.stringify(this.state);
-    this.pending = this.pending.then(async () => {
-      await writeFile(resolve(this.directory, "state.tmp"), snapshot, {
-        mode: 0o600,
+    this.pending = this.pending
+      .catch(() => {})
+      .then(async () => {
+        const temporary = resolve(this.directory, "state.tmp");
+        const destination = resolve(this.directory, "state.json");
+        await writeFile(temporary, snapshot, { mode: 0o600 });
+        // Windows antivirus/indexing can briefly lock the destination. Keep the
+        // previous snapshot intact and retry the atomic replacement, never unlink it.
+        for (let attempt = 0; attempt < 8; attempt++) {
+          try {
+            await rename(temporary, destination);
+            return;
+          } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+            if (
+              attempt === 7 ||
+              !["EPERM", "EACCES", "EBUSY"].includes(code || "")
+            )
+              throw error;
+            await new Promise<void>((done) =>
+              setTimeout(done, Math.min(200, 25 * 2 ** attempt)),
+            );
+          }
+        }
       });
-      await rename(
-        resolve(this.directory, "state.tmp"),
-        resolve(this.directory, "state.json"),
-      );
-    });
     return this.pending;
   }
   override async saveRoom(room: Room) {

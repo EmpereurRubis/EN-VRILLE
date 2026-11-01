@@ -2709,10 +2709,10 @@ function Results({ room }: { room: RoomSnapshot }) {
       <div className="round-points">
         {r.results
           .filter((result) => result.points > 0)
-          .map((result) => {
+          .map((result, index) => {
             const found = p(result.playerId);
             return found ? (
-              <div key={result.playerId}>
+              <div key={`${result.playerId}-${index}`}>
                 <Avatar player={found} />
                 <div>
                   <strong>{found.name}</strong>
