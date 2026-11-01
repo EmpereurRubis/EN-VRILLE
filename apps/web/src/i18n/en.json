@@ -599,5 +599,9 @@
     "keywords": "Keywords separated by commas",
     "delete": "Delete this product",
     "deleteConfirm": "Permanently delete this product from the library?"
+  },
+  "connection": {
+    "unavailable": "Unable to reach the EN VRILLE! server.",
+    "protocol": "Incompatible versions: update the PC client and the EN VRILLE! server."
   }
 }

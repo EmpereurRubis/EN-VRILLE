@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { generateIcon } from './generate-icon.mjs';
 
@@ -19,7 +19,10 @@ await build({
   build: { outDir: path.join(desktop, 'renderer'), emptyOutDir: true, sourcemap: false },
 });
 await mkdir(path.join(desktop, 'renderer', 'media'), { recursive: true });
-await cp(path.resolve(desktop, '../../packages/content/media'), path.join(desktop, 'renderer/media'), { recursive: true });
+const media = path.resolve(desktop, '../../packages/content/media');
+for (const entry of await readdir(media, { withFileTypes: true })) {
+  if (entry.isFile() && entry.name.endsWith('.svg')) await cp(path.join(media, entry.name), path.join(desktop, 'renderer/media', entry.name));
+}
 // Keep the pre-React theme initialization, while retaining a strict script CSP.
 const indexPath = path.join(desktop, 'renderer/index.html');
 let html = await readFile(indexPath, 'utf8');

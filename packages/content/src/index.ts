@@ -3,13 +3,15 @@ import { mythos } from "./mythos.js";
 import { products } from "./products.js";
 import { accusations } from "./court.js";
 import { whoQuestions } from "./who.js";
+import { PROMPTS_EN } from "./translations.en.js";
 
 export interface ContentItem {
   id: string;
   gameId: GameId;
   category: string;
   prompt: string;
-  product?: { name: string; description: string };
+  promptEn?: string;
+  product?: { name: string; description: string; nameEn?: string; descriptionEn?: string };
   mediaUrl?: string;
   adult?: boolean;
 }
@@ -24,6 +26,7 @@ function questions(
       gameId,
       category,
       prompt,
+      promptEn: PROMPTS_EN[id],
       ...(["adulte", "soirée adulte"].includes(category)
         ? { adult: true }
         : {}),

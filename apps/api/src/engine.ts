@@ -91,7 +91,13 @@ export class GameEngine {
   }
   async initialize() {
     const saved = await this.options.store.load();
-    if (saved.content) this.content = saved.content;
+    if (saved.content) {
+      const builtins = new Map(CONTENT.map((item) => [item.id, item]));
+      this.content = saved.content.map((item) => {
+        const original = builtins.get(item.id);
+        return { ...item, promptEn: item.promptEn || (original?.prompt === item.prompt ? original.promptEn : undefined) };
+      });
+    }
     if (saved.cinema) this.cinema = saved.cinema;
     if (saved.decoys) this.decoys = saved.decoys;
     for (const room of saved.rooms) {
@@ -392,10 +398,13 @@ export class GameEngine {
     room.usedDecoyIds = [];
     room.usedCinemaIds = [];
     for (const [gameId, count] of Object.entries(needs))
-      if (gameId !== "captions") check(
+      if (gameId !== "captions" && !(gameId === "pitch" && this.decoys.length)) check(
         this.available(room, gameId as GameId).length >= count,
         `Pas assez de contenus ${gameId} dans les catégories autorisées pour cette soirée.`,
       );
+    if (playlist.some((item) => item.gameId === "pitch" && item.pitchMode !== "invented") && this.decoys.length)
+      check(this.decoys.filter((product) => !room.config.disabledCategories.includes(product.category)).length >= players.length,
+        "Il faut au moins un produit du studio autorisé par vendeur.");
     if (playlist.some((item) => item.gameId === "captions"))
       check(this.cinema.filter((scene) => this.sceneAllowed(room, scene, this.captionTurns(room, players.length))).length >= players.length,
         "La bibliothèque doit contenir une scène autorisée différente par joueur, avec assez d’images pour cette durée.");
@@ -455,8 +464,10 @@ export class GameEngine {
         "Pas assez de joueurs connectés pour ce jeu. Reconnectez-vous, puis l’hôte reprend.";
       return;
     }
+    const usingStudioProducts = item.gameId === "pitch" && item.pitchMode !== "invented" && this.decoys.length > 0;
     const content: ContentItem = item.gameId === "captions"
       ? { id: "collaborative-cinema", gameId: "captions", prompt: room.config.language === "en" ? "Rewrite cinema together. Each scene will find its voice." : "Réinventez les dialogues du cinéma, une réplique à la fois.", category: "cinéma collaboratif", mediaUrl: undefined }
+      : usingStudioProducts ? { id: "studio-products", gameId: "pitch", prompt: "Studio products", category: "studio" }
       : this.pick(room, item.gameId);
     const round: Round = {
       id: randomUUID(),
@@ -493,6 +504,7 @@ export class GameEngine {
     };
     if (item.gameId === "pitch" && item.pitchMode !== "invented") {
       round.products = participants.map((sellerId, index) => {
+        if (usingStudioProducts) return { ...this.drawDecoy(room), sellerId, generated: true };
         const c = index ? this.pick(room, "pitch") : content;
         return {
           ...(c.product || {

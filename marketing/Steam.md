@@ -11,10 +11,10 @@ Bienvenue dans EN VRILLE !, l’émission dont vos amis sont les vedettes et les
 Composez votre programme ou laissez le mode Surprise choisir les jeux. Vrill, votre présentateur, explique les règles, accompagne les révélations et commente les résultats. Les réponses restent anonymes jusqu’au moment de lever le voile ; les prises de parole attendent le signal de l’hôte.
 
 - **Le Plateau des Mythos** : inventez l’explication la plus drôle et votez pour vos préférées.
-- **Vends-moi cette Merde !** : défendez l’utilité de produits absurdes, ou faites vendre vos inventions par les autres.
+- **Vends-moi cette Merde !** : inventez un produit, demandez une idée au studio puis faites vendre votre création par un autre joueur. Notez chaque présentation.
 - **Tribunal du N’importe Quoi** : accusez, plaidez et laissez le jury rendre son verdict.
 - **Qui parmi nous ?** : découvrez ce que vos amis pensent vraiment de vous.
-- **Sous-titres Interdits** : transformez une image en réplique inoubliable.
+- **Sous-titres Interdits** : écrivez à plusieurs les dialogues de vraies scènes de cinéma, doublez les films à voix haute puis récompensez le film, l’interprète et la réplique de la soirée.
 
 Les compteurs se mettent à jour avec les réponses et les votes. Les résultats, le classement et le podium racontent votre soirée. Jouez avec les points, choisissez le mode convivial ou ajoutez des missions écrites secrètes. Le Tribunal demande au moins cinq participants.
 
@@ -22,7 +22,7 @@ Un seul hôte utilise le jeu PC. Les participants jouent gratuitement dans un na
 
 ## Informations à renseigner
 
-Langue de l’interface et contenus : français. Narration optionnelle par synthèse vocale selon les voix françaises de l’appareil ; les sous-titres restent disponibles. Plateforme construite : Windows x64. Clavier et souris pour l’hôte ; écran tactile et navigateur pour les participants. Les succès, l’overlay, le contrôle de possession et l’identité Steam ne doivent pas être annoncés tant que leur intégration n’est pas validée.
+Langues de l’interface et des questions originales : français et anglais. Les textes libres des joueurs restent dans leur langue. Narration optionnelle par synthèse vocale selon les voix de l’appareil ; les sous-titres restent disponibles. Le menu Windows avec ses paramètres, ses crédits et sa musique est accessible hors ligne. « DÉMARRER » ouvre la plateforme dans la même fenêtre. Plateforme construite : Windows x64. Clavier et souris pour l’hôte ; écran tactile et navigateur pour les participants. Les succès, l’overlay, le contrôle de possession et l’identité Steam ne doivent pas être annoncés tant que leur intégration n’est pas validée.
 
 Configuration indicative **provisoire**, à mesurer avant de remplir la fiche publique : Windows 11 x64, processeur double cœur, 4 Go de RAM, affichage 1280×720 et connexion Internet. Le jeu vise un affichage 1920×1080 sur télévision. La taille à réserver doit être déduite de l’installation construite, avec une marge pour les mises à jour. Ces valeurs ne constituent pas des performances minimales certifiées.
 
@@ -42,6 +42,6 @@ Les sources vectorielles et PNG sont dans `source` et `assets`. Ils utilisent le
 
 Ces formats ont été vérifiés dans les références [capsules Steam](https://partner.steamgames.com/doc/store/assets/standard) et [bibliothèque Steam](https://partner.steamgames.com/doc/store/assets/libraryassets). Vérifier leurs gabarits au moment de préparer la fiche définitive.
 
-Le dossier `screenshots` contient des captures de parties réellement exécutées en 1920×1080. Les noms de joueurs et les réponses sont des exemples de présentation. Les captures montrent le rendu du jeu ; les capsules sont des illustrations de présentation. Une bande-annonce reste à enregistrer à partir du build retenu pour publication.
+Le dossier `screenshots` contient des captures de parties de la version 1.1 exécutées en 1920×1080. Elles doivent être renouvelées depuis la version 1.2 avant publication de la fiche commerciale, en particulier pour le cinéma collaboratif. Les noms de joueurs et les réponses sont des exemples de présentation. Les capsules sont des illustrations de présentation. Une bande-annonce reste à enregistrer à partir du build retenu pour publication.
 
 Ne pas publier cette fiche automatiquement : relire les textes, les catégories de contenu, les exigences réseau et la version commerciale réellement disponible avec le compte Steamworks de l’éditeur.

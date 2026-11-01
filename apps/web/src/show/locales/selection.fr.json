@@ -1,0 +1,37 @@
+{
+  "mythos": {
+    "tagline": "La vérité est en pause publicitaire.",
+    "genre": "Écriture · bluff · votes",
+    "description": "Une question douteuse. Des réponses inventées. Un plateau télé où la mauvaise foi mérite une ovation.",
+    "example": "Pourquoi les chaussettes disparaissent-elles ? « Elles ont fondé un syndicat. »",
+    "rules": "Écrivez en secret, découvrez les réponses anonymes, puis votez pour la meilleure invention. Pas de vote pour soi."
+  },
+  "pitch": {
+    "tagline": "L’avenir n’avait rien demandé.",
+    "genre": "Invention · oral · téléachat",
+    "description": "Inventez un objet parfaitement invendable. Confiez-le à un autre joueur. Regardez-le tenter de faire fortune.",
+    "example": "Le Frigo Dépressif : il pleure à chaque ouverture. À vous de le vendre comme une révolution.",
+    "rules": "Créez ou générez une invention avec House Decoy. Un autre joueur la reçoit. Chaque présentation est notée en humour, conviction et créativité."
+  },
+  "court": {
+    "tagline": "La justice a perdu le dossier.",
+    "genre": "Rôles · oral · verdict",
+    "description": "Accusé, procureur, avocat, juge et jurés : un crime ridicule attend une audience beaucoup trop sérieuse.",
+    "example": "Accusation : avoir privatisé le dernier rayon de soleil du quartier. Plaidez votre cause.",
+    "rules": "Découvrez votre rôle privé, préparez vos arguments puis prenez la parole. L’hôte mène l’audience. Seul le jury décide du verdict."
+  },
+  "who": {
+    "tagline": "Vos amis ont déjà des soupçons.",
+    "genre": "Sondage · votes · révélations",
+    "description": "Vous vous connaissez si bien… enfin, jusqu’à ce que le plateau pose la mauvaise question.",
+    "example": "Qui parmi nous survivrait le moins longtemps sans le bouton « annuler » ?",
+    "rules": "Choisissez une personne sur votre téléphone. Découvrez ensemble le verdict du groupe. Un mode sans points permet de jouer juste pour rire."
+  },
+  "captions": {
+    "tagline": "Le cinéma ne vous pardonnera pas.",
+    "genre": "Cinéma · écriture · doublage",
+    "description": "De vrais extraits de cinéma. Vos dialogues circulent de téléphone en téléphone. Puis quelqu’un doit oser jouer le film.",
+    "example": "Un regard dramatique. Une déclaration solennelle : « J’ai mangé le justificatif de domicile. »",
+    "rules": "Écrivez une réplique sur votre image privée. Continuez l’histoire d’un autre joueur au tour suivant. À la fin, doublez le film à voix haute et décernez trois prix."
+  }
+}

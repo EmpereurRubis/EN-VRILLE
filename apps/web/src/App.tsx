@@ -70,7 +70,7 @@ import "./show/show.css";
 import { desktop, isDesktop, serverOrigin, serverFetch, serverResource, validateServerUrl } from "./backend";
 import { I18nProvider, LanguageSelect, useI18n, translate } from "./i18n";
 import { GameSelection, GameCatalog } from "./show";
-import cinemaCatalogue from "../../../packages/content/cinema/catalogue.json";
+import cinemaCredits from "../../../packages/content/cinema/credits.json";
 import { ProductAdmin } from './ProductAdmin';
 import { CinemaAdmin } from './CinemaAdmin';
 
@@ -190,6 +190,7 @@ function App() {
   const launcher = isDesktop && desktop?.isLauncher === true;
   const [launching, setLaunching] = useState(false);
   const [launchError, setLaunchError] = useState(() => new URLSearchParams(location.search).has('connectionError'));
+  const launchErrorReason = new URLSearchParams(location.search).get('connectionError');
   const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
@@ -395,7 +396,7 @@ function App() {
         )}
         {!launcher && isDesktop && !connected && !room && <DesktopConnection compact problem={connectionError} hasRoom={false} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>}
         <main>
-          {launcher ? <><IntroSplash />{launchError ? <section className="desktop-connection"><Radio size={52}/><h1>{language === 'en' ? t('legacy.s022') : t('legacy.s023')}</h1><p>{serverOrigin}</p><button className="button primary" onClick={() => { setLaunchError(false); setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }}>{language === 'en' ? t('legacy.s024') : t('legacy.s025')}</button><button className="button outline" onClick={() => setLaunchError(false)}>{t('menu.back')}</button></section> : <MainMenu desktopOffline starting={launching} onStart={() => { setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }} onCreate={() => {}} onJoin={() => {}} onRules={() => setScreen('rules')} onSettings={() => setDialog('settings')} onCredits={() => setDialog('credits')}/>}</>
+          {launcher ? <><IntroSplash />{launchError ? <section className="desktop-connection"><Radio size={52}/><h1>{t(launchErrorReason === 'protocol' ? 'connection.protocol' : 'connection.unavailable')}</h1><p>{serverOrigin}</p><button className="button primary" onClick={() => { setLaunchError(false); setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }}>{language === 'en' ? t('legacy.s024') : t('legacy.s025')}</button><button className="button outline" onClick={() => setLaunchError(false)}>{t('menu.back')}</button></section> : screen === "rules" ? <><button className="button outline" onClick={() => setScreen("home")}>{t("menu.back")}</button><Rules create={() => setScreen("home")}/></> : <MainMenu desktopOffline starting={launching} onStart={() => { setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }} onCreate={() => {}} onJoin={() => {}} onRules={() => setScreen('rules')} onSettings={() => setDialog('settings')} onCredits={() => setDialog('credits')}/>}</>
           : isDesktop && !connected && room ? (
             <DesktopConnection problem={connectionError} hasRoom={!!room} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>
           ) : admin ? (
@@ -536,7 +537,7 @@ function App() {
 
 function CinemaCredits() {
   const { t } = useI18n();
-  const sources = [...new Map(cinemaCatalogue.map((scene) => [scene.rights.title, scene.rights])).values()];
+  const sources = cinemaCredits;
   const link = (url: string, text: string) => <a href={url} target="_blank" rel="noreferrer" onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(url); } }}>{text}</a>;
   return <section className="cinema-credits"><h3>{t('captions.credits')}</h3><p>{t('captions.adaptations')}</p>{sources.map((rights) => <article key={rights.title}><strong>{rights.title}</strong><p>{rights.credits}</p><small>{link(rights.sourceUrl, t('captions.source'))} · {link(rights.licenseUrl, rights.license)}</small></article>)}</section>;
 }
@@ -2505,7 +2506,7 @@ function Admin() {
       ) : (<><nav className="admin-tabs" aria-label={t('legacy.s028')}>{(['content','decoys','cinema'] as const).map((tab) => <button type="button" className={adminTab === tab ? 'selected' : ''} key={tab} aria-pressed={adminTab === tab} onClick={() => setAdminTab(tab)}>{t('admin.' + tab)}</button>)}</nav>{adminTab === 'decoys' ? <ProductAdmin token={token}/> : adminTab === 'cinema' ? <CinemaAdmin token={token}/> : <div className="admin-layout">
           <section className="panel">
             <div className="panel-heading">
-              <h2>{t('legacy.s366')}{items.length})</h2>
+              <h2>{t('legacy.s366')}{items.filter((item) => item.gameId !== "captions").length})</h2>
               <button
                 className="icon-button"
                 aria-label={t('legacy.s367')}
@@ -2520,7 +2521,7 @@ function Admin() {
               onChange={(e) => setFilter(e.target.value)}
             >
               <option value="all">{t('legacy.s369')}</option>
-              {GAMES.map((g) => (
+              {GAMES.filter((g) => g.id !== "captions").map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.shortName}
                 </option>
@@ -2528,7 +2529,7 @@ function Admin() {
             </select>
             <div className="admin-items">
               {items
-                .filter((item) => filter === "all" || item.gameId === filter)
+                .filter((item) => item.gameId !== "captions" && (filter === "all" || item.gameId === filter))
                 .map((item) => (
                   <button
                     key={item.id}
@@ -2589,7 +2590,7 @@ function Admin() {
                   })
                 }
               >
-                {GAMES.map((g) => (
+                {GAMES.filter((g) => g.id !== "captions").map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
                   </option>

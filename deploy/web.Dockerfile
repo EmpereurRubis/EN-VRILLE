@@ -8,6 +8,7 @@ COPY packages/content/package.json packages/content/package.json
 RUN npm ci --workspace @en-vrille/api --workspace @en-vrille/web --workspace @en-vrille/shared --workspace @en-vrille/content --include-workspace-root
 COPY apps/web apps/web
 COPY packages/shared packages/shared
+COPY packages/content/cinema packages/content/cinema
 RUN npm run build --workspace @en-vrille/web
 
 FROM nginx:1.28-alpine AS production

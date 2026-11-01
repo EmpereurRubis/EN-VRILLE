@@ -62,6 +62,12 @@ async function inspectVideo(path: string, format?: string) {
 export function registerCinemaAdmin(app: express.Express, { engine, uploadDirectory }: { engine: GameEngine; uploadDirectory: string }) {
   const originals = resolve(dirname(uploadDirectory), "cinema-originals");
   let extracting = false;
+  let mutations: Promise<unknown> = Promise.resolve();
+  const mutate = (operation: () => Promise<unknown>) => {
+    const pending = mutations.catch(() => {}).then(operation);
+    mutations = pending;
+    return pending;
+  };
   const route = (handler: (req: express.Request, res: express.Response) => Promise<unknown>) => async (req: express.Request, res: express.Response) => {
     try { await handler(req, res); }
     catch (error) {
@@ -74,22 +80,28 @@ export function registerCinemaAdmin(app: express.Express, { engine, uploadDirect
   app.get("/api/admin/cinema", (_req, res) => res.json({ items: engine.cinema }));
   app.post("/api/admin/cinema", route(async (req, res) => {
     const scene = sceneSchema.parse(req.body);
-    if (engine.cinema.some((item) => item.id === scene.id)) { res.status(409).json({ error: "Cette scène existe déjà. Utilisez la modification." }); return; }
-    await engine.updateCinema([...engine.cinema, scene]);
-    res.status(201).json({ item: scene });
+    await mutate(async () => {
+      if (engine.cinema.some((item) => item.id === scene.id)) { res.status(409).json({ error: "Cette scène existe déjà. Utilisez la modification." }); return; }
+      await engine.updateCinema([...engine.cinema, scene]);
+      res.status(201).json({ item: scene });
+    });
   }));
   app.put("/api/admin/cinema/:id", route(async (req, res) => {
     const id = identifier.parse(req.params.id);
     const scene = sceneSchema.parse(req.body);
-    if (scene.id !== id || !engine.cinema.some((item) => item.id === id)) { res.status(404).json({ error: "Scène introuvable." }); return; }
-    await engine.updateCinema(engine.cinema.map((item) => item.id === id ? scene : item));
-    res.json({ item: scene });
+    await mutate(async () => {
+      if (scene.id !== id || !engine.cinema.some((item) => item.id === id)) { res.status(404).json({ error: "Scène introuvable." }); return; }
+      await engine.updateCinema(engine.cinema.map((item) => item.id === id ? scene : item));
+      res.json({ item: scene });
+    });
   }));
   app.delete("/api/admin/cinema/:id", route(async (req, res) => {
     const id = identifier.parse(req.params.id);
-    if (!engine.cinema.some((item) => item.id === id)) { res.status(404).json({ error: "Scène introuvable." }); return; }
-    await engine.updateCinema(engine.cinema.filter((item) => item.id !== id));
-    res.json({ ok: true });
+    await mutate(async () => {
+      if (!engine.cinema.some((item) => item.id === id)) { res.status(404).json({ error: "Scène introuvable." }); return; }
+      await engine.updateCinema(engine.cinema.filter((item) => item.id !== id));
+      res.json({ ok: true });
+    });
   }));
   app.post("/api/admin/cinema/video", express.raw({ type: "application/octet-stream", limit: "250mb" }), route(async (req, res) => {
     if (!Buffer.isBuffer(req.body) || req.body.length < 16) { res.status(400).json({ error: "Envoyez une vidéo MP4 ou WebM en application/octet-stream (250 Mo maximum)." }); return; }

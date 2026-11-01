@@ -23,6 +23,7 @@ COPY packages/content/package.json packages/content/package.json
 RUN npm ci --omit=dev --ignore-scripts --workspace @en-vrille/api --include-workspace-root=false && npm cache clean --force
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/packages/content/media ./packages/content/media
+COPY --from=build /app/packages/content/cinema/LICENSE.md ./packages/content/media/cinema/LICENSE.md
 COPY --from=build /app/apps/api/migrations ./apps/api/migrations
 RUN mkdir -p /app/data && chown -R node:node /app/data
 USER node

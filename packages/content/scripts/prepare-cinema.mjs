@@ -49,4 +49,5 @@ for (const [slug, title, start, category] of scenes) {
   console.log(`${id}: 12 chronological frames, 24 seconds, no audio`);
 }
 await writeFile(catalogue, JSON.stringify(entries, null, 2) + '\n');
+await writeFile(path.join(root, 'packages/content/cinema/credits.json'), JSON.stringify([rights], null, 2) + '\n');
 console.log(`Prepared ${entries.length} licensed cinema sequences.`);

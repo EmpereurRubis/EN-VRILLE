@@ -47,11 +47,14 @@ const contentSchema = z
     gameId: gameSchema,
     category: z.string().trim().min(1).max(60),
     prompt: z.string().trim().min(3).max(500),
+    promptEn: z.string().trim().min(3).max(500).optional(),
     adult: z.boolean().optional(),
     product: z
       .object({
         name: z.string().trim().min(1).max(70),
         description: z.string().trim().min(1).max(220),
+        nameEn: z.string().trim().min(1).max(70).optional(),
+        descriptionEn: z.string().trim().min(1).max(220).optional(),
       })
       .strict()
       .optional(),

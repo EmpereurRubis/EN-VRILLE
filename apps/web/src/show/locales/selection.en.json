@@ -1,0 +1,37 @@
+{
+  "mythos": {
+    "tagline": "The truth is on a commercial break.",
+    "genre": "Writing · bluff · votes",
+    "description": "A questionable question. Made-up answers. A TV show where nonsense deserves a standing ovation.",
+    "example": "Why do socks disappear? “They have formed a union.”",
+    "rules": "Write in secret, discover anonymous answers, then vote for your favourite invention. You cannot vote for yourself."
+  },
+  "pitch": {
+    "tagline": "The future did not ask for this.",
+    "genre": "Invention · speaking · shopping TV",
+    "description": "Invent something utterly unsellable. Hand it to another player. Watch them try to make a fortune.",
+    "example": "The Depressed Fridge: it cries whenever you open it. Sell it as the next big thing.",
+    "rules": "Create an invention or ask House Decoy for an idea. Another player sells it. Rate each presentation for humour, conviction and creativity."
+  },
+  "court": {
+    "tagline": "Justice has misplaced the evidence.",
+    "genre": "Roles · speaking · verdict",
+    "description": "Defendant, prosecutor, lawyer, judge and jury: a ridiculous crime awaits a far too serious hearing.",
+    "example": "The charge: privately owning the neighbourhood’s last ray of sunshine. Plead your case.",
+    "rules": "Discover your private role, prepare your case, then take the floor. The host directs the hearing. Only the jury decides the verdict."
+  },
+  "who": {
+    "tagline": "Your friends already have a suspect.",
+    "genre": "Polls · votes · revelations",
+    "description": "You know each other so well… until the show asks exactly the wrong question.",
+    "example": "Who among us would last the shortest time without an undo button?",
+    "rules": "Choose a person on your phone. Discover the group’s verdict together. A no-points mode lets you play just for the laughs."
+  },
+  "captions": {
+    "tagline": "Cinema will never forgive you.",
+    "genre": "Cinema · writing · dubbing",
+    "description": "Real film scenes. Your dialogue travels from phone to phone. Then someone has to dare to perform the movie.",
+    "example": "A dramatic look. A solemn declaration: “I ate the proof of address.”",
+    "rules": "Write a line for your private frame. Continue another player’s story on the next turn. Finally, dub the movie out loud and award three prizes."
+  }
+}

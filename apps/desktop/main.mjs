@@ -17,6 +17,7 @@ let serverUrl = DEFAULT_SERVER_URL;
 let steam;
 let locale = 'fr';
 let preferences = {};
+let windowSettings = { fullscreen: true, width: 1600, height: 900 };
 let loadingPlatform = false;
 
 function log(message) {
@@ -40,7 +41,7 @@ function trustedSender(event, localOnly = false) {
 }
 function saveSettings() {
   mkdirSync(path.dirname(settingsPath()), { recursive: true });
-  writeFileSync(settingsPath() + '.tmp', JSON.stringify({ serverUrl, locale, preferences }, null, 2), 'utf8');
+  writeFileSync(settingsPath() + '.tmp', JSON.stringify({ serverUrl, locale, preferences, window: windowSettings }, null, 2), 'utf8');
   renameSync(settingsPath() + '.tmp', settingsPath());
 }
 function setLocale(value) {
@@ -70,14 +71,15 @@ function sanitizePreferences(patch) {
 
 function createWindow() {
   window = new BrowserWindow({
-    title: 'EN VRILLE !', width: 1600, height: 900, minWidth: 960, minHeight: 600,
+    title: 'EN VRILLE !', width: windowSettings.width, height: windowSettings.height, minWidth: 960, minHeight: 600, useContentSize: true,
     backgroundColor: '#111113', autoHideMenuBar: true, show: false,
-    fullscreen: !process.argv.includes('--windowed'),
+    fullscreen: !process.argv.includes('--windowed') && windowSettings.fullscreen,
     icon: path.join(here, 'assets', 'icon.png'),
     webPreferences: {
       preload: path.join(here, 'preload.cjs'),
       contextIsolation: true, sandbox: true, nodeIntegration: false,
       webSecurity: true, allowRunningInsecureContent: false, webviewTag: false,
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   window.setMenu(null);
@@ -99,8 +101,9 @@ function createWindow() {
     if (input.type === 'keyDown' && input.key === 'Escape' && window.isFullScreen()) window.setFullScreen(false);
   });
   window.once('ready-to-show', () => window.show());
-  window.on('enter-full-screen', () => window?.webContents.send('desktop:fullscreen-changed', true));
-  window.on('leave-full-screen', () => window?.webContents.send('desktop:fullscreen-changed', false));
+  window.on('enter-full-screen', () => { windowSettings.fullscreen = true; saveSettings(); window?.webContents.send('desktop:fullscreen-changed', true); });
+  window.on('leave-full-screen', () => { windowSettings.fullscreen = false; saveSettings(); window?.webContents.send('desktop:fullscreen-changed', false); });
+  window.on('close', () => { if (window && !window.isFullScreen() && !window.isMaximized()) { const bounds = window.getContentBounds(); windowSettings.width = bounds.width; windowSettings.height = bounds.height; saveSettings(); } });
   window.on('closed', () => { window = undefined; });
   void showLauncher();
 }
@@ -112,6 +115,7 @@ else {
   app.whenReady().then(async () => {
     serverUrl = readServer();
     try { const stored = JSON.parse(readFileSync(settingsPath(), 'utf8')); locale = stored.locale === 'en' ? 'en' : 'fr'; preferences = sanitizePreferences(stored.preferences || {}); } catch { /* Fresh installation. */ }
+    try { const saved = JSON.parse(readFileSync(settingsPath(), 'utf8')).window; if (saved && typeof saved.fullscreen === 'boolean' && Number.isInteger(saved.width) && Number.isInteger(saved.height) && saved.width >= 960 && saved.width <= 3840 && saved.height >= 600 && saved.height <= 2160) windowSettings = saved; } catch { /* Default display settings. */ }
     log(`EN VRILLE ${app.getVersion()}, protocol ${PROTOCOL_VERSION}; offline launcher; starting.`);
     steam = await initializeSteam({ logger: log });
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
@@ -156,10 +160,12 @@ else {
     ipcMain.handle('desktop:set-resolution', async (event, width, height) => {
       trustedSender(event);
       if (![[1280, 720], [1600, 900], [1920, 1080]].some(size => size[0] === width && size[1] === height)) throw new Error('Résolution invalide.');
-      if (window.isFullScreen()) { window.setFullScreen(false); await new Promise(resolve => window.once('leave-full-screen', resolve)); }
+      if (window.isFullScreen()) { const changed = new Promise(resolve => window.once('leave-full-screen', resolve)); window.setFullScreen(false); await changed; }
       const area = screen.getDisplayMatching(window.getBounds()).workAreaSize;
-      const factor = Math.min(1, area.width / width, area.height / height);
+      const outer = window.getBounds(), content = window.getContentBounds();
+      const factor = Math.min(1, (area.width - (outer.width - content.width)) / width, (area.height - (outer.height - content.height)) / height);
       window.setContentSize(Math.floor(width * factor), Math.floor(height * factor)); window.center();
+      windowSettings = { fullscreen: false, width: Math.floor(width * factor), height: Math.floor(height * factor) }; saveSettings();
       return { width: Math.floor(width * factor), height: Math.floor(height * factor) };
     });
     ipcMain.handle('desktop:fullscreen', (event, value) => { trustedSender(event); if (typeof value !== 'boolean') throw new Error('État invalide.'); window.setFullScreen(value); return window.isFullScreen(); });

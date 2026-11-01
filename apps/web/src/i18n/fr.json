@@ -599,5 +599,9 @@
     "keywords": "Mots-clés séparés par des virgules",
     "delete": "Supprimer ce produit",
     "deleteConfirm": "Supprimer définitivement ce produit de la bibliothèque ?"
+  },
+  "connection": {
+    "unavailable": "Impossible de rejoindre le serveur EN VRILLE !",
+    "protocol": "Versions incompatibles : mettez à jour le client PC et le serveur EN VRILLE !"
   }
 }

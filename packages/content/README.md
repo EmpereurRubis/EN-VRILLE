@@ -1,6 +1,6 @@
 # Bibliothèque EN VRILLE
 
-Ce package contient 410 contenus français originaux, disponibles sans IA, clé ni API externe :
+Ce package contient les questions et produits originaux du jeu, une banque House Decoy bilingue de 150 idées et douze scènes de cinéma créditées. Le contenu fonctionne sans IA, clé ni API externe.
 
 | Jeu | Nombre | Contenu classique disponible |
 | --- | ---: | ---: |
@@ -8,7 +8,8 @@ Ce package contient 410 contenus français originaux, disponibles sans IA, clé 
 | Vends-moi cette Merde ! | 100 | 100 |
 | Tribunal du N’importe Quoi | 60 | 60 |
 | Qui parmi nous ? | 110 | 100 |
-| Sous-titres Interdits | 20 | 20 |
+| Sous-titres Interdits | 12 séquences de 12 images | 12 |
+| House Decoy | 150 idées FR/EN | 150 |
 
 Les vingt questions Mythos de catégorie `adulte` et les dix questions Qui parmi nous de catégorie `soirée adulte` sont marquées `adult: true`. Elles concernent les soirées et les rencontres ; elles ne contiennent pas de questions sur les traumatismes, la santé ou d’autres informations intimes. Le mode classique les exclut. L’hôte peut désactiver séparément chaque catégorie et passer une question.
 
@@ -18,8 +19,11 @@ Les vingt questions Mythos de catégorie `adulte` et les dix questions Qui parmi
 - `src/products.ts` : produits `[identifiant, nom, description]`.
 - `src/court.ts` : accusations `[identifiant, accusation]`.
 - `src/who.ts` : questions sur les joueurs `[identifiant, question]`.
-- `src/index.ts` : catalogue des scènes, exports et fonction de filtrage.
-- `media/scene-01.svg` à `scene-20.svg` : fichiers réellement servis aux joueurs.
+- `src/index.ts` : exports et fonction de filtrage.
+- `decoys/catalogue.json` : idées de produits en dix catégories, modifiables dans l’administration.
+- `cinema/catalogue.json` : scènes, timecodes, positions des sous-titres et droits.
+- `media/cinema/` : extraits muets et images chronologiques du cinéma collaboratif.
+- `media/scene-01.svg` à `scene-20.svg` : illustrations historiques conservées pour les contenus personnalisés.
 
 Chaque identifiant est explicite et reste stable après modification, déplacement ou suppression d’une autre entrée. Pour ajouter une question, choisir un nouvel identifiant libre du même jeu ; ne pas réutiliser un identifiant supprimé. Dès la première modification administrative, l’API sauvegarde une copie complète de la bibliothèque dans son stockage persistant. Cette copie devient la bibliothèque active et conserve les ajouts, modifications et suppressions après un redémarrage ; les nouvelles entrées d’une future version du package ne sont pas fusionnées automatiquement. `filterContent(options, bibliothèqueActive)` conserve les exclusions de catégories, d’identifiants et de contenu adulte. Une sélection vide reste vide : ne pas contourner les choix de l’hôte en choisissant dans une catégorie désactivée.
 
@@ -31,9 +35,11 @@ Les vingt scènes ont été dessinées en SVG spécifiquement pour EN VRILLE : c
 
 ![Aperçu des vingt illustrations originales](media-preview.png)
 
-Auteur : **Projet EN VRILLE**. Aucune image de film, de série, de jeu vidéo, banque d’images, photographie ou ressource distante n’est utilisée. Les dessins sont faits de formes vectorielles originales. Chaque SVG contient un titre, une description accessible et ses crédits.
+Auteur de ces vingt illustrations historiques : **Projet EN VRILLE**. Ces dessins sont faits de formes vectorielles originales. Chaque SVG contient un titre, une description accessible et ses crédits. Ils sont distincts des nouveaux médias de cinéma.
 
-Dans toute la mesure permise par le droit applicable, le Projet EN VRILLE renonce aux droits d’auteur et droits voisins sur les textes de cette bibliothèque et ses vingt illustrations originales sous **[CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)**. Ils peuvent être copiés, modifiés, redistribués et utilisés commercialement sans attribution obligatoire. Cette dédicace concerne uniquement les contenus et illustrations de ce package ; elle n’impose aucune licence au code du reste du projet.
+Dans toute la mesure permise par le droit applicable, le Projet EN VRILLE renonce aux droits d’auteur et droits voisins sur ses textes originaux et ses vingt illustrations historiques sous **CC0 1.0 Universal**. Cette dédicace exclut explicitement les extraits et images de cinéma et n’impose aucune licence au code du reste du projet.
+
+Les douze séquences réelles sont adaptées de *Tears of Steel* (Blender Foundation, 2012), sous CC BY 3.0 avec attribution. Elles sont muettes, la bande-son étant sous une licence distincte. Les sources, crédits et modifications sont détaillés dans [cinema/LICENSE.md](cinema/LICENSE.md). Toute importation supplémentaire doit être accompagnée de ses propres informations de droits et d’une autorisation d’adaptation et d’utilisation commerciale pour les territoires visés.
 
 La source vectorielle reproductible se trouve dans `scripts/create-media.mjs`. Depuis la racine :
 
