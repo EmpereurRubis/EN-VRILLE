@@ -7,6 +7,8 @@ import type {
   RoomConfig,
   RoundResult,
   ReactionView,
+  CinemaScene,
+  CaptionAwards,
 } from "@en-vrille/shared";
 
 export interface Player {
@@ -56,6 +58,24 @@ export interface Round {
   title?: string;
   scored: boolean;
   voteCounts: Record<string, number>;
+  suggestions?: Record<string, { token: string; name: string; description: string }>;
+  pitchRatedSellerIds?: string[];
+  captions?: {
+    turn: number;
+    turns: number;
+    stories: {
+      id: string;
+      starterId: string;
+      presenterId: string;
+      scene: CinemaScene;
+      lines: { id: string; text: string; frameIndex: number; authorId: string }[];
+    }[];
+    slideIndex: number;
+    autoSlides: boolean;
+    slideStartedAt: number;
+    awardVotes: Record<string, Partial<Record<"film" | "actor" | "line", string>>>;
+    awards?: CaptionAwards;
+  };
 }
 export interface Room {
   code: string;
@@ -80,4 +100,6 @@ export interface Room {
   updatedAt: number;
   usedContentIds: string[];
   gameStartScores: Record<string, number>;
+  usedDecoyIds?: string[];
+  usedCinemaIds?: string[];
 }

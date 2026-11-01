@@ -1,0 +1,294 @@
+{
+  "phase.lobby": "Backstage",
+  "phase.party-intro": "On air",
+  "phase.intro": "Coming up next",
+  "phase.rules": "How to play",
+  "phase.writing": "Time for ideas",
+  "phase.prepare": "Preparation",
+  "phase.presenting": "Live on stage",
+  "phase.reveal": "The big reveal",
+  "phase.voting": "The audience decides",
+  "phase.results": "The results",
+  "phase.leaderboard": "The leaderboard",
+  "phase.transition": "Coming up next",
+  "phase.podium": "The grand finale",
+  "stage.label": "Public TV stage",
+  "stage.live": "THE STAGE",
+  "stage.round": "Round {current}/{total}",
+  "stage.players": "{count} players backstage",
+  "stage.room": "Room",
+  "stage.paused": "The show is paused",
+  "stage.seconds": "{count} seconds remaining",
+  "stage.master": "YOUR MASTER OF CHAOS",
+  "stage.tag": "AT YOUR SERVICE. AT YOUR OWN RISK.",
+  "stage.controller": "My controller",
+  "stage.controlRoom": "Control room / my controller",
+  "stage.pause": "Pause",
+  "stage.resume": "Resume",
+  "stage.next": "Next stage",
+  "stage.takeOver": "Take it away",
+  "stage.rules": "Replay the rules",
+  "stage.start": "Start the party",
+  "stage.close": "Close",
+  "stage.error": "Action unavailable.",
+  "stage.manual": "The host gives the signal to continue.",
+  "stage.timeUp": "Time is up. Take your time to finish.",
+  "stage.advisory": "The timer is a guide.",
+  "stage.noAuto": "Automatic advance is disabled.",
+  "stage.private": "The show is here. Your choices stay on your controller.",
+  "stage.rulesContinue": "The game continues while these rules are open. The host can pause it.",
+  "lobby.kicker": "BACKSTAGE AT THE CHAOS",
+  "lobby.title": "The party is waiting for its stars.",
+  "lobby.scan": "Scan. Join. Go off the rails.",
+  "lobby.help": "Open the link on your phone and choose your nickname.",
+  "lobby.ready": "Ready!",
+  "lobby.reconnect": "Reconnecting…",
+  "lobby.waiting": "Backstage",
+  "program.kicker": "TONIGHT ON EN VRILLE",
+  "program.title": "Tonight’s line-up of trouble.",
+  "program.help": "Your phone is your controller. The stage takes care of the show.",
+  "program.rounds": "{count} round(s)",
+  "program.skip": "Skip the draw",
+  "program.draw": "THE CHAOS MACHINE",
+  "intro.position": "Game {current} of {total}",
+  "intro.go": "IT’S YOUR TURN",
+  "rules.kicker": "How it works · {current}/{total}",
+  "action.write": "Write your answer on your controller.",
+  "action.prepare": "Prepare your performance, then mark yourself ready.",
+  "action.vote": "Make your choice on your controller.",
+  "action.seller": "Your live seller",
+  "action.product": "As seen on TV · absolutely unbelievable",
+  "action.tagline": "Essential? No. Unforgettable? Yes.",
+  "action.inventors": "THE INVENTORS ARE HARD AT WORK!",
+  "action.inventorHelp": "The engineers are working. No qualifications have been checked.",
+  "action.rate": "Rate this presentation on your controller.",
+  "action.criteria": "Humour · Conviction · Creativity",
+  "action.jury": "The jury deliberates in secret.",
+  "action.verdict": "Guilty or innocent?",
+  "action.confidential": "Confidential case file",
+  "court.accusation": "The prosecution",
+  "court.defense": "The defence",
+  "court.questions": "Witnesses and jury",
+  "court.final": "Closing arguments",
+  "court.accusationHelp": "Prosecutor, present the facts. However ridiculous they may be.",
+  "court.defenseHelp": "Lawyer, save your client’s reputation. If possible.",
+  "court.questionsHelp": "The judge gives the floor to witnesses and jurors.",
+  "court.finalHelp": "Prosecution, defence, defendant: one last chance to convince the jury.",
+  "court.accused": "Defendant",
+  "court.prosecutor": "Prosecutor",
+  "court.judge": "Judge",
+  "court.juror": "Juror",
+  "court.witness": "Witness",
+  "reveal.empty": "No answers to reveal this time. The show goes on.",
+  "reveal.anonymous": "Authors remain secret until the results.",
+  "results.kicker": "THE AUDIENCE HAS SPOKEN",
+  "results.title": "Admit it. It was you.",
+  "results.guilty": "Guilty!",
+  "results.innocent": "Not guilty!",
+  "results.who": "You have been exposed.",
+  "results.votes": "{count} votes",
+  "results.sold": "Sold by",
+  "results.created": "Created by",
+  "results.hidden": "Points stay backstage until the leaderboard selected by the host.",
+  "results.prosecution": "The prosecution wins the case.",
+  "results.defence": "The defence and defendant win the case. A tie favours the defence.",
+  "results.pitchReview": "The shopping channel verdict",
+  "results.ratings": "{count} ratings received",
+  "results.pitchNext": "Points are awarded after the final seller.",
+  "cinema.kicker": "EN VRILLE PICTURES PRESENTS",
+  "cinema.writers": "THE SCRIPT IS GOING OFF THE RAILS.",
+  "cinema.private": "Images and dialogue stay on the phones until the premiere.",
+  "cinema.turn": "TURN {current} / {total}",
+  "cinema.stories": "{count} films in production",
+  "cinema.closing": "QUIET, WE’RE EDITING!",
+  "cinema.ready": "LIVE DUBBING STARTS SHORTLY.",
+  "cinema.readyHelp": "Performers discover their film on their controller. Their notes stay private.",
+  "cinema.premiere": "WORLD PREMIERE · FILM {current}/{total}",
+  "cinema.performer": "Performed live by",
+  "cinema.slide": "Frame {current} / {total}",
+  "cinema.previous": "Previous frame",
+  "cinema.next": "Next frame",
+  "cinema.auto": "Automatic slideshow",
+  "cinema.slideshow": "Slideshow",
+  "cinema.clip": "Cinema mode",
+  "cinema.subtitles": "Your dialogue. Their expressions.",
+  "cinema.vote": "THE AWARDS FOR OUTSTANDING NONSENSE",
+  "cinema.voteHelp": "Award three prizes on your controllers: best film, best actor and best line.",
+  "cinema.film": "Best film",
+  "cinema.actor": "Best actor",
+  "cinema.line": "Best line",
+  "cinema.noAward": "No votes cast",
+  "cinema.credits": "The guilty credits",
+  "cinema.lineBy": "Line by {name}",
+  "cinema.reels": "COLLABORATIVE DIALOGUE · LICENSED ORIGINAL CINEMA",
+  "leaderboard.kicker": "IT’S STILL ANYONE’S GAME",
+  "leaderboard.title": "The leaderboard is moving.",
+  "transition.kicker": "A CHANGE OF SCENERY",
+  "transition.title": "Shall we catch our breath?",
+  "transition.next": "Coming up: {game}",
+  "podium.kicker": "THAT WAS EN VRILLE",
+  "podium.team": "One team. Plenty of evidence.",
+  "podium.suspense": "The suspense is unbearable…",
+  "podium.tie": "Joint champions!",
+  "podium.winner": "{name} wins the party!",
+  "podium.stats": "{rounds} round(s) won · {games} game(s) won",
+  "podium.best": "Best game: {game}",
+  "podium.most": "Most rounds won",
+  "podium.ranking": "Full final leaderboard",
+  "podium.replay": "Play again with this team",
+  "podium.new": "Plan a new party",
+  "podium.menu": "Main menu",
+  "quip.welcome": "Welcome to the only show where losing the plot is part of the rules.",
+  "quip.podium": "A huge round of applause! You have officially sent tonight off the rails.",
+  "quip.rules": "The rules are simple. Your interpretation probably won’t be.",
+  "quip.intro": "Next stop: {game}. Keep your controllers handy.",
+  "quip.oral": "The microphone is open. The host controls the next speaking turn.",
+  "quip.writing.0": "Good ideas are coming. Thankfully, so are the bad ones.",
+  "quip.writing.1": "Quality control has left the building. Make the most of it.",
+  "quip.writing.2": "A brilliant answer? We accept the other kind too.",
+  "quip.voting.0": "Democracy has rarely had so much to answer for.",
+  "quip.voting.1": "One small vote for you. One giant doubt for humankind.",
+  "quip.voting.2": "Vote with your heart. Common sense is taking a break.",
+  "quip.reveal.0": "Anonymity guaranteed. Dignity, less so.",
+  "quip.reveal.1": "The standard is rising. Or the floor is sinking.",
+  "quip.reveal.2": "This is exactly when everything goes off the rails.",
+  "quip.results.0": "The numbers have spoken. They have asked to remain anonymous.",
+  "quip.results.1": "The points are official. The excuses are still free.",
+  "quip.results.2": "Applause is allowed. So is a total lack of self-awareness.",
+  "quip.last": "Ten seconds. Trust your first bad idea.",
+  "quip.lastShort": "Final seconds. Perfection is overrated.",
+  "rules.noPoints": "Tonight is just for fun: no points are awarded.",
+  "rules.balance": "Scoring follows the balancing and multipliers selected by the host.",
+  "rules": {
+    "mythos": [
+      {
+        "title": "The truth? Optional.",
+        "text": "Invent the funniest explanation for a seriously questionable question."
+      },
+      {
+        "title": "Everyone has an invention",
+        "text": "Write on your controller. Your answer stays private until the reveal."
+      },
+      {
+        "title": "The clock is ticking",
+        "text": "You have {answer} seconds. As soon as everyone answers, the show continues."
+      },
+      {
+        "title": "Make way for the liars",
+        "text": "Answers appear one at a time, without their authors."
+      },
+      {
+        "title": "The audience decides",
+        "text": "Vote for your favourite answer in {vote} seconds. You cannot vote for yourself."
+      },
+      {
+        "title": "Outstanding nonsense",
+        "text": "100 points per vote received and 150 for the leading answers."
+      }
+    ],
+    "pitch": [
+      {
+        "title": "High-voltage shopping TV",
+        "text": "Convince the audience that an unsellable product will change their lives."
+      },
+      {
+        "title": "Your next masterpiece",
+        "text": "Invent a product or ask House Decoy for an idea. Edit it before submitting."
+      },
+      {
+        "title": "A surprise delivery",
+        "text": "Inventions are shuffled. Everyone gets someone else’s product and prepares a pitch."
+      },
+      {
+        "title": "The microphone is yours",
+        "text": "One seller at a time. The timer is a guide: the host ends each presentation."
+      },
+      {
+        "title": "Three ratings, no mercy",
+        "text": "After each pitch, everyone else rates humour, conviction and creativity from 1 to 5."
+      },
+      {
+        "title": "Who made a fortune?",
+        "text": "Average rating × 100. A 100-point creator bonus if the product reaches 4/5. Points are awarded at the end."
+      }
+    ],
+    "court": [
+      {
+        "title": "Order in the chaos",
+        "text": "An absurd crime, a questionable defence and a verdict decided by the jury."
+      },
+      {
+        "title": "Everyone has a role",
+        "text": "Defendant, prosecutor, lawyer, judge, jurors and witnesses: check your private role."
+      },
+      {
+        "title": "Prepare your performance",
+        "text": "You have {answer} seconds. Your notes stay private, even after the trial."
+      },
+      {
+        "title": "Respect the floor",
+        "text": "The stage shows who is speaking. The host gives the next signal. The timer cuts nobody off."
+      },
+      {
+        "title": "The verdict is secret",
+        "text": "Only jurors vote guilty or not guilty. Everyone else chooses the best performance."
+      },
+      {
+        "title": "Justice pays",
+        "text": "300 points to the prosecutor if guilty, otherwise to the lawyer and defendant. 150 for best performance."
+      }
+    ],
+    "who": [
+      {
+        "title": "You know each other so well…",
+        "text": "Choose the person who best fits the question."
+      },
+      {
+        "title": "Exchange knowing looks",
+        "text": "The question is public. Your vote stays on your controller."
+      },
+      {
+        "title": "Time to get suspicious",
+        "text": "You have {vote} seconds. Voting closes as soon as everyone chooses."
+      },
+      {
+        "title": "Own your choice",
+        "text": "The host’s settings decide whether you can vote for yourself."
+      },
+      {
+        "title": "The big revelation",
+        "text": "Discover the vote distribution and the most nominated people."
+      },
+      {
+        "title": "Collective instinct",
+        "text": "100 points if your choice follows the majority, 50 to the most nominated people."
+      }
+    ],
+    "captions": [
+      {
+        "title": "Welcome to the cinema",
+        "text": "Real film scenes. Dialogue rewritten together. A result nobody can predict."
+      },
+      {
+        "title": "Your opening line",
+        "text": "Look at your private frame and write the start of the story. The TV reveals nothing."
+      },
+      {
+        "title": "Pass the script",
+        "text": "On the next turn, continue another story using the lines already written."
+      },
+      {
+        "title": "Live dubbing",
+        "text": "Each player receives a complete film. Read its dialogue and perform it out loud."
+      },
+      {
+        "title": "You control the pace",
+        "text": "The performer or host advances the frames. The host ends the presentation when you are done."
+      },
+      {
+        "title": "Three movie awards",
+        "text": "Vote for best film, best actor and best line. Authors are revealed in the credits."
+      }
+    ]
+  }
+}

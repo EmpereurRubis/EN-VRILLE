@@ -68,9 +68,14 @@ import { useTheme, type ThemePreference } from "./theme";
 import { ShowProvider, ShowSettings, MainMenu, SceneStage, FullscreenButton, IntroSplash } from "./show";
 import "./show/show.css";
 import { desktop, isDesktop, serverOrigin, serverFetch, serverResource, validateServerUrl } from "./backend";
+import { I18nProvider, LanguageSelect, useI18n, translate } from "./i18n";
+import { GameSelection, GameCatalog } from "./show";
+import cinemaCatalogue from "../../../packages/content/cinema/catalogue.json";
+import { ProductAdmin } from './ProductAdmin';
+import { CinemaAdmin } from './CinemaAdmin';
 
 const socket: Socket<ServerEvents, ClientEvents> = io(serverOrigin || undefined, {
-  autoConnect: true,
+  autoConnect: false,
   reconnection: true,
   auth: { protocolVersion: PROTOCOL_VERSION, clientKind: isDesktop ? "desktop" : "web" },
 });
@@ -92,19 +97,25 @@ const saved = <T,>(key: string, fallback: T): T => {
     return fallback;
   }
 };
-const gameInfo = (id: GameId) => GAMES.find((g) => g.id === id)!;
+const gameInfo = (id: GameId) => {
+  const game = GAMES.find((g) => g.id === id)!;
+  const language = document.documentElement.lang === 'en' ? 'en' : 'fr';
+  return { ...game, name: translate(`games.${id}.name`, language), shortName: translate(`games.${id}.short`, language), description: translate(`games.${id}.rules`, language) };
+};
 const styleColor = (color: string) => ({ "--accent": color }) as CSSProperties;
 
 function BrandMark() {
+  const { t } = useI18n();
   return (
     <>
-      EN VR<span className="logo-i">I</span>LLE
+      EN VR<span className="logo-i">{"I"}</span>LLE
       <span className="logo-spark" aria-hidden="true">✳</span>
     </>
   );
 }
 
 function Mascot({ small = false }: { small?: boolean }) {
+  const { t } = useI18n();
   return (
     <svg
       className={small ? "mascot mascot-small" : "mascot"}
@@ -175,6 +186,10 @@ function Mascot({ small = false }: { small?: boolean }) {
 }
 
 function App() {
+  const { language, t } = useI18n();
+  const launcher = isDesktop && desktop?.isLauncher === true;
+  const [launching, setLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState(() => new URLSearchParams(location.search).has('connectionError'));
   const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
@@ -186,10 +201,7 @@ function App() {
   const [connected, setConnected] = useState(socket.connected);
   const [connectionError, setConnectionError] = useState("");
   const [reduced, setReduced] = useState(() =>
-    saved(
-      "vrille-reduced",
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    ),
+    desktop?.preferences?.reduced ?? saved("vrille-reduced", window.matchMedia("(prefers-reduced-motion: reduce)").matches),
   );
   const [toast, setToast] = useState("");
   const resumedSocket = useRef<string | undefined>(undefined);
@@ -239,6 +251,7 @@ function App() {
     [],
   );
   useEffect(() => {
+    if (launcher) return;
     const connect = () => {
       setConnected(true);
       setConnectionError("");
@@ -263,6 +276,7 @@ function App() {
     socket.on("connect_error", connectionFailed);
     socket.on("room:state", setRoom);
     socket.on("server:error", setError);
+    socket.connect();
     if (socket.connected) connect();
     return () => {
       socket.off("connect", connect);
@@ -271,9 +285,10 @@ function App() {
       socket.off("room:state", setRoom);
       socket.off("server:error", setError);
     };
-  }, [request]);
+  }, [request, launcher]);
   useEffect(() => {
     try { localStorage.setItem("vrille-reduced", JSON.stringify(reduced)); } catch { /* optional storage */ }
+    void desktop?.setPreferences?.({ reduced }).catch(() => {});
   }, [reduced]);
   useEffect(() => {
     if (new URLSearchParams(location.search).has("room")) setDialog("join");
@@ -292,7 +307,7 @@ function App() {
     <MotionConfig reducedMotion={reduced ? "always" : "user"}>
       <ShowProvider reducedMotion={reduced}>
       <div
-        className={`app ${isDesktop ? "desktop-client" : ""} ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
+        className={`app ${isDesktop ? "desktop-client" : ""} ${launcher ? "desktop-launcher" : ""} ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
       >
         <header className="site-header">
           <button
@@ -304,51 +319,52 @@ function App() {
                 behavior: reduced ? "auto" : "smooth",
               });
             }}
-            aria-label="EN VRILLE, accueil"
+            aria-label={t('legacy.s006')}
           >
             <BrandMark />
           </button>
-          {!room && !admin && (
-            <nav className="desktop-nav" aria-label="Navigation principale">
+          {!room && !admin && !launcher && (
+            <nav className="desktop-nav" aria-label={t('legacy.s007')}>
               <button
                 className={screen === "games" ? "nav-active" : ""}
                 onClick={() => setScreen("games")}
               >
-                Les mini-jeux <span>05</span>
+                {t('legacy.s009')}<span>05</span>
               </button>
               <button
                 className={screen === "rules" ? "nav-active" : ""}
                 onClick={() => setScreen("rules")}
               >
-                Comment jouer
-              </button>
+                {t('legacy.s010')}</button>
             </nav>
           )}
           <div className="header-actions">
+            {!launcher && <LanguageSelect />}
+            {isDesktop && !launcher && <button className="icon-button" title={t('menu.back')} aria-label={t('menu.back')} onClick={() => void desktop?.returnToLauncher?.()}><ArrowLeft size={20}/></button>}
             <FullscreenButton />
             {room && (
               <span className="room-chip">
-                SALON <strong>{room.code}</strong>
+                {t('legacy.s011')}<strong>{room.code}</strong>
               </span>
             )}
-            <span
+            {!launcher && <span
               className={`connection ${connected ? "online" : ""}`}
-              title={connected ? "Connecté au serveur" : "Reconnexion en cours"}
+              title={connected ? t('legacy.s012') : t('legacy.s013')}
             >
               <i />
-              <span className="connection-label">{connected ? "En direct" : "Reconnexion"}</span>
-            </span>
+              <span className="connection-label">{connected ? t('legacy.s014') : t('legacy.s015')}</span>
+            </span>}
             <button
               className="icon-button theme-toggle"
-              aria-label={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
-              title={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
+              aria-label={isDark ? t('legacy.s016') : t('legacy.s017')}
+              title={isDark ? t('legacy.s016') : t('legacy.s017')}
               onClick={() => setTheme(isDark ? "light" : "dark")}
             >
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
             <button
               className="icon-button"
-              aria-label="Réglages du son et des animations"
+              aria-label={t('legacy.s018')}
               onClick={() => setDialog("settings")}
             >
               <Settings size={20} />
@@ -357,7 +373,7 @@ function App() {
               <button
                 className="icon-button"
                 onClick={() => void leave()}
-                aria-label="Quitter le salon"
+                aria-label={t('legacy.s019')}
               >
                 <LogOut size={19} />
               </button>
@@ -366,20 +382,21 @@ function App() {
         </header>
         {!connected && !isDesktop && (
           <div className="connection-banner" role="status">
-            <LoaderCircle size={16} className="spin" /> {connectionError || "Connexion au serveur… Votre partie est conservée."}
+            <LoaderCircle size={16} className="spin" /> {connectionError || t('legacy.s020')}
           </div>
         )}
         {error && (
           <div className="error-banner" role="alert">
             <span>{error}</span>
-            <button aria-label="Fermer l’erreur" onClick={() => setError("")}>
+            <button aria-label={t('legacy.s021')} onClick={() => setError("")}>
               <X size={18} />
             </button>
           </div>
         )}
-        {isDesktop && !connected && !room && <DesktopConnection compact problem={connectionError} hasRoom={false} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>}
+        {!launcher && isDesktop && !connected && !room && <DesktopConnection compact problem={connectionError} hasRoom={false} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>}
         <main>
-          {isDesktop && !connected && room ? (
+          {launcher ? <><IntroSplash />{launchError ? <section className="desktop-connection"><Radio size={52}/><h1>{language === 'en' ? t('legacy.s022') : t('legacy.s023')}</h1><p>{serverOrigin}</p><button className="button primary" onClick={() => { setLaunchError(false); setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }}>{language === 'en' ? t('legacy.s024') : t('legacy.s025')}</button><button className="button outline" onClick={() => setLaunchError(false)}>{t('menu.back')}</button></section> : <MainMenu desktopOffline starting={launching} onStart={() => { setLaunching(true); void desktop?.startGame?.(language).catch(() => { setLaunching(false); setLaunchError(true); }); }} onCreate={() => {}} onJoin={() => {}} onRules={() => setScreen('rules')} onSettings={() => setDialog('settings')} onCredits={() => setDialog('credits')}/>}</>
+          : isDesktop && !connected && room ? (
             <DesktopConnection problem={connectionError} hasRoom={!!room} onSettings={() => setDialog("settings")} onRetry={() => { setConnectionError(""); socket.disconnect().connect(); }}/>
           ) : admin ? (
             <Admin />
@@ -406,7 +423,7 @@ function App() {
                     />
                   </>
                 ) : screen === "games" ? (
-                  <GameCatalogue create={() => setDialog("create")} />
+                  <GameCatalog onCreate={() => setDialog("create")} />
                 ) : (
                   <Rules create={() => setDialog("create")} />
                 )}
@@ -414,12 +431,12 @@ function App() {
             </AnimatePresence>
           )}
         </main>
-        {!room && (
+        {!room && !launcher && (
           <footer className="site-footer">
             <span className="footer-logo"><BrandMark /></span>
-            <p>Des bons potes. Des mauvaises idées.</p>
-            <span>Fait pour jouer ensemble.</span>
-            {!isDesktop && <a href="/admin" aria-label="Administration des contenus">
+            <p>{t('legacy.s026')}</p>
+            <span>{t('legacy.s027')}</span>
+            {!isDesktop && <a href="/admin" aria-label={t('legacy.s028')}>
               <Shield size={16} />
             </a>}
           </footer>
@@ -427,36 +444,37 @@ function App() {
         <AnimatePresence>
           {dialog && (
             <Modal
+              wide={dialog === 'create'}
               title={
-                dialog === "credits" ? "Dans les coulisses."
+                dialog === "credits" ? t('legacy.s029')
                 : dialog === "settings"
-                  ? "À votre sauce."
+                  ? t('legacy.s030')
                   : dialog === "create"
-                    ? "On lance les hostilités ?"
-                    : "Le gang vous attend."
+                    ? t('legacy.s031')
+                    : t('legacy.s032')
               }
               close={() => setDialog(null)}
             >
               {dialog === "settings" ? (
                 <div className="settings-content">
                   <label className="field-label">
-                    Thème de l’interface
-                    <select
+                    {t('legacy.s033')}<select
                       className="theme-select"
-                      aria-label="Thème de l’interface"
+                      aria-label={t('legacy.s033')}
                       value={theme}
                       onChange={(event) => setTheme(event.target.value as ThemePreference)}
                     >
-                      <option value="system">Automatique (selon l’appareil)</option>
-                      <option value="light">Clair</option>
-                      <option value="dark">Sombre</option>
+                      <option value="system">{t('legacy.s034')}</option>
+                      <option value="light">{t('legacy.s035')}</option>
+                      <option value="dark">{t('legacy.s036')}</option>
                     </select>
                   </label>
                   <ShowSettings />
-                  {isDesktop && <ServerSettings />}
+                  <LanguageSelect />
+                  {launcher && <><DesktopDisplaySettings/><ServerSettings /></>}
                   <Toggle
-                    label="Réduire les animations"
-                    description="Un peu moins de mouvement, toujours autant de mauvaise foi."
+                    label={t('legacy.s037')}
+                    description={t('legacy.s038')}
                     checked={reduced}
                     onChange={setReduced}
                   />
@@ -464,15 +482,16 @@ function App() {
                     className="button primary full"
                     onClick={() => setDialog(null)}
                   >
-                    C’est tout bon <Check size={18} />
+                    {t('legacy.s039')}<Check size={18} />
                   </button>
                 </div>
               ) : dialog === "credits" ? (
                 <div className="settings-content">
-                  <p><strong>EN VRILLE !</strong> — un jeu original de soirée par ERubis.</p>
-                  <p>Cinq mini-jeux, un présentateur dessiné pour l’émission, des illustrations originales et des sons synthétisés sur votre appareil.</p>
-                  <p className="muted">React · Socket.IO · PostgreSQL · Icônes Lucide · Typographie système.</p>
-                  <button className="button primary full" onClick={() => setDialog(null)}>Retour au plateau</button>
+                  <p><strong>EN VRILLE !</strong> {t('legacy.s040')}</p>
+                  <p>{t('legacy.s041')}</p>
+                  <p className="muted">{t('legacy.s042')}</p>
+                  <CinemaCredits />
+                  <button className="button primary full" onClick={() => setDialog(null)}>{t('legacy.s043')}</button>
                 </div>
               ) : dialog === "create" ? (
                 <CreateWizard busy={busy} submit={async (data, config) => {
@@ -515,33 +534,49 @@ function App() {
   );
 }
 
+function CinemaCredits() {
+  const { t } = useI18n();
+  const sources = [...new Map(cinemaCatalogue.map((scene) => [scene.rights.title, scene.rights])).values()];
+  const link = (url: string, text: string) => <a href={url} target="_blank" rel="noreferrer" onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(url); } }}>{text}</a>;
+  return <section className="cinema-credits"><h3>{t('captions.credits')}</h3><p>{t('captions.adaptations')}</p>{sources.map((rights) => <article key={rights.title}><strong>{rights.title}</strong><p>{rights.credits}</p><small>{link(rights.sourceUrl, t('captions.source'))} · {link(rights.licenseUrl, rights.license)}</small></article>)}</section>;
+}
+
 function DesktopConnection({ problem, hasRoom, onSettings, onRetry, compact = false }: {
   problem: string; hasRoom: boolean; onSettings: () => void; onRetry: () => void; compact?: boolean;
 }) {
+  const { t } = useI18n();
   const Title = compact ? "h2" : "h1";
   return <section className={`desktop-connection ${compact ? "desktop-connection-compact" : ""}`} aria-live="polite">
     <div className="desktop-connection-signal"><Radio size={50}/>{!problem && <span/>}</div>
-    <div className="eyebrow">EN VRILLE · LIAISON AVEC LE PLATEAU</div>
-    <Title>{problem ? "Le plateau est momentanément indisponible." : hasRoom ? "On vous remet à l’antenne…" : "Connexion au plateau…"}</Title>
-    <p>{hasRoom ? "Votre place est conservée. Le jeu tentera de retrouver votre salon dès le retour de la connexion." : "Le menu et les ressources du jeu sont installés sur votre PC. Une connexion au serveur est nécessaire pour organiser une soirée."}</p>
+    <div className="eyebrow">{t('legacy.s044')}</div>
+    <Title>{problem ? t('legacy.s045') : hasRoom ? t('legacy.s046') : t('legacy.s047')}</Title>
+    <p>{hasRoom ? t('legacy.s048') : t('legacy.s049')}</p>
     <code>{serverOrigin}</code>
     {problem && <p className="desktop-connection-detail">{problem}</p>}
-    <div><button className="button primary" onClick={onRetry}>Réessayer <ArrowRight size={18}/></button><button className="button outline" onClick={onSettings}>Réglages de connexion <Settings size={18}/></button></div>
-    <small>La reconnexion est automatique. Vérifiez votre accès Internet et l’adresse du serveur.</small>
+    <div><button className="button primary" onClick={onRetry}>{t('legacy.s050')}<ArrowRight size={18}/></button><button className="button outline" onClick={onSettings}>{t('legacy.s051')}<Settings size={18}/></button></div>
+    <small>{t('legacy.s052')}</small>
   </section>;
 }
 
+function DesktopDisplaySettings() {
+  const { t } = useI18n();
+  const [windowSettings, setWindowSettings] = useState({ fullscreen: false, width: 1280, height: 720 });
+  useEffect(() => { void desktop?.getWindowSettings?.().then(setWindowSettings).catch(() => {}); }, []);
+  return <section className="desktop-server-settings"><h3>{t('settings.display')}</h3><Toggle label={t('settings.fullscreen')} checked={windowSettings.fullscreen} onChange={(fullscreen) => { void desktop?.setFullscreen(fullscreen).then((value) => setWindowSettings((settings) => ({ ...settings, fullscreen: value }))); }}/><label className="field-label">{t('settings.resolution')}<select disabled={windowSettings.fullscreen} value={`${windowSettings.width}x${windowSettings.height}`} onChange={(event) => { const [width, height] = event.target.value.split('x').map(Number); void desktop?.setResolution?.(width, height).then((value) => setWindowSettings((settings) => ({ ...settings, ...value }))); }}>{!['1280x720','1600x900','1920x1080'].includes(`${windowSettings.width}x${windowSettings.height}`) && <option value={`${windowSettings.width}x${windowSettings.height}`}>{windowSettings.width} × {windowSettings.height}</option>}{[[1280,720],[1600,900],[1920,1080]].map(([width,height]) => <option key={width} value={`${width}x${height}`}>{width} × {height}</option>)}</select></label></section>;
+}
+
 function ServerSettings() {
+  const { t } = useI18n();
   const [address, setAddress] = useState(serverOrigin);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const bridge = desktop;
   if (!bridge) return null;
   return <section className="desktop-server-settings">
-    <h3>Connexion du jeu PC</h3>
-    <p className="small muted">Version {bridge.version} · Protocole {bridge.protocolVersion}</p>
-    <label className="field-label">Adresse du serveur<input type="url" aria-label="Adresse du serveur" value={address} onChange={(event) => setAddress(event.target.value)} placeholder="https://envrille.erubis.fr"/></label>
-    <p className="fineprint">Les joueurs rejoignent l’adresse Web indiquée par le salon. Changer de serveur recharge le jeu et ferme la connexion actuelle.</p>
+    <h3>{t('legacy.s053')}</h3>
+    <p className="small muted">{t('legacy.s054')}{bridge.version} {t('legacy.s055')}{bridge.protocolVersion}</p>
+    <label className="field-label">{t('legacy.s056')}<input type="url" aria-label={t('legacy.s056')} value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t('legacy.s057')}/></label>
+    <p className="fineprint">{t('legacy.s058')}</p>
     {message && <p role="alert" className="desktop-setting-error">{message}</p>}
     <button className="button outline full" disabled={saving} onClick={() => {
       try {
@@ -551,356 +586,30 @@ function ServerSettings() {
           window.location.reload();
         }).catch((error: unknown) => { setSaving(false); setMessage(error instanceof Error ? error.message : "L’adresse n’a pas pu être enregistrée."); });
       } catch (error) { setMessage(error instanceof Error ? error.message : "Adresse invalide."); }
-    }}>{saving ? "Reconnexion…" : "Enregistrer et reconnecter"}<ArrowRight size={17}/></button>
+    }}>{saving ? t('legacy.s059') : t('legacy.s060')}<ArrowRight size={17}/></button>
   </section>;
 }
 
-function Home({
-  create,
-  join,
-  games,
-  rules,
-}: {
-  create: () => void;
-  join: () => void;
-  games: () => void;
-  rules: () => void;
-}) {
-  return (
-    <>
-      <section className="hero page-width">
-        <div className="hero-copy">
-          <div className="eyebrow">
-            <span className="tiny-star">✳</span> LA SOIRÉE VA PARTIR EN VRILLE
-          </div>
-          <h1>
-            De bons amis.
-            <br />
-            De très <span className="title-underline">mauvaises</span>
-            <br />
-            <span className="tilt-word">idées.</span>
-            <span className="title-asterisk">✳</span>
-          </h1>
-          <p className="hero-description">
-            Le jeu de soirée qui révèle le pire de votre imagination. Bluffez,
-            improvisez, votez… et assumez les dégâts.
-          </p>
-          <div className="hero-actions">
-            <button className="button primary large" onClick={create}>
-              Créer une partie <ArrowUp className="diagonal-arrow" size={22} />
-            </button>
-            <button className="button outline large" onClick={join}>
-              Rejoindre un salon <ArrowRight size={21} />
-            </button>
-          </div>
-          <div className="hero-facts">
-            <span>
-              <Users size={17} />3 à 12 joueurs
-            </span>
-            <span>
-              <Gamepad2 size={18} />
-              Sur tous vos écrans
-            </span>
-            <span>
-              <Check size={17} />
-              Sans compte
-            </span>
-          </div>
-        </div>
-        <div className="hero-art">
-          <div className="art-topline">
-            <span>
-              <i /> MAUVAISE FOI EN DIRECT
-            </span>
-            <span>
-              REC <span className="rec-dot">●</span>
-            </span>
-          </div>
-          <div className="orbital orbital-one" />
-          <div className="orbital orbital-two" />
-          <div className="art-doodle doodle-a">✳</div>
-          <div className="art-doodle doodle-b">✴</div>
-          <div className="floating-card card-lie">
-            <span className="mini-avatar">👽</span>
-            <div>
-              « C’est pas moi.
-              <br />
-              <strong>C’est mon personnage. »</strong>
-            </div>
-          </div>
-          <motion.div
-            className="hero-mascot"
-            animate={{ y: [0, -10, 0], rotate: [-3, 3, -3] }}
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          >
-            <Mascot />
-          </motion.div>
-          <div className="floating-card card-vote">
-            <div className="vote-symbol">
-              <Trophy size={23} />
-            </div>
-            <div>
-              <span>LE JURY EST FORMEL.</span>
-              <strong>Vous êtes un danger.</strong>
-            </div>
-            <span className="vote-sticker">+150</span>
-          </div>
-          <div className="sticker-orange">
-            100%
-            <br />
-            <strong>mauvaise foi</strong>
-            <span>↗</span>
-          </div>
-          <div className="art-caption">
-            <span>VOTRE TALENT N’EST PAS REQUIS.</span>
-            <ArrowDown size={17} />
-          </div>
-        </div>
-      </section>
-      <div className="ticker" aria-hidden="true">
-        <div>
-          DES AMIS <span>✳</span> DES MYTHOS <span>✳</span> DES DÉBATS NULS{" "}
-          <span>✳</span> ZÉRO DIGNITÉ <span>✳</span> UN MAX DE DOSSIERS{" "}
-          <span>✳</span> DES AMIS <span>✳</span> DES MYTHOS <span>✳</span>{" "}
-          DES DÉBATS NULS <span>✳</span>
-        </div>
-      </div>
-      <section className="games-section page-width">
-        <div className="section-heading">
-          <div>
-            <div className="eyebrow">LE PROGRAMME DES RÉJOUISSANCES</div>
-            <h2>5 jeux. Aucune retenue.</h2>
-          </div>
-          <button className="text-button" onClick={games}>
-            Explorer les jeux <ArrowUp className="diagonal-arrow" size={20} />
-          </button>
-        </div>
-        <div className="game-grid">
-          {GAMES.map((g, i) => (
-            <GameCard key={g.id} id={g.id} index={i} onClick={games} />
-          ))}
-        </div>
-      </section>
-      <section className="how-banner page-width">
-        <div className="how-heading">
-          <span className="how-star">✳</span>
-          <h2>
-            Le plan est simple.
-            <br />
-            Le reste, beaucoup moins.
-          </h2>
-          <button className="text-button" onClick={rules}>
-            Comment ça marche <ArrowRight size={20} />
-          </button>
-        </div>
-        <div className="how-steps">
-          {[
-            [
-              "01",
-              "Créez votre salon",
-              "Un code à partager. Un QR à scanner. Et c’est tout.",
-            ],
-            [
-              "02",
-              "Rassemblez le gang",
-              "Chacun son téléphone ou son ordi. La télé, c’est bonus.",
-            ],
-            [
-              "03",
-              "Lâchez les mauvaises idées",
-              "Choisissez vos jeux. Le talent est facultatif.",
-            ],
-          ].map(([n, title, text]) => (
-            <div key={n}>
-              <span className="step-number">{n}</span>
-              <h3>{title}</h3>
-              <p>{text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </>
-  );
-}
-
-function GameCard({
-  id,
-  index,
-  onClick,
-}: {
-  id: GameId;
-  index: number;
-  onClick: () => void;
-}) {
-  const g = gameInfo(id);
-  const Icon = icons[id];
-  return (
-    <button
-      className={`game-card game-${id}`}
-      style={styleColor(g.color)}
-      onClick={onClick}
-    >
-      <div className="game-card-top">
-        <span className="game-number">0{index + 1}</span>
-        <ArrowUp className="diagonal-arrow" size={20} />
-      </div>
-      <div className="game-illustration">
-        <Icon size={49} strokeWidth={1.7} />
-        <span className="game-doodle">
-          {id === "mythos"
-            ? "?!"
-            : id === "pitch"
-              ? "€€"
-              : id === "court"
-                ? "OBJECTION !"
-                : id === "who"
-                  ? "?"
-                  : "…"}
-        </span>
-      </div>
-      <div className="game-card-copy">
-        <h3>{g.shortName}</h3>
-        <p>{g.description}</p>
-        <span className="game-meta">
-          {g.minPlayers}–12 JOUEURS <span>·</span> {g.duration}
-        </span>
-      </div>
-    </button>
-  );
-}
-
-function GameCatalogue({ create }: { create: () => void }) {
-  const [expanded, setExpanded] = useState<GameId>("mythos");
-  return (
-    <section className="page-width inner-page">
-      <div className="eyebrow">VOTRE PROGRAMME POUR CE SOIR</div>
-      <h1 className="page-title">
-        Cinq façons de
-        <br />
-        <span className="purple-text">perdre toute crédibilité.</span>
-      </h1>
-      <p className="lead">
-        Un seul salon, autant de mauvaises idées que vous voulez. Composez votre
-        soirée ou laissez le hasard s’en charger.
-      </p>
-      <div className="catalogue-list">
-        {GAMES.map((g, i) => {
-          const Icon = icons[g.id];
-          return (
-            <article
-              key={g.id}
-              className="catalogue-item"
-              style={styleColor(g.color)}
-            >
-              <button
-                className="catalogue-title"
-                onClick={() => setExpanded(g.id)}
-                aria-expanded={expanded === g.id}
-              >
-                <span className="catalogue-icon">
-                  <Icon size={30} />
-                </span>
-                <span>
-                  <small>
-                    JEU 0{i + 1} · {g.minPlayers} À 12 JOUEURS · {g.duration}
-                  </small>
-                  <h2>{g.name}</h2>
-                </span>
-                <ChevronDown className={expanded === g.id ? "rotated" : ""} />
-              </button>
-              {expanded === g.id && (
-                <div className="catalogue-detail">
-                  <p>{g.description}</p>
-                  <p>{gameRules[g.id]}</p>
-                  <div className="pill">
-                    {g.id === "pitch"
-                      ? "Produits du jeu ou inventés par vos amis · notes sur 3 critères"
-                      : g.id === "court"
-                        ? "Rôles tournants · jury secret · égalité = acquittement"
-                        : g.id === "who"
-                          ? "100 points si vous trouvez le favori · 50 points pour la cible"
-                          : "100 points par vote · 150 points de bonus au gagnant"}
-                  </div>
-                </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
-      <button className="button primary large" onClick={create}>
-        Composer ma soirée <ArrowRight size={20} />
-      </button>
-    </section>
-  );
-}
-const gameRules: Record<GameId, string> = {
-  mythos:
-    "Répondez à une question improbable, découvrez les réponses puis votez pour la meilleure explication. Les auteurs restent anonymes jusqu’aux résultats et impossible de voter pour soi.",
-  pitch:
-    "Préparez une vente à l’oral. Si vous inventez les objets, le jeu les échange : personne ne vend sa propre invention. Notez l’humour, la conviction et la créativité de chaque vendeur de 1 à 5.",
-  court:
-    "Un accusé, un procureur, un avocat et un juge : tout le monde a un rôle. Le juge guide le procès, les jurés votent en secret et chacun peut récompenser la meilleure intervention.",
-  who: "Une question sur votre groupe. Désignez la personne qui colle le mieux à la description. Les votes sont secrets et la personne la plus citée gagne un titre dont elle se serait bien passée.",
-  captions:
-    "Une image originale, vos pires sous-titres. Écrivez une légende, découvrez celles des autres et votez pour votre préférée. Les auteurs ne seront révélés qu’après les votes.",
-};
-
 function Rules({ create }: { create: () => void }) {
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   return (
     <section className="page-width inner-page rules-page">
-      <div className="eyebrow">ÇA SE COMPREND AVANT LA PREMIÈRE CHIPS</div>
-      <h1 className="page-title">On joue comment ?</h1>
-      <div className="tutorial-controls" aria-label="Choisir une étape du tutoriel">{["Créer", "Rejoindre", "Configurer", "Participer", "Célébrer"].map((label, index) => <button key={label} aria-pressed={step === index} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</div>
-      <div className="rules-layout">
-        <div>
-          <div className="tutorial-screens" aria-hidden="true"><div className="tutorial-stage"><Monitor size={64}/><strong>{["UN CODE POUR TOUT LE MONDE", "LA SCÈNE RACONTE", "VOTRE PROGRAMME", "LE SPECTACLE EN DIRECT", "LA SOIRÉE A SES LÉGENDES"][step]}</strong><span>La scène</span></div><div className="tutorial-controller"><Gamepad2 size={32}/><strong>{["ABCDEF", "C’est votre manette !", "5 jeux", "À vous de jouer", "+150 PTS"][step]}</strong><span>Votre téléphone</span></div></div>
-          {[
-            [
-              "1",
-              "Un hôte, un salon.",
-              "Cliquez sur « Créer une partie », composez le programme, choisissez un pseudo et partagez le code. Aucun compte à créer.",
-            ],
-            [
-              "2",
-              "Chacun sa manette.",
-              "Un navigateur sur votre téléphone ou votre ordinateur suffit. Pour une soirée canapé, ouvrez l’écran TV depuis le lobby. En ligne, retrouvez vos amis sur votre appel vocal habituel.",
-            ],
-            [
-              "3",
-              "Votre soirée, vos règles.",
-              "L’hôte compose une playlist avec les cinq jeux ou choisit le mode aléatoire. Les durées, le vote, les catégories et le classement sont réglables.",
-            ],
-            [
-              "4",
-              "Écrivez. Barrez. Assumez.",
-              "Suivez les consignes de chaque jeu. Les votes, le chrono, les résultats et les points sont synchronisés automatiquement. Les absents ne bloquent pas le jeu.",
-            ],
-            [
-              "5",
-              "Le podium n’oublie rien.",
-              "Le classement cumule les points de toute la soirée. En cas d’égalité, les vainqueurs partagent leur victoire. Une reconnexion retrouve votre place.",
-            ],
-          ].map(([n, title, text]) => (
-            <article className="rule" key={n} hidden={Number(n) - 1 !== step}>
-              <span>{n}</span>
-              <div>
-                <h2>{title}</h2>
-                <p>{text}</p>
-              </div>
-            </article>
-          ))}
-          <div className="wizard-navigation"><button className="button outline" disabled={step === 0} onClick={() => setStep((value) => value - 1)}><ArrowLeft size={17}/>Précédent</button>{step < 4 ? <button className="button primary" onClick={() => setStep((value) => value + 1)}>Étape suivante <ArrowRight size={17}/></button> : <button className="button primary" onClick={create}>Créer ma soirée <ArrowRight size={17}/></button>}</div>
+      <div className="eyebrow">{t('legacy.s105')}</div>
+      <h1 className="page-title">{t('legacy.s106')}</h1>
+      <div className="tutorial-controls" aria-label={t('legacy.s107')}>{[0,1,2,3,4].map((index) => <button key={index} aria-pressed={step === index} onClick={() => setStep(index)}><span>{index + 1}</span>{t(`tutorial.${index}.tab`)}</button>)}</div>
+      <div className="rules-layout"><div>
+        <div className="tutorial-screens" aria-hidden><div className="tutorial-stage"><Monitor size={64}/><strong>{t(`tutorial.${step}.stage`)}</strong><span>{t('legacy.s108')}</span></div><div className="tutorial-controller"><Gamepad2 size={32}/><strong>{t(`tutorial.${step}.phone`)}</strong><span>{t('legacy.s109')}</span></div></div>
+        <article className="rule"><span>{step + 1}</span><div><h2>{t(`tutorial.${step}.title`)}</h2><p>{t(`tutorial.${step}.body`)}</p></div></article>
+          <div className="wizard-navigation"><button className="button outline" disabled={step === 0} onClick={() => setStep((value) => value - 1)}><ArrowLeft size={17}/>{t('legacy.s110')}</button>{step < 4 ? <button className="button primary" onClick={() => setStep((value) => value + 1)}>{t('legacy.s111')}<ArrowRight size={17}/></button> : <button className="button primary" onClick={create}>{t('legacy.s112')}<ArrowRight size={17}/></button>}</div>
         </div>
         <aside className="rules-aside">
           <Mascot small />
-          <h3>La seule vraie règle ?</h3>
+          <h3>{t('legacy.s113')}</h3>
           <p>
-            On rit ensemble. Adaptez les catégories et le mode adulte à votre
-            groupe. La mauvaise foi est autorisée, la méchanceté beaucoup moins.
-          </p>
+            {t('legacy.s114')}</p>
           <button className="button primary full" onClick={create}>
-            C’est parti <ArrowRight size={18} />
+            {t('legacy.s115')}<ArrowRight size={18} />
           </button>
         </aside>
       </div>
@@ -912,11 +621,14 @@ function Modal({
   title,
   close,
   children,
+  wide = false,
 }: {
   title: string;
   close: () => void;
   children: ReactNode;
+  wide?: boolean;
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
@@ -957,7 +669,7 @@ function Modal({
     >
       <motion.div
         ref={ref}
-        className="modal"
+        className={`modal ${wide ? 'modal-wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -966,12 +678,12 @@ function Modal({
       >
         <button
           className="icon-button modal-close"
-          aria-label="Fermer"
+          aria-label={t('legacy.s116')}
           onClick={close}
         >
           <X size={21} />
         </button>
-        <div className="eyebrow">EN VRILLE ✳</div>
+        <div className="eyebrow">{t('legacy.s117')}</div>
         <h2>{title}</h2>
         {children}
       </motion.div>
@@ -984,52 +696,38 @@ function CreateWizard({ busy, submit }: {
   submit: (data: { name: string; avatar: string; hostPlays?: boolean }, config: RoomConfig) => void;
 }) {
   const [step, setStep] = useState(0);
-  const [config, setConfig] = useState<RoomConfig>(() => structuredClone(DEFAULT_CONFIG));
+  const { language, t } = useI18n();
+  const [config, setConfig] = useState<RoomConfig>(() => ({ ...structuredClone(DEFAULT_CONFIG), language }));
   const update = <K extends keyof RoomConfig>(key: K, value: RoomConfig[K]) => setConfig((previous) => ({ ...previous, [key]: value }));
   return (
     <div className="creation-wizard">
-      <ol className="wizard-steps" aria-label="Étapes de création">
-        {["L’ambiance", "Le programme", "Votre place"].map((label, index) => <li key={label} aria-current={step === index ? "step" : undefined}><span>{index + 1}</span>{label}</li>)}
+      <ol className="wizard-steps" aria-label={t('legacy.s118')}>
+        {['mood', 'programme', 'identity'].map((key, index) => <li key={key} aria-current={step === index ? "step" : undefined}><span>{index + 1}</span>{t(`wizard.${key}`)}</li>)}
       </ol>
       {step === 0 ? <>
-        <h2>Qui choisit le programme ?</h2>
+        <h2>{t('legacy.s120')}</h2>
         <div className="creation-modes">
-          <button className={config.mode === "custom" ? "selected" : ""} aria-pressed={config.mode === "custom"} onClick={() => update("mode", "custom")}><Gamepad2 size={34}/><strong>Sur mesure</strong><span>Choisissez vos jeux, leur ordre et leurs manches.</span></button>
-          <button className={config.mode === "random" ? "selected" : ""} aria-pressed={config.mode === "random"} onClick={() => update("mode", "random")}><Shuffle size={34}/><strong>Surprise !</strong><span>Le hasard compose votre émission.</span></button>
+          <button className={config.mode === "custom" ? "selected" : ""} aria-pressed={config.mode === "custom"} onClick={() => update("mode", "custom")}><Gamepad2 size={34}/><strong>{t('legacy.s122')}</strong><span>{t('legacy.s123')}</span></button>
+          <button className={config.mode === "random" ? "selected" : ""} aria-pressed={config.mode === "random"} onClick={() => update("mode", "random")}><Shuffle size={34}/><strong>{t('legacy.s124')}</strong><span>{t('legacy.s125')}</span></button>
         </div>
-        <button className="button primary full" onClick={() => setStep(1)}>Préparer le programme <ArrowRight size={18}/></button>
+        <button className="button primary full" onClick={() => setStep(1)}>{t('legacy.s126')}<ArrowRight size={18}/></button>
       </> : step === 1 ? <>
-        <h2>{config.mode === "custom" ? "Composez votre soirée." : "Dosez la surprise."}</h2>
-        {config.mode === "custom" ? <>
-          <div className="wizard-playlist">
-            {config.playlist.map((item, index) => <div className="wizard-game" key={`${item.gameId}-${index}`}>
-              <strong>{gameInfo(item.gameId).shortName}</strong>
-              <NumberField label={`Manches ${index + 1}`} value={item.rounds} min={1} max={10} onChange={(rounds) => update("playlist", config.playlist.map((entry, i) => i === index ? { ...entry, rounds } : entry))}/>
-              {item.gameId === "pitch" && <select aria-label={`Mode des produits ${index + 1}`} value={item.pitchMode || "random"} onChange={(event) => update("playlist", config.playlist.map((entry, i) => i === index ? { ...entry, pitchMode: event.target.value as "random" | "invented" } : entry))}><option value="invented">Produits inventés</option><option value="random">Produits du jeu</option></select>}
-              <div className="wizard-game-actions">
-                <button aria-label={`Monter le jeu ${index + 1}`} className="mini-button" disabled={index === 0} onClick={() => { const entries = [...config.playlist]; [entries[index - 1], entries[index]] = [entries[index], entries[index - 1]]; update("playlist", entries); }}><ArrowUp size={15}/></button>
-                <button aria-label={`Supprimer le jeu ${index + 1}`} className="mini-button remove" onClick={() => update("playlist", config.playlist.filter((_, i) => i !== index))}><X size={15}/></button>
-              </div>
-            </div>)}
-          </div>
-          <div className="allowed-games">{GAMES.map((game) => <button key={game.id} disabled={config.playlist.length >= 12} onClick={() => update("playlist", [...config.playlist, { gameId: game.id, rounds: 1, ...(game.id === "pitch" ? { pitchMode: "invented" as const } : {}) }])}><Plus size={15}/>{game.shortName}</button>)}</div>
-        </> : <>
-          <div className="field-grid"><NumberField label="Nombre de jeux" value={config.randomCount} min={1} max={12} onChange={(value) => update("randomCount", value)}/><NumberField label="Manches par jeu (0 = surprise)" value={config.randomRounds} min={0} max={10} onChange={(value) => update("randomRounds", value)}/></div>
-          <div className="allowed-games">{GAMES.map((game) => <button className={config.allowedGames.includes(game.id) ? "selected" : ""} aria-pressed={config.allowedGames.includes(game.id)} key={game.id} onClick={() => update("allowedGames", config.allowedGames.includes(game.id) ? config.allowedGames.filter((id) => id !== game.id) : [...config.allowedGames, game.id])}>{game.shortName}</button>)}</div>
-          <Toggle label="Autoriser les répétitions" checked={config.allowRepeats} onChange={(value) => update("allowRepeats", value)}/>
-        </>}
-        <details className="wizard-options"><summary>Personnaliser les options</summary>
-          <div className="field-grid"><NumberField label="Réponse (secondes)" value={config.answerSeconds} min={15} max={180} onChange={(value) => update("answerSeconds", value)}/><NumberField label="Vote (secondes)" value={config.voteSeconds} min={10} max={120} onChange={(value) => update("voteSeconds", value)}/><NumberField label="Repère oral (secondes)" value={config.presentationSeconds} min={15} max={180} onChange={(value) => update("presentationSeconds", value)}/></div>
-          <Toggle label="Jouer sans points" checked={config.noPoints} onChange={(value) => update("noPoints", value)}/>
-          <Toggle label="Réactions du public" checked={config.reactionsEnabled} onChange={(value) => update("reactionsEnabled", value)}/>
-          <Toggle label="Missions secrètes" description="Un mot à glisser dans les réponses écrites et les inventions : +50 points si la mission est réussie." checked={config.secretRoles} onChange={(value) => update("secretRoles", value)}/>
-          <Toggle label="Enchaîner les scènes automatiquement" description="Les prises de parole restent toujours sous le contrôle de l’hôte." checked={config.autoAdvance} onChange={(value) => update("autoAdvance", value)}/>
-          <Toggle label="Humour adulte" checked={config.adult} onChange={(value) => update("adult", value)}/>
+        <h2>{config.mode === "custom" ? t('legacy.s127') : t('legacy.s128')}</h2>
+        <GameSelection config={config} onChange={setConfig}/>
+        <details className="wizard-options"><summary>{t('legacy.s129')}</summary>
+          <label className="field-label">{t('settings.stageLanguage')}<select value={config.language} onChange={(event) => update('language', event.target.value as 'fr' | 'en')}><option value="fr">{"Français"}</option><option value="en">{"English"}</option></select></label>
+          <label className="field-label">{t('captions.length')}<select value={config.captionLength} onChange={(event) => update('captionLength', event.target.value as RoomConfig['captionLength'])}><option value="short">{t('captions.short')}</option><option value="normal">{t('captions.normal')}</option><option value="long">{t('captions.long')}</option></select></label>
+          <div className="field-grid"><NumberField label={t('legacy.s132')} value={config.answerSeconds} min={15} max={180} onChange={(value) => update("answerSeconds", value)}/><NumberField label={t('legacy.s133')} value={config.voteSeconds} min={10} max={120} onChange={(value) => update("voteSeconds", value)}/><NumberField label={t('legacy.s134')} value={config.presentationSeconds} min={15} max={180} onChange={(value) => update("presentationSeconds", value)}/></div>
+          <Toggle label={t('legacy.s135')} checked={config.noPoints} onChange={(value) => update("noPoints", value)}/>
+          <Toggle label={t('legacy.s136')} checked={config.reactionsEnabled} onChange={(value) => update("reactionsEnabled", value)}/>
+          <Toggle label={t('legacy.s137')} description={t('legacy.s138')} checked={config.secretRoles} onChange={(value) => update("secretRoles", value)}/>
+          <Toggle label={t('legacy.s139')} description={t('legacy.s140')} checked={config.autoAdvance} onChange={(value) => update("autoAdvance", value)}/>
+          <Toggle label={t('legacy.s141')} checked={config.adult} onChange={(value) => update("adult", value)}/>
         </details>
-        <p className="fineprint">Le casting et tous les réglages pourront être ajustés dans le salon. Le Tribunal demande 5 joueurs ; les autres jeux, 3.</p>
-        <div className="wizard-navigation"><button className="button outline" onClick={() => setStep(0)}><ArrowLeft size={17}/>Retour</button><button className="button primary" disabled={config.mode === "custom" ? !config.playlist.length : !config.allowedGames.length} onClick={() => setStep(2)}>Continuer <ArrowRight size={17}/></button></div>
+        <p className="fineprint">{t('legacy.s142')}</p>
+        <div className="wizard-navigation"><button className="button outline" onClick={() => setStep(0)}><ArrowLeft size={17}/>{t('legacy.s143')}</button><button className="button primary" disabled={config.mode === "custom" ? !config.playlist.length : !config.allowedGames.length} onClick={() => setStep(2)}>{t('legacy.s144')}<ArrowRight size={17}/></button></div>
       </> : <>
-        <button className="text-button" onClick={() => setStep(1)}><ArrowLeft size={16}/>Modifier le programme</button>
+        <button className="text-button" onClick={() => setStep(1)}><ArrowLeft size={16}/>{t('legacy.s145')}</button>
         <IdentityForm mode="create" busy={busy} submit={(data) => submit(data, config)}/>
       </>}
     </div>
@@ -1051,6 +749,7 @@ function IdentityForm({
     hostPlays?: boolean;
   }) => void;
 }) {
+  const { t } = useI18n();
   const params = new URLSearchParams(location.search);
   const [name, setName] = useState(() => saved("vrille-name", ""));
   const [avatar, setAvatar] = useState(() =>
@@ -1076,14 +775,13 @@ function IdentityForm({
     >
       {mode === "join" && (
         <label className="field-label">
-          Code du salon
-          <input
+          {t('legacy.s146')}<input
             className="code-input"
-            aria-label="Code du salon"
+            aria-label={t('legacy.s146')}
             maxLength={6}
             minLength={6}
             required
-            placeholder="ABCDEF"
+            placeholder={"ABCDEF"}
             value={code}
             onChange={(e) =>
               setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))
@@ -1094,10 +792,9 @@ function IdentityForm({
       {(mode === "create" || !spectator) && (
         <>
           <label className="field-label">
-            Ton pseudo
-            <input
-              aria-label="Ton pseudo"
-              placeholder="La légende du canapé"
+            {t('legacy.s148')}<input
+              aria-label={t('legacy.s148')}
+              placeholder={t('legacy.s149')}
               maxLength={22}
               minLength={2}
               required
@@ -1106,7 +803,7 @@ function IdentityForm({
             />
           </label>
           <fieldset className="avatar-picker">
-            <legend>Choisissez votre tête de vainqueur</legend>
+            <legend>{t('legacy.s150')}</legend>
             <div>
               {AVATARS.map((a) => (
                 <button
@@ -1128,27 +825,26 @@ function IdentityForm({
         <Toggle
           checked={spectator}
           onChange={setSpectator}
-          label="Mode écran TV"
-          description="Affichage collectif sans participer ni voter."
+          label={t('legacy.s151')}
+          description={t('legacy.s152')}
         />
       )}
-      {mode === "create" && <Toggle checked={hostPlays} onChange={setHostPlays} label="Je participe aussi" description="Désactivez pour animer uniquement : votre écran ne comptera pas comme joueur."/>}
+      {mode === "create" && <Toggle checked={hostPlays} onChange={setHostPlays} label={t('legacy.s153')} description={t('legacy.s154')}/>}
       <button className="button primary full" type="submit" disabled={busy}>
         {busy ? (
           <LoaderCircle className="spin" size={20} />
         ) : mode === "create" ? (
           <>
-            Créer un salon <ArrowRight size={20} />
+            {t('legacy.s155')}<ArrowRight size={20} />
           </>
         ) : (
           <>
-            Rejoindre le salon <ArrowRight size={20} />
+            {t('legacy.s156')}<ArrowRight size={20} />
           </>
         )}
       </button>
       <p className="fineprint">
-        Pas de compte, pas de téléchargement. Juste vous.
-      </p>
+        {t('legacy.s157')}</p>
     </form>
   );
 }
@@ -1166,6 +862,7 @@ function Toggle({
   description?: string;
   disabled?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <label className={`toggle-row ${disabled ? "disabled" : ""}`}>
       <span>
@@ -1186,15 +883,16 @@ function Toggle({
 type Request = (event: Event, payload?: unknown) => Promise<Ack>;
 
 function Room({ room, request, notify, onLeave }: { room: RoomSnapshot; request: Request; notify: (v: string) => void; onLeave: () => void; }) {
+  const { t } = useI18n();
   const host = room.me.id === room.hostId;
   const me = room.players.find((player) => player.id === room.me.id)!;
   const [view, setView] = useState<"controller" | "stage">(isDesktop || me.spectator ? "stage" : "controller");
   const stage = (me.spectator && !host) || view === "stage";
   return (
     <div data-testid="phase" data-phase={room.phase} className={`room-page ${stage ? "scene-room" : "page-width controller-room"}`}>
-      {(!me.spectator || host) && <div className="room-view-switch" aria-label="Choisir son écran">
-        <button className={stage ? "" : "selected"} aria-pressed={!stage} onClick={() => setView("controller")}><Gamepad2 size={17}/>{me.spectator ? "Afficher la régie" : "Afficher ma manette"}</button>
-        <button className={stage ? "selected" : ""} aria-pressed={stage} onClick={() => setView("stage")}><Monitor size={17}/>Afficher la scène</button>
+      {(!me.spectator || host) && <div className="room-view-switch" aria-label={t('legacy.s158')}>
+        <button className={stage ? "" : "selected"} aria-pressed={!stage} onClick={() => setView("controller")}><Gamepad2 size={17}/>{me.spectator ? t('legacy.s159') : t('legacy.s160')}</button>
+        <button className={stage ? "selected" : ""} aria-pressed={stage} onClick={() => setView("stage")}><Monitor size={17}/>{t('legacy.s161')}</button>
       </div>}
       {stage ? <SceneStage room={room} host={host} request={request} onController={me.spectator && !host ? undefined : () => setView("controller")} onMenu={onLeave}/>
         : room.phase === "lobby" ? host ? <Lobby room={room} request={request} notify={notify} host={host}/> : <ControllerLobby room={room} request={request}/>
@@ -1204,28 +902,32 @@ function Room({ room, request, notify, onLeave }: { room: RoomSnapshot; request:
 }
 
 function Participation({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   return <div className="participation-list" aria-live="polite" aria-atomic="true">{(room.progress || []).map((progress) => <div className="participation" key={progress.kind}>
-    <div><strong>{progress.completed} / {progress.total}</strong><span>{progress.label}</span></div>
-    <div className="participation-track" role="progressbar" aria-label={progress.label} aria-valuemin={0} aria-valuemax={progress.total || 1} aria-valuenow={progress.completed}><motion.span animate={{ width: `${progress.total ? Math.min(100, progress.completed / progress.total * 100) : 0}%` }}/></div>
+    <div><strong>{progress.completed} / {progress.total}</strong><span>{room.round?.gameId === 'captions' && room.phase === 'writing' ? t('captions.writers') : t(`progress.${progress.kind}`)}</span></div>
+    <div className="participation-track" role="progressbar" aria-label={t(`progress.${progress.kind}`)} aria-valuemin={0} aria-valuemax={progress.total || 1} aria-valuenow={progress.completed}><motion.span animate={{ width: `${progress.total ? Math.min(100, progress.completed / progress.total * 100) : 0}%` }}/></div>
   </div>)}</div>;
 }
 
 function Reactions({ room, request }: { room: RoomSnapshot; request: Request }) {
+  const { t } = useI18n();
   const [cooldown, setCooldown] = useState(false);
   if (!room.config.reactionsEnabled) return null;
-  return <div className="controller-reactions" role="group" aria-label="Réagir à l’émission">{REACTIONS.map((reaction) => <button key={reaction} aria-label={`Réaction ${reaction}`} disabled={cooldown} onClick={() => { setCooldown(true); void request("room:react", { reaction }); window.setTimeout(() => setCooldown(false), 2100); }}>{reaction}</button>)}</div>;
+  return <div className="controller-reactions" role="group" aria-label={t('legacy.s162')}>{REACTIONS.map((reaction) => <button key={reaction} aria-label={`Réaction ${reaction}`} disabled={cooldown} onClick={() => { setCooldown(true); void request("room:react", { reaction }); window.setTimeout(() => setCooldown(false), 2100); }}>{reaction}</button>)}</div>;
 }
 
 function ControllerIdentity({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const me = room.players.find((player) => player.id === room.me.id)!;
-  return <div className="controller-identity"><Avatar player={me}/><div><strong>{me.name}</strong><small>Votre manette privée · Salon <span data-testid="room-code">{room.code}</span></small></div><span>{room.config.noPoints ? "POUR LE FUN" : !room.scoresVisible ? "SUSPENSE" : <><strong>{me.score.toLocaleString("fr-FR")}</strong> PTS</>}</span></div>;
+  return <div className="controller-identity"><Avatar player={me}/><div><strong>{me.name}</strong><small>{t('legacy.s163')}<span data-testid="room-code">{room.code}</span></small></div><span>{room.config.noPoints ? t('legacy.s164') : !room.scoresVisible ? t('legacy.s165') : <><strong>{me.score.toLocaleString(document.documentElement.lang)}</strong> {t('legacy.s166')}</>}</span></div>;
 }
 
 function ControllerLobby({ room, request }: { room: RoomSnapshot; request: Request }) {
+  const { t } = useI18n();
   const me = room.players.find((player) => player.id === room.me.id)!;
   return <div className="controller-shell">
     <ControllerIdentity room={room}/>
-    <section className="panel controller-panel"><div className="eyebrow">LE CASTING PREND PLACE</div><h1>{me.ready ? "Vous êtes dans le casting !" : "Prêt à entrer en scène ?"}</h1><p>L’hôte prépare le programme. Votre téléphone vous indiquera quoi faire à chaque étape.</p><Participation room={room}/><button className={`button full large ${me.ready ? "green" : "primary"}`} aria-label="Je suis prêt" onClick={() => void request("room:ready", { ready: !me.ready })}>{me.ready ? <><Check size={21}/>Je suis prêt !</> : <>Je suis prêt <ArrowRight size={21}/></>}</button></section>
+    <section className="panel controller-panel"><div className="eyebrow">{t('legacy.s167')}</div><h1>{me.ready ? t('legacy.s168') : t('legacy.s169')}</h1><p>{t('legacy.s170')}</p><Participation room={room}/><button className={`button full large ${me.ready ? "green" : "primary"}`} aria-label={t('legacy.s171')} onClick={() => void request("room:ready", { ready: !me.ready })}>{me.ready ? <><Check size={21}/>{t('legacy.s172')}</> : <>{t('legacy.s171')}<ArrowRight size={21}/></>}</button></section>
     <div className="controller-casting">{room.players.filter((player) => !player.spectator).map((player) => <motion.div key={player.id} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}><Avatar player={player}/><span>{player.name}</span>{player.ready && <Check size={15}/>}</motion.div>)}</div>
     <Reactions room={room} request={request}/>
   </div>;
@@ -1242,6 +944,7 @@ function Lobby({
   notify: (v: string) => void;
   host: boolean;
 }) {
+  const { t } = useI18n();
   const [config, setConfig] = useState(room.config);
   const [advanced, setAdvanced] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -1292,46 +995,42 @@ function Lobby({
       <div className="room-heading">
         <div>
           <div className="eyebrow">
-            <i className="live-dot" /> LE CALME AVANT LA VRILLE
-          </div>
-          <h1>Tout le monde est là ?</h1>
-          <p>Rameutez le gang. Préparez les mauvaises idées.</p>
+            <i className="live-dot" /> {t('legacy.s173')}</div>
+          <h1>{t('legacy.s174')}</h1>
+          <p>{t('legacy.s175')}</p>
         </div>
         <span className="status-pill">
           <Users size={17} />
-          {active.length}/12 joueurs
-        </span>
+          {active.length}{t('legacy.s176')}</span>
       </div>
       <Participation room={room}/>
       <div className="lobby-layout">
         <div className="lobby-left">
           <section className="panel invite-panel">
             <div>
-              <span className="eyebrow">LE CODE POUR ENTRER</span>
+              <span className="eyebrow">{t('legacy.s177')}</span>
               <div data-testid="room-code" className="room-code">
                 {room.code}
               </div>
               <button className="text-button" onClick={() => void copy()}>
                 <Copy size={16} />
-                Copier l’invitation
-              </button>
+                {t('legacy.s178')}</button>
               <a className="invite-url" href={room.inviteUrl} onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(room.inviteUrl).catch(() => notify("Copiez le lien d’invitation pour l’ouvrir dans votre navigateur.")); } }}>
                 {room.inviteUrl}
               </a>
             </div>
             <div className="qr-wrap">
               <QRCodeSVG value={room.inviteUrl} size={104} marginSize={1} />
-              <small>SCANNEZ. DÉBARQUEZ.</small>
+              <small>{t('legacy.s179')}</small>
             </div>
           </section>
           <section className="panel players-panel">
             <div className="panel-heading">
               <h2>
-                Le casting <span>{active.length}</span>
+                {t('legacy.s180')}<span>{active.length}</span>
               </h2>
               <span className="muted small">
-                {active.filter((p) => p.ready).length} prêts
-              </span>
+                {active.filter((p) => p.ready).length} {t('legacy.s181')}</span>
             </div>
             <div className="player-list">
               {room.players.map((p) => (
@@ -1344,19 +1043,19 @@ function Lobby({
                     <strong>
                       {p.name}{" "}
                       {p.id === room.me.id && (
-                        <span className="muted">(vous)</span>
+                        <span className="muted">{t('legacy.s182')}</span>
                       )}
                     </strong>
                     <small>
                       {p.spectator
-                        ? "Écran spectateur"
+                        ? t('legacy.s183')
                         : p.id === room.hostId
-                          ? "Chef d’orchestre du chaos"
+                          ? t('legacy.s184')
                           : !p.connected
-                            ? "Reconnexion…"
+                            ? t('legacy.s059')
                             : p.ready
-                              ? "Prêt à en découdre"
-                              : "Échauffe sa mauvaise foi"}
+                              ? t('legacy.s185')
+                              : t('legacy.s186')}
                     </small>
                   </div>
                   {p.id === room.hostId ? (
@@ -1373,18 +1072,17 @@ function Lobby({
             </div>
             {!me.spectator && (
               <button
-                aria-label="Je suis prêt"
+                aria-label={t('legacy.s171')}
                 className={`button full ${me.ready ? "green" : "outline"}`}
                 onClick={() => void request("room:ready", { ready: !me.ready })}
               >
                 {me.ready ? (
                   <>
                     <Check size={19} />
-                    Je suis prêt !
-                  </>
+                    {t('legacy.s172')}</>
                 ) : (
                   <>
-                    Je suis prêt <Check size={19} />
+                    {t('legacy.s171')}<Check size={19} />
                   </>
                 )}
               </button>
@@ -1397,24 +1095,22 @@ function Lobby({
               onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(`${room.inviteUrl}${room.inviteUrl.includes("?") ? "&" : "?"}screen=1`).catch(() => notify("Copiez le lien d’invitation et ajoutez &screen=1 dans votre navigateur.")); } }}
             >
               <Monitor size={17} />
-              Ouvrir un écran TV
-              <ExternalLink size={14} />
+              {t('legacy.s187')}<ExternalLink size={14} />
             </a>
           </section>
           <div className="lobby-tip">
             <Sparkles size={21} />
             <p>
-              Le talent est facultatif.
-              <br />
-              <strong>Le téléphone chargé, c’est mieux.</strong>
+              {t('legacy.s188')}<br />
+              <strong>{t('legacy.s189')}</strong>
             </p>
           </div>
         </div>
         <section className="panel playlist-panel">
           <div className="panel-heading">
             <div>
-              <span className="eyebrow">LE MENU DE CE SOIR</span>
-              <h2>Votre dose de chaos.</h2>
+              <span className="eyebrow">{t('legacy.s190')}</span>
+              <h2>{t('legacy.s191')}</h2>
             </div>
             <Shuffle size={26} />
           </div>
@@ -1425,225 +1121,31 @@ function Lobby({
               onClick={() => update("mode", "custom")}
             >
               <Gamepad2 size={17} />
-              Sur mesure
-            </button>
+              {t('legacy.s122')}</button>
             <button
               disabled={!host}
               className={config.mode === "random" ? "selected" : ""}
               onClick={() => update("mode", "random")}
             >
               <Shuffle size={17} />
-              Surprise !
-            </button>
+              {t('legacy.s124')}</button>
           </div>
-          {config.mode === "custom" ? (
-            <>
-              <div className="playlist-items">
-                {config.playlist.map((item, i) => {
-                  const g = gameInfo(item.gameId);
-                  const Icon = icons[item.gameId];
-                  return (
-                    <div className="playlist-item" key={`${i}-${item.gameId}`}>
-                      <span
-                        className="playlist-icon"
-                        style={{ background: g.color }}
-                      >
-                        <Icon size={22} />
-                      </span>
-                      <div className="playlist-info">
-                        <strong>{g.shortName}</strong>
-                        <small>{g.minPlayers} joueurs minimum</small>
-                        {item.gameId === "pitch" && (
-                          <select
-                            aria-label={`Mode des produits ${i + 1}`}
-                            disabled={!host}
-                            value={item.pitchMode || "random"}
-                            onChange={(e) =>
-                              update(
-                                "playlist",
-                                config.playlist.map((p, n) =>
-                                  n === i
-                                    ? {
-                                        ...p,
-                                        pitchMode: e.target.value as
-                                          | "random"
-                                          | "invented",
-                                      }
-                                    : p,
-                                ),
-                              )
-                            }
-                          >
-                            <option value="invented">
-                              Inventés par les joueurs
-                            </option>
-                            <option value="random">Produits du jeu</option>
-                          </select>
-                        )}
-                      </div>
-                      <label className="round-count">
-                        <span>Manches</span>
-                        <input
-                          type="number"
-                          aria-label={`Manches ${g.shortName} ${i + 1}`}
-                          min="1"
-                          max="10"
-                          disabled={!host}
-                          value={item.rounds}
-                          onChange={(e) =>
-                            update(
-                              "playlist",
-                              config.playlist.map((p, n) =>
-                                n === i
-                                  ? {
-                                      ...p,
-                                      rounds: Math.max(
-                                        1,
-                                        Math.min(10, Number(e.target.value)),
-                                      ),
-                                    }
-                                  : p,
-                              ),
-                            )
-                          }
-                        />
-                      </label>
-                      {host && (
-                        <div className="playlist-controls">
-                          <button
-                            className="mini-button"
-                            aria-label={`Monter ${g.shortName} ${i + 1}`}
-                            disabled={i === 0}
-                            onClick={() => reorder(i, -1)}
-                          >
-                            <ArrowUp size={14} />
-                          </button>
-                          <button
-                            className="mini-button"
-                            aria-label={`Descendre ${g.shortName} ${i + 1}`}
-                            disabled={i === config.playlist.length - 1}
-                            onClick={() => reorder(i, 1)}
-                          >
-                            <ArrowDown size={14} />
-                          </button>
-                          <button
-                            className="mini-button remove"
-                            aria-label={`Supprimer ${g.shortName} ${i + 1}`}
-                            onClick={() =>
-                              update(
-                                "playlist",
-                                config.playlist.filter((_, n) => n !== i),
-                              )
-                            }
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {config.playlist.length === 0 && (
-                <p className="empty-message">
-                  Le programme est un peu vide. Ajoutez votre premier jeu !
-                </p>
-              )}
-              {host && (
-                <div className="add-game-row">
-                  <span>AJOUTER AU PROGRAMME</span>
-                  <div>
-                    {GAMES.map((g) => (
-                      <button
-                        className="add-game"
-                        disabled={config.playlist.length >= 12}
-                        key={g.id}
-                        onClick={() => add(g.id)}
-                        style={{ background: g.color }}
-                      >
-                        <Plus size={14} />
-                        {g.shortName}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="random-settings">
-              <p>Le hasard fait bien les choses. Ou vraiment n’importe quoi.</p>
-              <div className="field-grid">
-                <NumberField
-                  label="Nombre de jeux"
-                  value={config.randomCount}
-                  min={1}
-                  max={12}
-                  disabled={!host}
-                  onChange={(v) => update("randomCount", v)}
-                />
-                <NumberField
-                  label="Manches par jeu (0 = aléatoire)"
-                  value={config.randomRounds}
-                  min={0}
-                  max={5}
-                  disabled={!host}
-                  onChange={(v) => update("randomRounds", v)}
-                />
-                <NumberField
-                  label="Durée visée (minutes)"
-                  value={config.approximateMinutes}
-                  min={5}
-                  max={180}
-                  disabled={!host}
-                  onChange={(v) => update("approximateMinutes", v)}
-                />
-              </div>
-              <span className="field-label">Les jeux dans le chapeau</span>
-              <div className="allowed-games">
-                {GAMES.map((g) => (
-                  <button
-                    key={g.id}
-                    disabled={!host}
-                    aria-pressed={config.allowedGames.includes(g.id)}
-                    className={
-                      config.allowedGames.includes(g.id) ? "selected" : ""
-                    }
-                    onClick={() =>
-                      update(
-                        "allowedGames",
-                        config.allowedGames.includes(g.id)
-                          ? config.allowedGames.filter((id) => id !== g.id)
-                          : [...config.allowedGames, g.id],
-                      )
-                    }
-                  >
-                    {config.allowedGames.includes(g.id) && <Check size={14} />}{" "}
-                    {g.shortName}
-                  </button>
-                ))}
-              </div>
-              <Toggle
-                label="Autoriser plusieurs fois le même jeu"
-                checked={config.allowRepeats}
-                disabled={!host}
-                onChange={(v) => update("allowRepeats", v)}
-              />
-            </div>
-          )}
+          <GameSelection config={config} onChange={setConfig} disabled={!host}/>
           <button
             className="advanced-button"
             aria-expanded={advanced}
             onClick={() => setAdvanced((v) => !v)}
           >
             <Settings size={17} />
-            Réglages de la soirée
-            <ChevronDown size={18} className={advanced ? "rotated" : ""} />
+            {t('legacy.s192')}<ChevronDown size={18} className={advanced ? "rotated" : ""} />
           </button>
           {advanced && (
             <div className="advanced-settings">
+              <label className="field-label">{t('settings.stageLanguage')}<select disabled={!host} value={config.language} onChange={(event) => update('language', event.target.value as 'fr' | 'en')}><option value="fr">{"Français"}</option><option value="en">{"English"}</option></select></label>
+              <label className="field-label">{t('captions.length')}<select disabled={!host} value={config.captionLength} onChange={(event) => update('captionLength', event.target.value as RoomConfig['captionLength'])}><option value="short">{t('captions.short')}</option><option value="normal">{t('captions.normal')}</option><option value="long">{t('captions.long')}</option></select></label>
               <div className="field-grid">
                 <NumberField
-                  label="Réponses (secondes)"
+                  label={t('legacy.s193')}
                   value={config.answerSeconds}
                   min={15}
                   max={180}
@@ -1651,7 +1153,7 @@ function Lobby({
                   onChange={(v) => update("answerSeconds", v)}
                 />
                 <NumberField
-                  label="Votes (secondes)"
+                  label={t('legacy.s194')}
                   value={config.voteSeconds}
                   min={10}
                   max={120}
@@ -1659,7 +1161,7 @@ function Lobby({
                   onChange={(v) => update("voteSeconds", v)}
                 />
                 <NumberField
-                  label="Présentation (secondes)"
+                  label={t('legacy.s195')}
                   value={config.presentationSeconds}
                   min={15}
                   max={180}
@@ -1667,7 +1169,7 @@ function Lobby({
                   onChange={(v) => update("presentationSeconds", v)}
                 />
                 <NumberField
-                  label="Transition (secondes)"
+                  label={t('legacy.s196')}
                   value={config.transitionSeconds}
                   min={3}
                   max={60}
@@ -1675,8 +1177,7 @@ function Lobby({
                   onChange={(v) => update("transitionSeconds", v)}
                 />
                 <label className="field-label">
-                  Classement
-                  <select
+                  {t('legacy.s197')}<select
                     value={config.leaderboard}
                     disabled={!host}
                     onChange={(e) =>
@@ -1686,14 +1187,13 @@ function Lobby({
                       )
                     }
                   >
-                    <option value="round">Après chaque manche</option>
-                    <option value="game">Après chaque jeu</option>
-                    <option value="final">Surprise au podium</option>
+                    <option value="round">{t('legacy.s198')}</option>
+                    <option value="game">{t('legacy.s199')}</option>
+                    <option value="final">{t('legacy.s200')}</option>
                   </select>
                 </label>
                 <label className="field-label">
-                  Connexion
-                  <select
+                  {t('legacy.s201')}<select
                     value={config.connectionMode}
                     disabled={!host}
                     onChange={(e) =>
@@ -1703,65 +1203,65 @@ function Lobby({
                       )
                     }
                   >
-                    <option value="hybrid">Hybride</option>
-                    <option value="local">Dans le même canapé</option>
-                    <option value="online">À distance</option>
+                    <option value="hybrid">{t('legacy.s202')}</option>
+                    <option value="local">{t('legacy.s203')}</option>
+                    <option value="online">{t('legacy.s204')}</option>
                   </select>
                 </label>
               </div>
               <Toggle
-                label="Jouer sans points"
+                label={t('legacy.s135')}
                 checked={config.noPoints}
                 disabled={!host}
                 onChange={(value) => update("noPoints", value)}
               />
               <Toggle
-                label="Réactions du public"
+                label={t('legacy.s136')}
                 checked={config.reactionsEnabled}
                 disabled={!host}
                 onChange={(value) => update("reactionsEnabled", value)}
               />
               <Toggle
-                label="Missions secrètes"
-                description="Un mot à glisser dans une réponse écrite ou une invention pour gagner 50 points."
+                label={t('legacy.s137')}
+                description={t('legacy.s205')}
                 checked={config.secretRoles}
                 disabled={!host}
                 onChange={(value) => update("secretRoles", value)}
               />
               <Toggle
-                label="Enchaîner les scènes automatiquement"
-                description="Les prises de parole attendent toujours le signal de l’hôte."
+                label={t('legacy.s139')}
+                description={t('legacy.s206')}
                 checked={config.autoAdvance}
                 disabled={!host}
                 onChange={(value) => update("autoAdvance", value)}
               />
               <Toggle
-                label="Votes anonymes"
+                label={t('legacy.s207')}
                 checked={config.anonymousVotes}
                 disabled={!host}
                 onChange={(v) => update("anonymousVotes", v)}
               />
               <Toggle
-                label="Modifier son vote avant la clôture"
+                label={t('legacy.s208')}
                 checked={config.allowVoteChange}
                 disabled={!host}
                 onChange={(v) => update("allowVoteChange", v)}
               />
               <Toggle
-                label="Qui parmi nous : voter pour soi"
+                label={t('legacy.s209')}
                 checked={config.allowSelfVoteWho}
                 disabled={!host}
                 onChange={(v) => update("allowSelfVoteWho", v)}
               />
               <Toggle
-                label="Qui parmi nous : jouer sans points"
+                label={t('legacy.s210')}
                 checked={config.whoNoPoints}
                 disabled={!host}
                 onChange={(v) => update("whoNoPoints", v)}
               />
               <Toggle
-                label="Humour adulte"
-                description="Inclure les contenus destinés à un public adulte."
+                label={t('legacy.s141')}
+                description={t('legacy.s211')}
                 checked={config.adult}
                 disabled={!host}
                 onChange={(v) => update("adult", v)}
@@ -1770,10 +1270,9 @@ function Lobby({
                 className="field-label"
                 style={{ border: 0, padding: 0 }}
               >
-                <legend>Catégories à exclure</legend>
+                <legend>{t('legacy.s212')}</legend>
                 <p className="small muted" style={{ fontWeight: 400 }}>
-                  Les catégories sélectionnées ne seront pas proposées.
-                </p>
+                  {t('legacy.s213')}</p>
                 <div className="allowed-games">
                   {categories.map((category) => (
                     <button
@@ -1808,8 +1307,8 @@ function Lobby({
                 </div>
               </fieldset>
               <Toggle
-                label="Scores équilibrés"
-                description="Normalisation des jeux pour équilibrer la soirée."
+                label={t('legacy.s214')}
+                description={t('legacy.s215')}
                 checked={config.balanced}
                 disabled={!host}
                 onChange={(v) => update("balanced", v)}
@@ -1842,7 +1341,7 @@ function Lobby({
                     })
                   }
                 >
-                  Enregistrer les réglages <Check size={17} />
+                  {t('legacy.s216')}<Check size={17} />
                 </button>
               )}
             </div>
@@ -1859,21 +1358,20 @@ function Lobby({
                     <LoaderCircle size={21} className="spin" />
                   ) : (
                     <>
-                      Lancer la soirée <ArrowRight size={21} />
+                      {t('legacy.s217')}<ArrowRight size={21} />
                     </>
                   )}
                 </button>
                 <p>
                   {active.length < 3
-                    ? "Il faut au moins 3 cerveaux pour faire autant de dégâts."
-                    : "Les participants doivent être prêts. Le tribunal demande 5 joueurs."}
+                    ? t('legacy.s218')
+                    : t('legacy.s219')}
                 </p>
               </>
             ) : (
               <p className="waiting-host">
                 <LoaderCircle className="spin" size={19} />
-                L’hôte prépare votre soirée. Installez-vous.
-              </p>
+                {t('legacy.s220')}</p>
             )}
           </div>
         </section>
@@ -1899,6 +1397,7 @@ function NumberField({
   disabled?: boolean;
   onChange: (v: number) => void;
 }) {
+  const { t } = useI18n();
   return (
     <label className="field-label">
       {label}
@@ -1917,6 +1416,7 @@ function NumberField({
   );
 }
 function Avatar({ player, size = "" }: { player: PlayerView; size?: string }) {
+  const { t } = useI18n();
   return (
     <span className={`avatar ${size}`} style={{ background: player.color }}>
       {player.avatar}
@@ -1926,6 +1426,7 @@ function Avatar({ player, size = "" }: { player: PlayerView; size?: string }) {
 }
 
 function Countdown({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const [time, setTime] = useState(Date.now());
   const serverOffset = useRef(room.serverTime - Date.now());
   useEffect(() => {
@@ -1945,7 +1446,7 @@ function Countdown({ room }: { room: RoomSnapshot }) {
     <div
       className={`timer ${seconds <= 10 && !room.paused ? "urgent" : ""}`}
       aria-label={
-        room.paused ? "Partie en pause" : `${seconds} secondes restantes`
+        room.paused ? t('legacy.s223') : t('controller.seconds', { seconds })
       }
     >
       <span>
@@ -1953,7 +1454,7 @@ function Countdown({ room }: { room: RoomSnapshot }) {
       </span>
       <strong>
         {room.paused
-          ? "PAUSE"
+          ? t('legacy.s224')
           : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`}
       </strong>
     </div>
@@ -1961,59 +1462,114 @@ function Countdown({ room }: { room: RoomSnapshot }) {
 }
 
 function Gameplay({ room, request, host, spectator, onMenu }: { room: RoomSnapshot; request: Request; host: boolean; spectator: boolean; onMenu: () => void; }) {
+  const { t } = useI18n();
   const r = room.round;
   const g = gameInfo(r?.gameId || room.playlist[room.gameIndex]?.gameId || "mythos");
   const Icon = icons[g.id];
   const me = room.players.find((player) => player.id === room.me.id)!;
   const player = (id?: string) => room.players.find((entry) => entry.id === id);
   const action = (data: Action) => request("room:action", data);
-  if (spectator) return <div className="controller-shell"><section className="panel controller-panel"><div className="eyebrow">RÉGIE DE L’ÉMISSION</div><h1>{g.shortName}</h1><ControllerWaiting title="Vous animez le plateau." text="Donnez les signaux de l’émission ici. Les joueurs participent sur leurs manettes."/><Participation room={room}/></section><HostControls room={room} request={request}/>{room.phase === "podium" && <button className="button outline full" onClick={onMenu}>Retour au menu principal</button>}</div>;
+  if (spectator) return <div className="controller-shell"><section className="panel controller-panel"><div className="eyebrow">{t('legacy.s225')}</div><h1>{g.shortName}</h1><ControllerWaiting title={t('legacy.s226')} text="Donnez les signaux de l’émission ici. Les joueurs participent sur leurs manettes."/><Participation room={room}/></section><HostControls room={room} request={request}/>{room.phase === "podium" && <button className="button outline full" onClick={onMenu}>{t('legacy.s227')}</button>}</div>;
   const showPrompt = r && ["writing", "prepare", "presenting", "reveal", "voting"].includes(room.phase);
   const waiting = !["writing", "prepare", "presenting", "voting"].includes(room.phase);
   const phaseTitle: Record<string, string> = {
-    "party-intro": "Bienvenue dans l’émission !", intro: g.name, rules: "Le présentateur vous explique.",
-    writing: g.id === "pitch" ? "Inventez l’invendable." : "À vos mauvaises idées !", prepare: "Préparez votre passage.", presenting: "Le micro est ouvert.",
-    reveal: "Place aux révélations.", voting: g.id === "court" ? "Le verdict vous appartient." : "À vous de choisir.", results: "Votre manche en chiffres.", leaderboard: "Le classement bouge.", transition: "La suite se prépare.", podium: "Vous avez fait le show !",
+    "party-intro": t('legacy.s385'), intro: g.name, rules: t('legacy.s386'),
+    writing: g.id === "pitch" ? t('legacy.s387') : t('legacy.s388'), prepare: t('legacy.s389'), presenting: t('legacy.s390'),
+    reveal: t('legacy.s391'), voting: g.id === "court" ? t('legacy.s392') : t('legacy.s393'), results: t('legacy.s394'), leaderboard: t('legacy.s395'), transition: t('legacy.s396'), podium: t('legacy.s397'),
   };
   return <div className="controller-shell">
     <ControllerIdentity room={room}/>
-    <div className="game-topbar"><div className="game-breadcrumb"><span style={{ background: g.color }}><Icon size={20}/></span><strong>{g.shortName}</strong><small>Manche {room.roundNumber}/{room.totalRounds}</small></div><Countdown room={room}/></div>
-    {room.paused && <div className="pause-banner"><Pause size={18}/>Pause de l’émission. Vos réponses sont conservées.</div>}
+    <div className="game-topbar"><div className="game-breadcrumb"><span style={{ background: g.color }}><Icon size={20}/></span><strong>{g.shortName}</strong><small>{t('legacy.s228')}{room.roundNumber}/{room.totalRounds}</small></div><Countdown room={room}/></div>
+    {room.paused && <div className="pause-banner"><Pause size={18}/>{t('legacy.s229')}</div>}
     <section className={`panel controller-panel phase-${room.phase} play-${g.id}`} style={styleColor(g.color)}>
-      <div className="eyebrow">VOTRE MANETTE · {room.manualAdvanceRequired ? "L’HÔTE DONNE LE SIGNAL" : "EN DIRECT"}</div>
-      <h1>{phaseTitle[room.phase]}</h1>
-      {showPrompt && <><p className="controller-prompt">{r.prompt}</p>{r.mediaUrl && <div className="prompt-media">{r.mediaUrl.match(/\.(mp4|webm)(\?|$)/i) ? <video src={serverResource(r.mediaUrl)} controls muted playsInline loop/> : <img src={serverResource(r.mediaUrl)} alt="Média à légender pour cette manche"/>}</div>}</>}
-      {room.me.secretMission && ["writing", "prepare", "presenting"].includes(room.phase) && <div className="private-mission"><Shield size={20}/><div><small>MISSION SECRÈTE · VOUS SEUL LA VOYEZ</small><p>{room.me.secretMission.instruction}</p>{room.me.secretMission.completed && <strong><Check size={15}/>Mission remplie</strong>}</div></div>}
-      {r && room.phase === "writing" && (room.me.eligible ? g.id === "pitch" ? <ProductForm key={r.id} submitted={room.me.submitted} product={room.me.product} action={action}/> : <WritingForm key={r.id} answer={room.me.answer} submitted={room.me.submitted} action={action}/> : <ControllerWaiting title="Vous profitez de cette manche." text="Votre place vous attend à la prochaine étape."/>)}
+      <div className="eyebrow">{t('legacy.s230')}{room.manualAdvanceRequired ? t('legacy.s231') : t('legacy.s232')}</div>
+      <h1>{g.id === 'captions' && room.phase === 'writing' ? t('captions.write') : phaseTitle[room.phase]}</h1>
+      {showPrompt && g.id !== "captions" && <><p className="controller-prompt">{r.prompt}</p>{r.mediaUrl && <div className="prompt-media">{r.mediaUrl.match(/\.(mp4|webm)(\?|$)/i) ? <video src={serverResource(r.mediaUrl)} controls muted playsInline loop/> : <img src={serverResource(r.mediaUrl)} alt={t('legacy.s233')}/>}</div>}</>}
+      {room.me.secretMission && ["writing", "prepare", "presenting"].includes(room.phase) && <div className="private-mission"><Shield size={20}/><div><small>{t('legacy.s234')}</small><p>{room.me.secretMission.instruction}</p>{room.me.secretMission.completed && <strong><Check size={15}/>{t('legacy.s235')}</strong>}</div></div>}
+      {r && room.phase === "writing" && (room.me.eligible ? g.id === "captions" ? <CaptionWriting key={`${r.id}-${room.me.captions?.turn}`} room={room} action={action}/> : g.id === "pitch" ? <ProductForm key={r.id} submitted={room.me.submitted} product={room.me.product} action={action} request={request}/> : <WritingForm key={r.id} answer={room.me.answer} submitted={room.me.submitted} action={action}/> : <ControllerWaiting title={t('legacy.s236')} text="Votre place vous attend à la prochaine étape."/>)}
       {r && room.phase === "prepare" && <div className="preparation">
-        {g.id === "pitch" ? <><p>Votre produit à vendre reste privé jusqu’à votre passage.</p>{room.me.product && <ProductCard product={room.me.product}/>}<p>Préparez un argumentaire oral. Le public notera humour, conviction et créativité.</p></> : <><div className="role-secret"><Gavel size={24}/><div><span>VOTRE RÔLE</span><strong>{roleLabels[room.me.courtRole || ""] || "Participant"}</strong></div></div><p>Préparez vos arguments. Vos notes restent sur votre manette.</p><WritingForm key={`${r.id}-notes`} answer={room.me.answer} submitted={room.me.submitted} action={action} notes/></>}
-        {room.me.eligible && !room.me.prepared ? <button className="button primary full" onClick={() => void action({ type: "prepared" })}>Je suis prêt pour mon passage <Check size={19}/></button> : <ControllerWaiting title="Votre préparation est terminée." text="Le plateau attend les autres participants."/>}
+        {g.id === "captions" ? <CaptionPreparation room={room}/> : g.id === "pitch" ? <><p>{t('legacy.s237')}</p>{room.me.product && <ProductCard product={room.me.product}/>}<p>{t('legacy.s238')}</p></> : <><div className="role-secret"><Gavel size={24}/><div><span>{t('legacy.s239')}</span><strong>{t(`court.roles.${room.me.courtRole || 'participant'}`) || t('legacy.s240')}</strong></div></div><p>{t('legacy.s241')}</p><WritingForm key={`${r.id}-notes`} answer={room.me.answer} submitted={room.me.submitted} action={action} notes/></>}
+        {room.me.eligible && !room.me.prepared ? <button className="button primary full" onClick={() => void action({ type: "prepared" })}>{t('legacy.s242')}<Check size={19}/></button> : <ControllerWaiting title={t('legacy.s243')} text="Le plateau attend les autres participants."/>}
       </div>}
-      {r && room.phase === "presenting" && (g.id === "pitch" ? <div className="presentation-content"><div className="speaker-badge">{player(r.currentSpeakerId) && <Avatar player={player(r.currentSpeakerId)!}/>}<div><small>AU MICRO MAINTENANT</small><h2>{player(r.currentSpeakerId)?.name || "Le vendeur"}{r.currentSpeakerId === me.id ? ", à vous !" : ""}</h2></div></div>{r.currentProduct && <ProductCard product={r.currentProduct}/>}<p>{r.currentSpeakerId === me.id ? "Vendez ce chef-d’œuvre à l’oral. L’hôte vous laissera terminer." : "Écoutez le vendeur. Vous noterez les présentations ensuite."}</p><p className="manual-note">Le chronomètre est un repère : seul l’hôte donne la parole au suivant.</p><span className="pill">Passage {r.presentationIndex + 1} / {room.players.filter((player) => !player.spectator).length}</span></div> : <div className="court-stage"><div className="role-secret"><Gavel size={22}/><div><span>VOTRE RÔLE</span><strong>{roleLabels[room.me.courtRole || ""] || "Participant"}</strong></div></div><div className="court-step"><h2>{courtSteps[r.courtStep || ""]}</h2><p>{courtHints[r.courtStep || ""]}</p></div>{room.me.answer && <blockquote className="private-notes"><small>VOS NOTES PRIVÉES</small>{room.me.answer}</blockquote>}<p className="manual-note">L’hôte distribue la parole. Aucun orateur n’est coupé automatiquement.</p></div>)}
-      {r && room.phase === "voting" && (room.me.eligible ? g.id === "pitch" ? <Ratings room={room} action={action}/> : g.id === "court" ? <CourtVote room={room} action={action}/> : <Voting room={room} action={action}/> : <ControllerWaiting title="Le public fait son choix." text="Vous ne participez pas à ce vote. Profitez du suspense !"/>)}
-      {room.phase === "reveal" && <ControllerWaiting title="Les réponses font leur entrée." text="Découvrez-les sur la scène. Le vote arrive juste après."/>}
-      {r && room.phase === "results" && <><div className="personal-result"><strong>{room.config.noPoints ? "Merci pour le spectacle !" : !room.scoresVisible ? "Le score garde son suspense." : `${me.delta >= 0 ? "+" : ""}${me.delta} PTS`}</strong><p>{r.results.filter((result) => result.playerId === me.id).map((result) => result.reason).join(" · ") || "Les auteurs et les résultats sont révélés sur la scène."}</p></div>{r.answers.find((answer) => answer.authorId === me.id) && <blockquote>{r.answers.find((answer) => answer.authorId === me.id)?.text}</blockquote>}</>}
+      {r && g.id === "captions" && room.phase === "presenting" && <CaptionPresentation room={room} request={request} host={host}/>}{r && g.id !== "captions" && room.phase === "presenting" && (g.id === "pitch" ? <div className="presentation-content"><div className="speaker-badge">{player(r.currentSpeakerId) && <Avatar player={player(r.currentSpeakerId)!}/>}<div><small>{t('legacy.s244')}</small><h2>{player(r.currentSpeakerId)?.name || t('legacy.s245')}{r.currentSpeakerId === me.id ? t('legacy.s246') : ""}</h2></div></div>{r.currentProduct && <ProductCard product={r.currentProduct}/>}<p>{r.currentSpeakerId === me.id ? t('legacy.s247') : t('legacy.s248')}</p><p className="manual-note">{t('legacy.s249')}</p><span className="pill">{t('legacy.s250')}{r.presentationIndex + 1} / {room.players.filter((player) => !player.spectator).length}</span></div> : <div className="court-stage"><div className="role-secret"><Gavel size={22}/><div><span>{t('legacy.s239')}</span><strong>{t(`court.roles.${room.me.courtRole || 'participant'}`) || t('legacy.s240')}</strong></div></div><div className="court-step"><h2>{t(`court.steps.${r.courtStep}`)}</h2><p>{t(`court.hints.${r.courtStep}`)}</p></div>{room.me.answer && <blockquote className="private-notes"><small>{t('legacy.s251')}</small>{room.me.answer}</blockquote>}<p className="manual-note">{t('legacy.s252')}</p></div>)}
+      {r && room.phase === "voting" && (room.me.eligible ? g.id === "captions" ? <CaptionVoting room={room} action={action}/> : g.id === "pitch" ? <Ratings room={room} action={action}/> : g.id === "court" ? <CourtVote room={room} action={action}/> : <Voting room={room} action={action}/> : <ControllerWaiting title={t('legacy.s253')} text="Vous ne participez pas à ce vote. Profitez du suspense !"/>)}
+      {room.phase === "reveal" && <ControllerWaiting title={t('legacy.s254')} text="Découvrez-les sur la scène. Le vote arrive juste après."/>}
+      {r?.pitchRating && room.phase === 'results' && <div className="pitch-intermediate-result"><Trophy size={28}/><h2>{player(r.pitchRating.sellerId)?.name}</h2><strong>{r.pitchRating.average.toFixed(1)} / 5</strong><p>{r.pitchRating.ratingsCount} {t('pitch.ratingsCount')}</p></div>}{r && room.phase === "results" && <><div className="personal-result"><strong>{room.config.noPoints ? t('legacy.s255') : !room.scoresVisible ? t('legacy.s256') : `${me.delta >= 0 ? "+" : ""}${me.delta} PTS`}</strong><p>{r.results.filter((result) => result.playerId === me.id).map((result) => result.reason).join(" · ") || t('legacy.s257')}</p></div>{r.answers.find((answer) => answer.authorId === me.id) && <blockquote>{r.answers.find((answer) => answer.authorId === me.id)?.text}</blockquote>}</>}
       {["leaderboard", "podium"].includes(room.phase) && <Leaderboard room={room} final={room.phase === "podium"}/>}
-      {waiting && !["reveal", "results", "leaderboard", "podium"].includes(room.phase) && <ControllerWaiting title={room.phase === "rules" ? "Un œil sur la scène, un pouce sur la manette." : "Le spectacle continue sur la scène."} text={room.phase === "rules" ? gameRules[g.id] : "Votre prochaine consigne apparaîtra ici automatiquement."}/>}
+      {waiting && !["reveal", "results", "leaderboard", "podium"].includes(room.phase) && <ControllerWaiting title={room.phase === "rules" ? t('legacy.s258') : t('legacy.s259')} text={room.phase === "rules" ? t(`games.${g.id}.rules`) : t('legacy.s260')}/>}
       <Participation room={room}/>
     </section>
     <Reactions room={room} request={request}/>
     {host && <HostControls room={room} request={request}/>}
-    {room.phase === "podium" && <button className="button outline full" onClick={onMenu}>Retour au menu principal <ArrowRight size={18}/></button>}
+    {room.phase === "podium" && <button className="button outline full" onClick={onMenu}>{t('legacy.s227')}<ArrowRight size={18}/></button>}
   </div>;
 }
 
+function CaptionWriting({ room, action }: { room: RoomSnapshot; action: (data: Action) => Promise<Ack> }) {
+  const { t } = useI18n();
+  const data = room.me.captions;
+  const [text, setText] = useState(data?.ownText || '');
+  const [sending, setSending] = useState(false);
+  if (!data) return null;
+  if (data.submitted) return <div className="submitted-state"><span><Check size={34}/></span><h2>{t('captions.saved')}</h2>{data.ownText && <blockquote>{data.ownText}</blockquote>}<p>{t('captions.waiting')}</p></div>;
+  return <form className="caption-composer" onSubmit={async (event) => { event.preventDefault(); setSending(true); try { await action({ type: 'caption', text: text.trim() }); } finally { setSending(false); } }}>
+    <div className="cinema-turn"><span>{t('captions.turn', { current: data.turn + 1, total: data.totalTurns })}</span><span aria-hidden>{"● REC"}</span></div>
+    {data.frame && <figure className="cinema-phone-frame"><img src={serverResource(data.frame.url)} alt={t('captions.subtitle')}/><figcaption className={`film-subtitle subtitle-${data.frame.subtitlePosition}`}>{text || t('captions.placeholder')}</figcaption></figure>}
+    <p className="small muted">{t('captions.private')}</p>
+    {data.previousLines.length ? <details className="caption-history" open><summary>{t('captions.history')}</summary><ol>{data.previousLines.map((line) => <li key={line.id}><span>{line.frameIndex + 1}</span><p>{line.text}</p></li>)}</ol></details> : <p className="caption-first">{t('captions.first')}</p>}
+    <label className="field-label">{t('captions.subtitle')}<textarea aria-label={t('captions.subtitle')} required maxLength={350} rows={3} placeholder={t('captions.placeholder')} value={text} onChange={(event) => setText(event.target.value)}/></label>
+    <div className="answer-footer"><span>{text.length}/350</span><button className="button primary" disabled={sending || !text.trim()}>{sending ? <LoaderCircle className="spin" size={19}/> : <>{t('captions.submit')}<Check size={18}/></>}</button></div>
+  </form>;
+}
+
+function CaptionPreparation({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
+  const story = room.me.captions?.presentation;
+  if (!story) return <p>{t('captions.prepareWaiting')}</p>;
+  return <section className="caption-preparation"><h2>{story.title}</h2><p>{t('captions.prepare')}</p><ol>{story.lines.map((line) => <li key={line.id}><img src={serverResource(story.scene.frames[line.frameIndex]!.url)} alt=""/><p>{line.text}</p></li>)}</ol></section>;
+}
+
+function CaptionPresentation({ room, request, host }: { room: RoomSnapshot; request: Request; host: boolean }) {
+  const { t } = useI18n();
+  const data = room.captions;
+  const story = data?.currentStory;
+  if (!data || !story) return null;
+  const presenter = room.players.find((player) => player.id === story.presenterId);
+  const canControl = host || story.presenterId === room.me.id;
+  const frame = story.scene.frames[data.slideIndex];
+  const line = story.lines.find((item) => item.frameIndex === data.slideIndex);
+  return <div className="caption-presentation"><div className="speaker-badge">{presenter && <Avatar player={presenter}/>}<div><small>{story.presenterId === room.me.id ? t('captions.present') : t('captions.listen')}</small><h2>{presenter?.name}</h2></div></div>
+    {frame && <figure className="cinema-phone-frame"><img src={serverResource(frame.url)} alt={story.title}/><figcaption className={`film-subtitle subtitle-${frame.subtitlePosition}`}>{line?.text}</figcaption></figure>}
+    <p>{t('captions.manual')}</p><div className="cinema-turn"><span>{data.presentationIndex + 1} / {data.storyCount}</span><span>{data.slideIndex + 1} / {story.scene.frames.length}</span></div>
+    {canControl && <div className="caption-slide-controls"><button className="button outline" disabled={data.slideIndex === 0} aria-label={t('captions.previous')} onClick={() => void request('room:caption-control', { direction: 'previous' })}><ArrowLeft size={19}/>{t('captions.previous')}</button><button className="button primary" disabled={data.slideIndex >= story.scene.frames.length - 1} aria-label={t('captions.next')} onClick={() => void request('room:caption-control', { direction: 'next' })}>{t('captions.next')}<ArrowRight size={19}/></button></div>}
+    {host && <Toggle label={t('captions.automatic')} checked={data.autoSlides} onChange={(autoSlides) => void request('room:caption-control', { autoSlides })}/>}
+  </div>;
+}
+
+function CaptionVoting({ room, action }: { room: RoomSnapshot; action: (data: Action) => Promise<Ack> }) {
+  const { t } = useI18n();
+  const stories = room.captions?.stories || [];
+  const chosen = room.me.captions?.votes || {};
+  const eligible = room.me.captions?.eligibleTargets;
+  const [sending, setSending] = useState(false);
+  const vote = async (award: 'film' | 'actor' | 'line', targetId: string) => { setSending(true); try { await action({ type: 'cinema-vote', award, targetId }); } finally { setSending(false); } };
+  const actorName = (id: string) => room.players.find((player) => player.id === id)?.name || t('common.anonymous');
+  return <div className="cinema-awards"><p>{t('captions.voteHelp')}</p>{(['film', 'actor', 'line'] as const).map((award) => <section className="cinema-award" key={award}><h2><Trophy size={21}/>{t(`captions.award${award[0].toUpperCase()}${award.slice(1)}`)}</h2><div className="vote-options">{(award === 'line' ? stories.flatMap((story) => story.lines.map((line) => ({ id: line.id, text: line.text, sub: story.title }))) : stories.map((story) => ({ id: award === 'actor' ? story.presenterId : story.id, text: award === 'actor' ? actorName(story.presenterId) : story.title, sub: award === 'actor' ? story.title : actorName(story.presenterId) }))).filter((option) => !eligible || eligible[award].includes(option.id)).map((option) => <button className={`vote-option ${chosen[award] === option.id ? 'selected' : ''}`} disabled={sending || (!!chosen[award] && !room.config.allowVoteChange)} key={option.id} onClick={() => void vote(award, option.id)}><span><strong>{option.text}</strong><small>{option.sub}</small></span>{chosen[award] === option.id ? <Check size={20}/> : <Plus size={18}/>}</button>)}</div>{chosen[award] && <p className="vote-confirmation"><Check size={16}/>{t('captions.voted')}</p>}</section>)}</div>;
+}
+
 function ControllerWaiting({ title, text }: { title: string; text: string }) {
+  const { t } = useI18n();
   return <div className="controller-waiting"><motion.span animate={{ rotate: [0, 8, -8, 0] }} transition={{ duration: 4, repeat: Infinity }}><Radio size={35}/></motion.span><h2>{title}</h2><p>{text}</p></div>;
 }
 
 function HostControls({ room, request }: { room: RoomSnapshot; request: Request }) {
-  return <section className="panel controller-host-controls"><div className="eyebrow"><Crown size={15}/>À LA RÉGIE</div>
-    {room.phase === "podium" ? <><button className="button primary full" onClick={() => void request("room:replay")}>Rejouer le même programme <Shuffle size={18}/></button><button className="button outline full" onClick={() => { void request("room:replay").then((ack) => { if (ack.ok) return request("room:configure", structuredClone(DEFAULT_CONFIG)); }); }}>Préparer une nouvelle soirée <Plus size={18}/></button></> : <button className="button primary" aria-label="Étape suivante" onClick={() => void request("room:advance")}>{room.phase === "presenting" ? "Terminer cette prise de parole" : "Étape suivante"}<ArrowRight size={18}/></button>}
-    {room.phase !== "podium" && <button className="button outline" onClick={() => void request("room:pause", { paused: !room.paused })}>{room.paused ? <><Play size={17}/>Reprendre</> : <><Pause size={17}/>Mettre en pause</>}</button>}
-    {room.round?.gameId === "who" && room.phase === "voting" && <button className="text-button" onClick={() => void request("room:advance", { skip: true })}>Passer cette question <Shuffle size={16}/></button>}
-    {room.phase === "presenting" && <p className="small muted">Le temps indiqué n’interrompt jamais l’oral. Donnez le signal quand le joueur a terminé.</p>}
-    {["writing", "prepare", "voting", "presenting"].includes(room.phase) && <details><summary>Un joueur ne peut plus participer ?</summary><p className="small muted">Après une déconnexion, une courte grâce permet de revenir. Vous pouvez aussi passer sa participation pour cette étape.</p><div className="skip-player-list">{room.players.filter((player) => !player.spectator).map((player) => <button className="text-button" key={player.id} onClick={() => void request("room:skip-player", { playerId: player.id })}>Passer {player.name}{!player.connected && " (déconnecté)"}</button>)}</div></details>}
+  const { t } = useI18n();
+  return <section className="panel controller-host-controls"><div className="eyebrow"><Crown size={15}/>{t('legacy.s262')}</div>
+    {room.phase === "podium" ? <><button className="button primary full" onClick={() => void request("room:replay")}>{t('legacy.s263')}<Shuffle size={18}/></button><button className="button outline full" onClick={() => { void request("room:replay").then((ack) => { if (ack.ok) return request("room:configure", structuredClone(DEFAULT_CONFIG)); }); }}>{t('legacy.s264')}<Plus size={18}/></button></> : <button className="button primary" aria-label={t('legacy.s111')} onClick={() => void request("room:advance")}>{room.phase === "presenting" ? t('legacy.s265') : t('legacy.s111')}<ArrowRight size={18}/></button>}
+    {room.phase !== "podium" && <button className="button outline" onClick={() => void request("room:pause", { paused: !room.paused })}>{room.paused ? <><Play size={17}/>{t('legacy.s266')}</> : <><Pause size={17}/>{t('legacy.s267')}</>}</button>}
+    {room.round?.gameId === "who" && room.phase === "voting" && <button className="text-button" onClick={() => void request("room:advance", { skip: true })}>{t('legacy.s268')}<Shuffle size={16}/></button>}
+    {room.phase === "presenting" && <p className="small muted">{t('legacy.s269')}</p>}
+    {["writing", "prepare", "voting", "presenting"].includes(room.phase) && <details><summary>{t('legacy.s270')}</summary><p className="small muted">{t('legacy.s271')}</p><div className="skip-player-list">{room.players.filter((player) => !player.spectator).map((player) => <button className="text-button" key={player.id} onClick={() => void request("room:skip-player", { playerId: player.id })}>{t('legacy.s272')}{player.name}{!player.connected && " (déconnecté)"}</button>)}</div></details>}
   </section>;
 }
 
@@ -2028,6 +1584,7 @@ function WritingForm({
   action: (data: Action) => Promise<Ack>;
   notes?: boolean;
 }) {
+  const { t } = useI18n();
   const [text, setText] = useState(answer || "");
   const [busy, setBusy] = useState(false);
   if (submitted)
@@ -2037,12 +1594,12 @@ function WritingForm({
           <Check size={33} />
         </span>
         <h2>
-          {notes ? "Votre plaidoyer est à l’abri." : "C’est dans la boîte."}
+          {notes ? t('legacy.s273') : t('legacy.s274')}
         </h2>
         <p>
           {notes
-            ? "Gardez vos arguments sous le coude."
-            : "Votre réputation est entre les mains des autres."}
+            ? t('legacy.s275')
+            : t('legacy.s276')}
         </p>
         {answer && <blockquote>{answer}</blockquote>}
       </div>
@@ -2058,9 +1615,9 @@ function WritingForm({
       }}
     >
       <label className="field-label">
-        {notes ? "Vos notes privées (facultatif)" : "Votre moment de génie"}
+        {notes ? t('legacy.s277') : t('legacy.s278')}
         <textarea
-          aria-label={notes ? "Notes privées" : "Ta réponse"}
+          aria-label={notes ? t('legacy.s279') : t('legacy.s280')}
           value={text}
           onChange={(e) => setText(e.target.value)}
           required
@@ -2069,8 +1626,8 @@ function WritingForm({
           rows={4}
           placeholder={
             notes
-              ? "Objection ! Mon client a simplement…"
-              : "C’est ici que tout dérape…"
+              ? t('legacy.s281')
+              : t('legacy.s282')
           }
         />
       </label>
@@ -2078,15 +1635,15 @@ function WritingForm({
         <span>
           {text.length}/350 ·{" "}
           {notes
-            ? "VISIBLE PAR VOUS UNIQUEMENT"
-            : "LES AUTEURS RESTENT ANONYMES"}
+            ? t('legacy.s283')
+            : t('legacy.s284')}
         </span>
         <button className="button primary" disabled={busy || !text.trim()}>
           {busy ? (
             <LoaderCircle size={18} className="spin" />
           ) : (
             <>
-              {notes ? "Garder mes notes" : "Envoyer ma réponse"}
+              {notes ? t('legacy.s285') : t('legacy.s286')}
               <ArrowRight size={18} />
             </>
           )}
@@ -2096,88 +1653,41 @@ function WritingForm({
   );
 }
 
-function ProductForm({
-  submitted,
-  product,
-  action,
-}: {
-  submitted: boolean;
-  product?: { name: string; description: string };
-  action: (data: Action) => Promise<Ack>;
-}) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+function ProductForm({ submitted, product, action, request }: { submitted: boolean; product?: { name: string; description: string }; action: (data: Action) => Promise<Ack>; request: Request; }) {
+  const { t } = useI18n();
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [suggestionToken, setSuggestionToken] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  if (submitted)
-    return (
-      <div className="submitted-state">
-        <span>
-          <Check size={33} />
-        </span>
-        <h2>Brevet déposé. Enfin presque.</h2>
-        <p>
-          Un autre joueur devra vendre votre invention. Soyez indulgent. Ou pas.
-        </p>
-        {product && <ProductCard product={product} />}
-      </div>
-    );
-  return (
-    <form
-      className="answer-form"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        setBusy(true);
-        await action({
-          type: "product",
-          name: name.trim(),
-          description: description.trim(),
-        });
-        setBusy(false);
-      }}
-    >
-      <label className="field-label">
-        Nom de votre invention
-        <input
-          aria-label="Nom du produit"
-          required
-          maxLength={70}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Le grille-pain qui vous juge"
-        />
-      </label>
-      <label className="field-label">
-        Décrivez ce chef-d’œuvre
-        <textarea
-          aria-label="Description du produit"
-          required
-          maxLength={220}
-          rows={3}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Il vous félicite pour vos toasts mais critique vos choix de vie."
-        />
-      </label>
-      <button
-        className="button primary full"
-        disabled={busy || !name.trim() || !description.trim()}
-      >
-        Envoyer mon invention <ArrowRight size={18} />
-      </button>
-    </form>
-  );
+  const [generating, setGenerating] = useState(false);
+  const [replace, setReplace] = useState(false);
+  const generate = async () => {
+    setReplace(false); setGenerating(true);
+    try { const ack = await request('room:product-suggestion'); const suggestion = ack.room?.me.productSuggestion; if (ack.ok && suggestion) { setName(suggestion.name); setDescription(suggestion.description); setSuggestionToken(suggestion.token); } } finally { setGenerating(false); }
+  };
+  if (submitted) return <div className="submitted-state"><span><Check size={33}/></span><h2>{t('pitch.submit')}</h2>{product && <ProductCard product={product}/>}</div>;
+  return <form className="answer-form inventor-workshop" onSubmit={async (event) => { event.preventDefault(); setBusy(true); try { await action({ type: 'product', name: name.trim(), description: description.trim(), suggestionToken }); } finally { setBusy(false); } }}>
+    <div className="inventor-title"><Sparkles size={28}/><h2>{t('pitch.title')}</h2></div>
+    <label className="field-label">{t('pitch.name')}<input aria-label={t('pitch.name')} required maxLength={70} value={name} onChange={(event) => setName(event.target.value)}/></label>
+    <label className="field-label">{t('pitch.description')}<textarea aria-label={t('pitch.description')} required maxLength={220} rows={3} value={description} onChange={(event) => setDescription(event.target.value)}/></label>
+    <button className={'house-decoy ' + (generating ? 'working' : '')} type="button" disabled={generating || busy} onClick={() => { if (name.trim() || description.trim()) setReplace(true); else void generate(); }}><span className="decoy-machine"><Zap size={30}/><Sparkles size={18}/></span><span><strong>{suggestionToken ? t('pitch.again') : t('pitch.decoy')}</strong><small>HOUSE DECOY</small></span>{generating ? <LoaderCircle className="spin" size={22}/> : <ArrowRight size={22}/>}</button>
+    {replace && <div className="decoy-confirm" role="alert"><p>{t('pitch.replace')}</p><button type="button" className="button primary" onClick={() => void generate()}>{t('pitch.confirm')}</button><button type="button" className="button outline" onClick={() => setReplace(false)}>{t('pitch.keep')}</button></div>}
+    {suggestionToken && <p className="fineprint">{t('pitch.generated')}</p>}
+    {(name || description) && <motion.section className="invention-preview" key={suggestionToken || "manual"} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} aria-label={t('pitch.preview')}><span>{t('pitch.preview')}</span><ProductCard product={{ name, description }}/></motion.section>}
+    <button className="button primary full" disabled={busy || generating || !name.trim() || !description.trim()}>{busy ? <LoaderCircle className="spin" size={18}/> : <>{t('pitch.submit')}<ArrowRight size={18}/></>}</button>
+  </form>;
 }
 function ProductCard({
   product,
 }: {
   product: { name: string; description: string };
 }) {
+  const { t } = useI18n();
   return (
     <div className="product-card">
       <span className="product-stamp">
-        NOUVEAU !<br />
-        ABSOLUMENT INUTILE.
-      </span>
+        {t('legacy.s288')}<br />
+        {t('legacy.s289')}</span>
       <Megaphone size={38} />
       <h2>{product.name}</h2>
       <p>{product.description}</p>
@@ -2185,12 +1695,13 @@ function ProductCard({
   );
 }
 function SpectatorMessage() {
+  const { t } = useI18n();
   return (
     <div className="spectator-message">
       <Monitor size={25} />
       <p>
-        À vous de jouer sur vos téléphones !<br />
-        <strong>Ici, on profite du spectacle.</strong>
+        {t('legacy.s290')}<br />
+        <strong>{t('legacy.s291')}</strong>
       </p>
     </div>
   );
@@ -2203,6 +1714,7 @@ function Voting({
   room: RoomSnapshot;
   action: (data: Action) => Promise<Ack>;
 }) {
+  const { t } = useI18n();
   const r = room.round!;
   const who = r.gameId === "who";
   const choices = who
@@ -2221,11 +1733,11 @@ function Voting({
       <p className="vote-instruction">
         {room.me.voted
           ? room.config.allowVoteChange
-            ? "Vote enregistré. Vous pouvez encore changer d’avis."
-            : "Vote enregistré. Le sort en est jeté."
+            ? t('legacy.s292')
+            : t('legacy.s293')
           : who
-            ? "Désignez la personne. On sait que vous avez déjà une idée."
-            : "Choisissez votre réponse préférée. La vôtre est hors compétition."}
+            ? t('legacy.s294')
+            : t('legacy.s295')}
       </p>
       <div className={`vote-options ${who ? "player-votes" : ""}`}>
         {choices.map((choice, i) => (
@@ -2256,13 +1768,13 @@ function Voting({
       {room.me.voted && (
         <p className="vote-confirmation">
           <Check size={17} />
-          Votre vote reste secret jusqu’à la révélation.
-        </p>
+          {t('legacy.s296')}</p>
       )}
     </div>
   );
 }
 function PublicVoting({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const r = room.round!;
   return (
     <div className="public-answers">
@@ -2283,15 +1795,12 @@ function Ratings({
   room: RoomSnapshot;
   action: (data: Action) => Promise<Ack>;
 }) {
-  const products = (room.round?.products || []).filter(
-    (p) => p.sellerId !== room.me.id,
-  );
+  const { t } = useI18n();
+  const products = (room.round?.currentProduct ? [room.round.currentProduct] : []).filter((p) => p.sellerId !== room.me.id);
   return (
     <div className="ratings">
       <p>
-        Trois critères, de 1 à 5. Notez chaque vendeur. Votre propre prestation
-        reste hors concours.
-      </p>
+        {t('legacy.s297')}</p>
       {products.map((p) => (
         <RatingCard
           key={p.sellerId}
@@ -2318,6 +1827,7 @@ function RatingCard({
   allowChange: boolean;
   action: (data: Action) => Promise<Ack>;
 }) {
+  const { t } = useI18n();
   const [ratings, setRatings] = useState<[number, number, number]>(
     values || [3, 3, 3],
   );
@@ -2327,7 +1837,7 @@ function RatingCard({
       <div className="speaker-badge">
         {player && <Avatar player={player} />}
         <div>
-          <small>{player?.name || "Le vendeur"}</small>
+          <small>{player?.name || t('legacy.s245')}</small>
           <h3>{product.name}</h3>
         </div>
         {values && <Check size={21} />}
@@ -2341,7 +1851,7 @@ function RatingCard({
                 <button
                   disabled={!!values && !allowChange}
                   key={n}
-                  aria-label={`${label} ${n} sur 5 pour ${player?.name}`}
+                  aria-label={t('controller.ratingLabel', { criterion: label, value: n, name: player?.name || '' })}
                   aria-pressed={ratings[i] === n}
                   className={n <= ratings[i] ? "active" : ""}
                   onClick={() =>
@@ -2377,38 +1887,18 @@ function RatingCard({
           setBusy(false);
         }}
       >
-        {values ? "Mettre à jour ma note" : "Valider mes notes"}
+        {values ? t('legacy.s299') : t('legacy.s300')}
         <Check size={17} />
       </button>
     </div>
   );
 }
 
-const roleLabels: Record<string, string> = {
-  accused: "L’accusé",
-  prosecutor: "Le procureur",
-  defense: "La défense",
-  judge: "Le juge",
-  juror: "Membre du jury",
-  witness: "Témoin",
-  jurors: "Membre du jury",
-  witnesses: "Témoin",
-};
-const courtSteps: Record<string, string> = {
-  accusation: "L’accusation",
-  defense: "La défense",
-  questions: "Les témoins et le jury",
-  final: "Derniers arguments",
-};
-const courtHints: Record<string, string> = {
-  accusation: "Procureur, exposez les faits. Aussi ridicules soient-ils.",
-  defense: "Avocat, sauvez ce qui reste de la réputation de votre client.",
-  questions:
-    "Le juge distribue la parole. Les témoins racontent leur vérité très personnelle.",
-  final:
-    "Accusation, défense, accusé : une dernière chance de convaincre le jury.",
-};
+
+
+
 function CourtCast({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const roles = room.round?.roles;
   if (!roles) return null;
   return (
@@ -2418,7 +1908,7 @@ function CourtCast({ room }: { room: RoomSnapshot }) {
         return p ? (
           <div key={role}>
             <Avatar player={p} />
-            <small>{roleLabels[role]}</small>
+            <small>{t(`court.roles.${role}`)}</small>
             <strong>{p.name}</strong>
           </div>
         ) : null;
@@ -2433,6 +1923,7 @@ function CourtVote({
   room: RoomSnapshot;
   action: (data: Action) => Promise<Ack>;
 }) {
+  const { t } = useI18n();
   const [verdict, setVerdict] = useState<boolean | null>(null);
   const [best, setBest] = useState(room.me.vote || "");
   const jury = room.round?.roles?.jurors.includes(room.me.id);
@@ -2455,11 +1946,9 @@ function CourtVote({
     >
       {jury ? (
         <>
-          <h2>Votre verdict, membre du jury.</h2>
+          <h2>{t('legacy.s301')}</h2>
           <p>
-            Égalité = acquittement. Le doute profite à l’accusé, la mauvaise foi
-            aussi.
-          </p>
+            {t('legacy.s302')}</p>
           <div className="verdict-options">
             <button
               type="button"
@@ -2467,7 +1956,7 @@ function CourtVote({
               className={verdict === true ? "selected guilty" : ""}
               onClick={() => setVerdict(true)}
             >
-              Coupable <Gavel size={21} />
+              {t('legacy.s304')}<Gavel size={21} />
             </button>
             <button
               type="button"
@@ -2475,27 +1964,24 @@ function CourtVote({
               className={verdict === false ? "selected innocent" : ""}
               onClick={() => setVerdict(false)}
             >
-              Non coupable <Check size={21} />
+              {t('legacy.s306')}<Check size={21} />
             </button>
           </div>
         </>
       ) : (
         <>
-          <h2>Le jury délibère.</h2>
+          <h2>{t('legacy.s307')}</h2>
           <p>
-            Vous avez encore le pouvoir de récompenser la meilleure
-            intervention.
-          </p>
+            {t('legacy.s308')}</p>
         </>
       )}
       <label className="field-label">
-        La meilleure intervention
-        <select
-          aria-label="Meilleure intervention"
+        {t('legacy.s309')}<select
+          aria-label={t('legacy.s310')}
           value={best}
           onChange={(e) => setBest(e.target.value)}
         >
-          <option value="">Choisir un participant…</option>
+          <option value="">{t('legacy.s311')}</option>
           {room.players
             .filter((p) => !p.spectator && p.id !== room.me.id)
             .map((p) => (
@@ -2514,23 +2000,23 @@ function CourtVote({
         }
       >
         {room.me.voted
-          ? "Actualiser mon vote"
+          ? t('legacy.s312')
           : jury
-            ? "Rendre mon verdict"
-            : "Voter pour cette intervention"}
+            ? t('legacy.s313')
+            : t('legacy.s314')}
         <Check size={18} />
       </button>
       {room.me.voted && (
         <p className="vote-confirmation">
           <Check size={17} />
-          Votre vote a été enregistré.
-        </p>
+          {t('legacy.s315')}</p>
       )}
     </form>
   );
 }
 
 function Results({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const r = room.round!;
   const players = room.players;
   const p = (id: string) => players.find((x) => x.id === id);
@@ -2539,7 +2025,7 @@ function Results({ room }: { room: RoomSnapshot }) {
       {r.verdict && (
         <div className={`verdict-stamp ${r.verdict}`}>
           <Gavel size={33} />
-          {r.verdict === "guilty" ? "COUPABLE !" : "NON COUPABLE !"}
+          {r.verdict === "guilty" ? t('legacy.s316') : t('legacy.s317')}
         </div>
       )}
       {r.title && (
@@ -2556,12 +2042,12 @@ function Results({ room }: { room: RoomSnapshot }) {
                 <p>« {a.text} »</p>
                 <span>
                   {a.authorId && p(a.authorId)?.avatar}{" "}
-                  {a.authorId ? p(a.authorId)?.name : "Réponse du jeu"}
+                  {a.authorId ? p(a.authorId)?.name : t('legacy.s318')}
                 </span>
               </div>
               <strong>
                 {a.votes ?? 0}
-                <small>vote{a.votes === 1 ? "" : "s"}</small>
+                <small>{t('legacy.s319')}{a.votes === 1 ? "" : t('legacy.s320')}</small>
               </strong>
             </motion.div>
           ))}
@@ -2574,11 +2060,11 @@ function Results({ room }: { room: RoomSnapshot }) {
             <div>
               <h3>{product.name}</h3>
               <p>
-                Vendu par <strong>{p(product.sellerId || "")?.name}</strong>
+                {t('legacy.s321')}<strong>{p(product.sellerId || "")?.name}</strong>
                 {product.creatorId && (
                   <>
                     {" "}
-                    · Imaginé par <strong>{p(product.creatorId)?.name}</strong>
+                    {t('legacy.s322')}<strong>{p(product.creatorId)?.name}</strong>
                   </>
                 )}
               </p>
@@ -2603,7 +2089,7 @@ function Results({ room }: { room: RoomSnapshot }) {
                     />
                   </div>
                   <span>
-                    {count} vote{count > 1 ? "s" : ""}
+                    {count} {t('legacy.s319')}{count > 1 ? t('legacy.s320') : ""}
                   </span>
                 </div>
               ) : null;
@@ -2629,7 +2115,7 @@ function Results({ room }: { room: RoomSnapshot }) {
                 </div>
                 <b>
                   +{result.points}
-                  <span>PTS</span>
+                  <span>{t('legacy.s166')}</span>
                 </b>
               </div>
             ) : null;
@@ -2637,12 +2123,11 @@ function Results({ room }: { room: RoomSnapshot }) {
       </div>
       {r.results.length === 0 && (
         <p className="lead">
-          Pas de points cette fois. Beaucoup de souvenirs gênants, en revanche.
-        </p>
+          {t('legacy.s323')}</p>
       )}
       {r.votesByPlayer && !room.config.anonymousVotes && (
         <details className="vote-detail">
-          <summary>Qui a voté pour qui ?</summary>
+          <summary>{t('legacy.s324')}</summary>
           {Object.entries(r.votesByPlayer).map(([voter, target]) => (
             <p key={voter}>
               {p(voter)?.name} →{" "}
@@ -2654,8 +2139,7 @@ function Results({ room }: { room: RoomSnapshot }) {
         </details>
       )}
       <p className="results-joke">
-        Le classement vient de changer. Certaines amitiés aussi.
-      </p>
+        {t('legacy.s325')}</p>
     </div>
   );
 }
@@ -2669,6 +2153,7 @@ function Leaderboard({
   compact?: boolean;
   final?: boolean;
 }) {
+  const { t } = useI18n();
   const rows = room.players
     .filter((p) => !p.spectator)
     .sort((a, b) => a.rank - b.rank || b.score - a.score);
@@ -2677,19 +2162,19 @@ function Leaderboard({
       <div className="panel-heading">
         <h2>
           <Trophy size={20} />
-          {final ? "Le palmarès des dégâts" : "Le classement"}
+          {final ? t('legacy.s326') : t('legacy.s327')}
         </h2>
-        <span className="small muted">{rows.length} joueurs</span>
+        <span className="small muted">{rows.length} {t('legacy.s328')}</span>
       </div>
       {!room.scoresVisible && !final ? (
         <div className="scores-hidden">
           <Eye size={31} />
-          <h3>Le suspense est total.</h3>
+          <h3>{t('legacy.s329')}</h3>
           <p>
-            Les points s’accumulent en secret. Révélation{" "}
+            {t('legacy.s330')}{" "}
             {room.config.leaderboard === "final"
-              ? "au podium"
-              : "à la fin du jeu"}
+              ? t('legacy.s331')
+              : t('legacy.s332')}
             .
           </p>
           <div className="hidden-players">
@@ -2714,14 +2199,12 @@ function Leaderboard({
               <div className="leaderboard-name">
                 <strong>
                   {p.name}
-                  {p.id === room.me.id && <small> VOUS</small>}
+                  {p.id === room.me.id && <small> {t('legacy.s333')}</small>}
                 </strong>
                 {!compact && (
                   <small>
-                    {p.roundWins} manche{p.roundWins > 1 ? "s" : ""} gagnée
-                    {p.roundWins > 1 ? "s" : ""} · {p.gameWins} jeu
-                    {p.gameWins > 1 ? "x" : ""} gagné{p.gameWins > 1 ? "s" : ""}
-                    {final && p.bestGame ? ` · ${awards[p.bestGame]}` : ""}
+                    {p.roundWins} {t('legacy.s334')}{p.roundWins > 1 ? t('legacy.s320') : ""} {t('legacy.s335')}{p.roundWins > 1 ? t('legacy.s320') : ""} · {p.gameWins} {t('legacy.s336')}{p.gameWins > 1 ? "x" : ""} {t('legacy.s338')}{p.gameWins > 1 ? t('legacy.s320') : ""}
+                    {final && p.bestGame ? ` · ${t(`court.awards.${p.bestGame}`)}` : ""}
                     {i > 0
                       ? ` · à ${Math.max(0, rows[i - 1].score - p.score)} pts du précédent`
                       : ""}
@@ -2749,7 +2232,7 @@ function Leaderboard({
       )}
       {final && (
         <details className="score-history">
-          <summary>Détail des points par joueur</summary>
+          <summary>{t('legacy.s339')}</summary>
           {rows.map((p) => (
             <div key={p.id}>
               <h3>
@@ -2765,7 +2248,7 @@ function Leaderboard({
                   </p>
                 ))
               ) : (
-                <p>Aucun point attribué.</p>
+                <p>{t('legacy.s340')}</p>
               )}
             </div>
           ))}
@@ -2776,6 +2259,7 @@ function Leaderboard({
 }
 
 function Transition({ room }: { room: RoomSnapshot }) {
+  const { t } = useI18n();
   const current = gameInfo(
     room.playlist[room.gameIndex]?.gameId || room.round?.gameId || "mythos",
   );
@@ -2789,43 +2273,33 @@ function Transition({ room }: { room: RoomSnapshot }) {
   return (
     <div className="transition-content">
       <div className="transition-star">✳</div>
-      <span className="pill">{current.name} : C’EST TERMINÉ !</span>
+      <span className="pill">{current.name} {t('legacy.s341')}</span>
       <h1>
-        Une dignité en moins.
-        <br />
-        Un jeu de plus.
-      </h1>
+        {t('legacy.s342')}<br />
+        {t('legacy.s343')}</h1>
       <p className="lead">
-        Bravo au gagnant. Les autres ont participé, c’est déjà ça.
-      </p>
+        {t('legacy.s344')}</p>
       {room.scoresVisible && (
         <div className="transition-winner">
           <Trophy size={29} />
           <strong>
-            {winners.map((p) => p.name).join(" & ") || "Le public a gagné"}
+            {winners.map((p) => p.name).join(" & ") || t('legacy.s345')}
           </strong>
           <span>
-            {winners.length > 1 ? "Victoire partagée" : "Vainqueur du mini-jeu"}{" "}
-            · +{winningPoints} points sur ce jeu
-          </span>
+            {winners.length > 1 ? t('legacy.s346') : t('legacy.s347')}{" "}
+            · +{winningPoints} {t('legacy.s348')}</span>
         </div>
       )}
       <div className="next-game">
-        <small>LA SUITE DES HOSTILITÉS</small>
-        <h2>{next ? gameInfo(next.gameId).name : "Le podium final !"}</h2>
+        <small>{t('legacy.s349')}</small>
+        <h2>{next ? gameInfo(next.gameId).name : t('legacy.s350')}</h2>
         <ArrowRight size={26} />
       </div>
     </div>
   );
 }
 
-const awards: Record<GameId, string> = {
-  mythos: "Mytho de compétition",
-  pitch: "Vendeur de l’impossible",
-  court: "Ténor de la mauvaise foi",
-  who: "Instinct collectif certifié",
-  captions: "Légende des légendes",
-};
+
 
 function Podium({
   room,
@@ -2836,6 +2310,7 @@ function Podium({
   request: Request;
   host: boolean;
 }) {
+  const { t } = useI18n();
   const rows = room.players
     .filter((p) => !p.spectator)
     .sort((a, b) => a.rank - b.rank || b.score - a.score);
@@ -2854,11 +2329,11 @@ function Podium({
           />
         ))}
       </div>
-      <div className="eyebrow">LE VERDICT DE LA SOIRÉE</div>
+      <div className="eyebrow">{t('legacy.s351')}</div>
       <h1>
-        La gloire est <span className="purple-text">un peu gênante.</span>
+        {t('legacy.s352')}<span className="purple-text">{t('legacy.s353')}</span>
       </h1>
-      <p>Les scores sont définitifs. Les contestations seront ignorées.</p>
+      <p>{t('legacy.s354')}</p>
       <div className="podium-steps">
         {[1, 0, 2].map((index) => {
           const p = rows[index];
@@ -2870,16 +2345,16 @@ function Podium({
               </div>
               <h2>{p.name}</h2>
               <strong>
-                {p.score.toLocaleString("fr-FR")} <small>PTS</small>
+                {p.score.toLocaleString("fr-FR")} <small>{t('legacy.s166')}</small>
               </strong>
               <div className="podium-block">
                 <span>{p.rank}</span>
                 <small>
                   {index === 0
-                    ? "CERTIFIÉ DANGEREUX"
+                    ? t('legacy.s355')
                     : index === 1
-                      ? "PRESQUE FRÉQUENTABLE"
-                      : "PAS LOIN DU GÉNIE"}
+                      ? t('legacy.s356')
+                      : t('legacy.s357')}
                 </small>
               </div>
             </div>
@@ -2892,12 +2367,11 @@ function Podium({
           className="button primary large"
           onClick={() => void request("room:replay")}
         >
-          On remet ça ? <Shuffle size={20} />
+          {t('legacy.s358')}<Shuffle size={20} />
         </button>
       ) : (
         <p className="waiting-host">
-          L’hôte peut relancer une soirée avec le même gang.
-        </p>
+          {t('legacy.s359')}</p>
       )}
     </div>
   );
@@ -2913,6 +2387,7 @@ interface AdminItem {
   product?: { name: string; description: string };
 }
 function Admin() {
+  const { t } = useI18n();
   const empty = (): Partial<AdminItem> => ({
     gameId: "mythos",
     category: "absurde",
@@ -2922,6 +2397,7 @@ function Admin() {
   const [token, setToken] = useState("");
   const [items, setItems] = useState<AdminItem[]>([]);
   const [authenticated, setAuthenticated] = useState(false);
+  const [adminTab, setAdminTab] = useState<'content' | 'decoys' | 'cinema'>('content');
   const [message, setMessage] = useState("");
   const [selected, setSelected] = useState<AdminItem | null>(null);
   const [filter, setFilter] = useState("all");
@@ -2994,12 +2470,10 @@ function Admin() {
   return (
     <section className="page-width inner-page admin-page">
       <div className="eyebrow">
-        <Shield size={15} /> DANS LES COULISSES
-      </div>
-      <h1 className="page-title">La fabrique à mauvaises idées.</h1>
+        <Shield size={15} /> {t('legacy.s360')}</div>
+      <h1 className="page-title">{t('legacy.s361')}</h1>
       <p className="lead">
-        Administration protégée de la bibliothèque de contenus et de médias.
-      </p>
+        {t('legacy.s362')}</p>
       {message && (
         <div role="status" className="admin-message">
           {message}
@@ -3014,8 +2488,7 @@ function Admin() {
           }}
         >
           <label className="field-label">
-            Clé d’administration
-            <input
+            {t('legacy.s363')}<input
               type="password"
               required
               value={token}
@@ -3024,31 +2497,29 @@ function Admin() {
             />
           </label>
           <button className="button primary">
-            Ouvrir les coulisses <ArrowRight size={18} />
+            {t('legacy.s364')}<ArrowRight size={18} />
           </button>
           <p className="fineprint">
-            La clé ADMIN_TOKEN est configurée côté serveur.
-          </p>
+            {t('legacy.s365')}</p>
         </form>
-      ) : (
-        <div className="admin-layout">
+      ) : (<><nav className="admin-tabs" aria-label={t('legacy.s028')}>{(['content','decoys','cinema'] as const).map((tab) => <button type="button" className={adminTab === tab ? 'selected' : ''} key={tab} aria-pressed={adminTab === tab} onClick={() => setAdminTab(tab)}>{t('admin.' + tab)}</button>)}</nav>{adminTab === 'decoys' ? <ProductAdmin token={token}/> : adminTab === 'cinema' ? <CinemaAdmin token={token}/> : <div className="admin-layout">
           <section className="panel">
             <div className="panel-heading">
-              <h2>Bibliothèque ({items.length})</h2>
+              <h2>{t('legacy.s366')}{items.length})</h2>
               <button
                 className="icon-button"
-                aria-label="Actualiser les contenus"
+                aria-label={t('legacy.s367')}
                 onClick={() => void load()}
               >
                 <Shuffle size={18} />
               </button>
             </div>
             <select
-              aria-label="Filtrer par jeu"
+              aria-label={t('legacy.s368')}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             >
-              <option value="all">Tous les jeux</option>
+              <option value="all">{t('legacy.s369')}</option>
               {GAMES.map((g) => (
                 <option key={g.id} value={g.id}>
                   {g.shortName}
@@ -3069,7 +2540,7 @@ function Admin() {
                   >
                     <small>
                       {gameInfo(item.gameId).shortName} · {item.category}
-                      {item.adult ? " · ADULTE" : ""}
+                      {item.adult ? t('legacy.s370') : ""}
                     </small>
                     <strong>{item.prompt}</strong>
                   </button>
@@ -3096,19 +2567,18 @@ function Admin() {
             }}
           >
             <div className="panel-heading">
-              <h2>{selected ? "Modifier le contenu" : "Nouveau contenu"}</h2>
+              <h2>{selected ? t('legacy.s371') : t('legacy.s372')}</h2>
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Nouveau contenu"
+                aria-label={t('legacy.s372')}
                 onClick={reset}
               >
                 <Plus size={19} />
               </button>
             </div>
             <label className="field-label">
-              Mini-jeu
-              <select
+              {t('legacy.s373')}<select
                 value={draft.gameId}
                 onChange={(e) =>
                   setDraft({
@@ -3127,8 +2597,7 @@ function Admin() {
               </select>
             </label>
             <label className="field-label">
-              Question ou consigne
-              <textarea
+              {t('legacy.s374')}<textarea
                 required
                 rows={4}
                 maxLength={500}
@@ -3138,8 +2607,7 @@ function Admin() {
               />
             </label>
             <label className="field-label">
-              Catégorie
-              <input
+              {t('legacy.s375')}<input
                 required
                 maxLength={40}
                 value={draft.category || ""}
@@ -3151,8 +2619,7 @@ function Admin() {
             {draft.gameId === "pitch" && (
               <>
                 <label className="field-label">
-                  Nom du produit
-                  <input
+                  {t('legacy.s376')}<input
                     required
                     maxLength={70}
                     value={draft.product?.name || ""}
@@ -3168,8 +2635,7 @@ function Admin() {
                   />
                 </label>
                 <label className="field-label">
-                  Description du produit
-                  <textarea
+                  {t('legacy.s377')}<textarea
                     required
                     maxLength={220}
                     value={draft.product?.description || ""}
@@ -3189,11 +2655,10 @@ function Admin() {
             {draft.gameId === "captions" && (
               <>
                 <label className="field-label">
-                  Chemin du média
-                  <input
+                  {t('legacy.s378')}<input
                     required
                     type="text"
-                    placeholder="/media/mon-image.png"
+                    placeholder={t('legacy.s379')}
                     pattern="/media/.+"
                     value={draft.mediaUrl || ""}
                     onChange={(e) =>
@@ -3203,8 +2668,8 @@ function Admin() {
                 </label>
                 <label className="field-label">
                   {uploading
-                    ? "Téléversement en cours…"
-                    : "Ajouter une image originale (PNG, JPEG, WebP, GIF · 1 Mo maximum)"}
+                    ? t('legacy.s380')
+                    : t('legacy.s381')}
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/gif"
@@ -3216,19 +2681,19 @@ function Admin() {
                   <div className="prompt-media">
                     <img
                       src={serverResource(draft.mediaUrl)}
-                      alt="Aperçu du média administré"
+                      alt={t('legacy.s382')}
                     />
                   </div>
                 )}
               </>
             )}
             <Toggle
-              label="Humour adulte"
+              label={t('legacy.s141')}
               checked={!!draft.adult}
               onChange={(adult) => setDraft({ ...draft, adult })}
             />
             <button disabled={uploading} className="button primary full">
-              Enregistrer le contenu <Check size={18} />
+              {t('legacy.s383')}<Check size={18} />
             </button>
             {selected && (
               <button
@@ -3245,14 +2710,15 @@ function Admin() {
                   }
                 }}
               >
-                Supprimer ce contenu <Trash2 size={17} />
+                {t('legacy.s384')}<Trash2 size={17} />
               </button>
             )}
           </form>
-        </div>
+        </div>}</>
       )}
     </section>
   );
 }
 
-export default App;
+export default function LocalizedApp() {
+  return <I18nProvider><App /></I18nProvider>; }

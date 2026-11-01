@@ -7,6 +7,8 @@ import {
 } from "node:crypto";
 import { CONTENT } from "@en-vrille/content";
 import type { ContentItem } from "@en-vrille/content";
+import cinemaCatalogue from "../../../packages/content/cinema/catalogue.json";
+import decoyCatalogue from "../../../packages/content/decoys/catalogue.json";
 import { AVATARS, COLORS, DEFAULT_CONFIG, GAMES, REACTIONS } from "@en-vrille/shared";
 import type {
   Action,
@@ -19,6 +21,9 @@ import type {
   RoundResult,
   Session,
   ParticipationProgress,
+  CinemaScene,
+  DecoyProduct,
+  CaptionStoryView,
 } from "@en-vrille/shared";
 import type { Player, Room, Round } from "./model.js";
 import type { Store } from "./store.js";
@@ -59,6 +64,8 @@ function check(condition: unknown, message: string): asserts condition {
 export class GameEngine {
   readonly rooms = new Map<string, Room>();
   content: ContentItem[] = structuredClone(CONTENT);
+  cinema: CinemaScene[] = structuredClone(cinemaCatalogue as CinemaScene[]);
+  decoys: DecoyProduct[] = structuredClone(decoyCatalogue as DecoyProduct[]);
   onChange: (room: Room) => void;
   persistenceError: unknown;
   private writes: Promise<void> = Promise.resolve();
@@ -85,6 +92,8 @@ export class GameEngine {
   async initialize() {
     const saved = await this.options.store.load();
     if (saved.content) this.content = saved.content;
+    if (saved.cinema) this.cinema = saved.cinema;
+    if (saved.decoys) this.decoys = saved.decoys;
     for (const room of saved.rooms) {
       if (this.now() - room.updatedAt > 7 * 86400_000) continue;
       room.config = { ...structuredClone(DEFAULT_CONFIG), ...room.config };
@@ -92,9 +101,19 @@ export class GameEngine {
       room.phaseExcludedIds ??= [];
       room.reactions = [];
       room.lastReactionAt = {};
+      room.usedDecoyIds ??= [];
+      room.usedCinemaIds ??= [];
       if (room.round) {
         room.round.prepared ??= [];
         room.round.missions ??= {};
+        room.round.pitchRatedSellerIds ??= [];
+        room.round.suggestions ??= {};
+        if (room.round.gameId === "pitch")
+          room.round.presentationIndex = Math.min(Math.max(0, room.round.presentationIndex), Math.max(0, room.round.products.length - 1));
+        if (room.round.gameId === "captions" && !room.round.captions && !room.round.scored) {
+          room.round = undefined;
+          room.phase = "intro";
+        }
       }
       for (const player of room.players) {
         player.connected = false;
@@ -215,6 +234,8 @@ export class GameEngine {
       createdAt: this.now(),
       updatedAt: this.now(),
       usedContentIds: [],
+      usedDecoyIds: [],
+      usedCinemaIds: [],
       gameStartScores: {},
     };
     this.rooms.set(code, room);
@@ -334,7 +355,14 @@ export class GameEngine {
     );
     const item = list[this.random(list.length)]!;
     room.usedContentIds.push(item.id);
-    return item;
+    const localized = structuredClone(item) as ContentItem & { promptEn?: string; product?: { name: string; description: string; nameEn?: string; descriptionEn?: string } };
+    if (room.config.language === "en") {
+      localized.prompt = localized.promptEn || localized.prompt;
+      if (localized.product) localized.product = { ...localized.product,
+        name: localized.product.nameEn || localized.product.name,
+        description: localized.product.descriptionEn || localized.product.description };
+    }
+    return localized;
   }
   start(code: string, id: string) {
     const room = this.getRoom(code);
@@ -361,11 +389,16 @@ export class GameEngine {
             ? players.length
             : 1);
     room.usedContentIds = [];
+    room.usedDecoyIds = [];
+    room.usedCinemaIds = [];
     for (const [gameId, count] of Object.entries(needs))
-      check(
+      if (gameId !== "captions") check(
         this.available(room, gameId as GameId).length >= count,
         `Pas assez de contenus ${gameId} dans les catégories autorisées pour cette soirée.`,
       );
+    if (playlist.some((item) => item.gameId === "captions"))
+      check(this.cinema.filter((scene) => this.sceneAllowed(room, scene, this.captionTurns(room, players.length))).length >= players.length,
+        "La bibliothèque doit contenir une scène autorisée différente par joueur, avec assez d’images pour cette durée.");
     room.playlist = playlist;
     room.gameIndex = 0;
     room.roundNumber = 1;
@@ -422,21 +455,23 @@ export class GameEngine {
         "Pas assez de joueurs connectés pour ce jeu. Reconnectez-vous, puis l’hôte reprend.";
       return;
     }
-    const content = this.pick(room, item.gameId);
+    const content: ContentItem = item.gameId === "captions"
+      ? { id: "collaborative-cinema", gameId: "captions", prompt: room.config.language === "en" ? "Rewrite cinema together. Each scene will find its voice." : "Réinventez les dialogues du cinéma, une réplique à la fois.", category: "cinéma collaboratif", mediaUrl: undefined }
+      : this.pick(room, item.gameId);
     const round: Round = {
       id: randomUUID(),
       gameId: item.gameId,
       prompt:
         item.gameId === "pitch"
           ? item.pitchMode === "invented"
-            ? "Inventez l’invendable. Quelqu’un d’autre devra le vendre."
-            : "Votre mission : vendre l’invendable."
+            ? room.config.language === "en" ? "Invent the unsellable. Someone else will have to sell it." : "Inventez l’invendable. Quelqu’un d’autre devra le vendre."
+            : room.config.language === "en" ? "Your mission: sell the unsellable." : "Votre mission : vendre l’invendable."
           : content.prompt,
       category:
         item.gameId === "pitch"
           ? item.pitchMode === "invented"
-            ? "Vos inventions"
-            : "Produits du jeu"
+            ? room.config.language === "en" ? "Your inventions" : "Vos inventions"
+            : room.config.language === "en" ? "Studio products" : "Produits du jeu"
           : content.category,
       mediaUrl: content.mediaUrl,
       participantIds: participants,
@@ -453,6 +488,8 @@ export class GameEngine {
       results: [],
       scored: false,
       voteCounts: {},
+      suggestions: {},
+      pitchRatedSellerIds: [],
     };
     if (item.gameId === "pitch" && item.pitchMode !== "invented") {
       round.products = participants.map((sellerId, index) => {
@@ -488,12 +525,35 @@ export class GameEngine {
       };
       round.courtStep = "accusation";
     }
+    if (item.gameId === "captions") {
+      const turns = this.captionTurns(room, participants.length);
+      const all = this.cinema.filter((scene) => this.sceneAllowed(room, scene, turns));
+      let available = all.filter((scene) => !room.usedCinemaIds!.includes(scene.id));
+      if (available.length < participants.length) {
+        room.usedCinemaIds = [];
+        available = all;
+      }
+      check(available.length >= participants.length, "Il manque des scènes autorisées pour les scénaristes connectés.");
+      const scenes = shuffled(available, this.random).slice(0, participants.length);
+      room.usedCinemaIds!.push(...scenes.map((scene) => scene.id));
+      const presenters = derangement(participants, this.random);
+      round.captions = {
+        turn: 0, turns, slideIndex: 0, autoSlides: room.config.captionAutoSlides,
+        slideStartedAt: this.now(), awardVotes: {},
+        stories: scenes.map((scene, i) => ({
+          id: randomUUID(), starterId: participants[i]!, presenterId: presenters[i]!,
+          scene: { ...structuredClone(scene), frames: Array.from({ length: turns }, (_, frameIndex) =>
+            structuredClone(scene.frames[Math.round(frameIndex * (scene.frames.length - 1) / Math.max(1, turns - 1))]!)) },
+          lines: [],
+        })),
+      };
+    }
     room.round = round;
-    if (room.config.secretRoles && ["mythos", "captions", "pitch"].includes(round.gameId) &&
+    if (room.config.secretRoles && ["mythos", "pitch"].includes(round.gameId) &&
         (round.gameId !== "pitch" || item.pitchMode === "invented")) {
       for (const id of participants) round.missions[id] = { word: MISSION_WORDS[this.random(MISSION_WORDS.length)]!, completed: false };
     }
-    room.message = "Les règles sont simples. Vos réponses le seront moins.";
+    room.message = room.config.language === "en" ? "The rules are simple. Your answers probably won't be." : "Les règles sont simples. Vos réponses le seront moins.";
     for (const p of room.players) p.delta = 0;
     this.setPhase(room, "intro", 4);
   }
@@ -518,7 +578,9 @@ export class GameEngine {
           "Il manque encore des joueurs pour reprendre ce jeu.",
         );
       } else {
-        room.phaseStartedAt += this.now() - (room.pausedAt ?? this.now());
+        const pauseDuration = this.now() - (room.pausedAt ?? this.now());
+        room.phaseStartedAt += pauseDuration;
+        if (room.round.captions) room.round.captions.slideStartedAt += pauseDuration;
         room.deadline = this.now() + (room.remaining ?? 8000);
         room.remaining = null;
         room.paused = false;
@@ -551,12 +613,9 @@ export class GameEngine {
     const own = round.participantIds.map((id, index) => {
       const submitted = round.products.find((p) => p.creatorId === id);
       if (submitted) return submitted;
-      const available = this.available(room, "pitch");
-      const fallback = available.length
-        ? this.pick(room, "pitch").product
-        : undefined;
+      const fallback = this.decoys.length ? this.drawDecoy(room) : undefined;
       return {
-        ...(fallback || {
+        ...(fallback ? { name: fallback.name, description: fallback.description, generated: true } : {
           name: `Le bouton panique n°${index + 1}`,
           description:
             "Ne fait rien, mais avec une assurance absolument remarquable.",
@@ -568,6 +627,67 @@ export class GameEngine {
       ...product,
       sellerId: round.participantIds[i],
     }));
+  }
+  private captionTurns(room: Room, players: number) {
+    return room.config.captionLength === "short" ? Math.min(4, players) : room.config.captionLength === "normal" ? Math.min(5, players) : players;
+  }
+  private sceneAllowed(room: Room, scene: CinemaScene, frames: number) {
+    return scene.rights.commercialUse === true && scene.frames.length >= frames &&
+      !room.config.disabledCategories.includes(scene.category);
+  }
+  private captionAssignment(round: Round, playerId: string) {
+    const cinema = round.captions!;
+    const playerIndex = round.participantIds.indexOf(playerId);
+    return playerIndex < 0 ? undefined : cinema.stories[(playerIndex - cinema.turn + round.participantIds.length) % round.participantIds.length];
+  }
+  private captionStoryView(story: NonNullable<Round["captions"]>["stories"][number], reveal: boolean): CaptionStoryView {
+    return {
+      id: story.id, title: story.scene.title, scene: structuredClone(story.scene), presenterId: story.presenterId,
+      ...(reveal ? { starterId: story.starterId } : {}),
+      lines: story.lines.map((line) => ({ id: line.id, text: line.text, frameIndex: line.frameIndex,
+        ...(reveal && line.authorId ? { authorId: line.authorId } : {}) })),
+    };
+  }
+  private fillCaptionTurn(round: Round) {
+    const cinema = round.captions!;
+    for (const story of cinema.stories) if (!story.lines.some((line) => line.frameIndex === cinema.turn))
+      story.lines.push({ id: randomUUID(), text: "…", frameIndex: cinema.turn, authorId: "" });
+  }
+  private drawDecoy(room: Room) {
+    const allowed = this.decoys.filter((item) => !room.config.disabledCategories.includes(item.category));
+    let available = allowed.filter((item) => !room.usedDecoyIds!.includes(item.id));
+    if (!available.length && allowed.length) { room.usedDecoyIds = []; available = allowed; }
+    check(available.length, "La machine à idées est vide dans les catégories autorisées.");
+    const product = available[this.random(available.length)]!;
+    room.usedDecoyIds!.push(product.id);
+    return {
+      name: room.config.language === "en" ? product.nameEn || product.name : product.name,
+      description: room.config.language === "en" ? product.descriptionEn || product.description : product.description,
+    };
+  }
+  suggestProduct(code: string, id: string) {
+    const room = this.getRoom(code), player = this.getPlayer(room, id), round = room.round;
+    check(!room.paused && room.phase === "writing" && round?.gameId === "pitch" &&
+      player.connected && this.eligible(room).includes(id), "La machine à idées est disponible pendant la création de votre objet.");
+    check(!round.submitted.includes(id), "Votre invention est déjà validée.");
+    const suggestion = this.drawDecoy(room);
+    round.suggestions ??= {};
+    round.suggestions[id] = { token: randomUUID(), ...suggestion };
+    this.changed(room);
+  }
+  captionControl(code: string, id: string, control: { direction?: "next" | "previous"; autoSlides?: boolean }) {
+    const room = this.getRoom(code), round = room.round, cinema = round?.captions;
+    check(!room.paused && room.phase === "presenting" && round && cinema, "Le projecteur n’est pas encore ouvert.");
+    const story = cinema.stories[round.presentationIndex]!;
+    check(id === room.hostId || id === story.presenterId, "Seuls le présentateur et l’hôte peuvent piloter les diapositives.");
+    if (control.autoSlides !== undefined) {
+      this.host(room, id);
+      cinema.autoSlides = control.autoSlides;
+    }
+    if (control.direction)
+      cinema.slideIndex = Math.max(0, Math.min(story.scene.frames.length - 1, cinema.slideIndex + (control.direction === "next" ? 1 : -1)));
+    cinema.slideStartedAt = this.now();
+    this.changed(room);
   }
   private finishRound(room: Room) {
     const item = room.playlist[room.gameIndex]!;
@@ -584,7 +704,7 @@ export class GameEngine {
       if (best > 0 && points === best) p.gameWins++;
     if (room.gameIndex === room.playlist.length - 1) {
       this.setPhase(room, "podium", null);
-      room.message = "La soirée est terminée. Les preuves ont été conservées.";
+      room.message = room.config.language === "en" ? "The party is over. We kept the evidence." : "La soirée est terminée. Les preuves ont été conservées.";
     } else {
       this.setPhase(room, "transition", room.config.transitionSeconds);
       room.message = MESSAGES[this.random(MESSAGES.length)]!;
@@ -617,7 +737,14 @@ export class GameEngine {
         else this.setPhase(room, "writing", room.config.answerSeconds);
         break;
       case "writing":
-        if (round.gameId === "pitch") {
+        if (round.gameId === "captions" && round.captions) {
+          this.fillCaptionTurn(round);
+          if (round.captions.turn < round.captions.turns - 1) {
+            round.captions.turn++;
+            round.submitted = [];
+            this.setPhase(room, "writing", room.config.answerSeconds);
+          } else this.setPhase(room, "reveal", 5);
+        } else if (round.gameId === "pitch") {
           this.prepareProducts(room);
           this.setPhase(room, "prepare", room.config.answerSeconds);
         } else {
@@ -626,31 +753,56 @@ export class GameEngine {
         }
         break;
       case "reveal":
-        this.setPhase(room, "voting", room.config.voteSeconds);
+        this.setPhase(room, round.captions ? "prepare" : "voting", round.captions ? room.config.answerSeconds : room.config.voteSeconds);
         this.completeIfReady(room);
         break;
       case "prepare":
         round.presentationIndex = 0;
         round.courtStep = round.gameId === "court" ? STEPS[0] : undefined;
+        if (round.captions) {
+          round.captions.slideIndex = 0;
+          round.captions.slideStartedAt = this.now();
+        }
         this.setPhase(room, "presenting", room.config.presentationSeconds);
         break;
       case "presenting":
+        if (round.gameId === "pitch") {
+          this.setPhase(room, "voting", room.config.voteSeconds);
+          this.completeIfReady(room);
+          break;
+        }
         round.presentationIndex++;
-        if (round.gameId === "pitch" && round.presentationIndex < round.products.length)
+        if (round.captions && round.presentationIndex < round.captions.stories.length) {
+          round.captions.slideIndex = 0;
+          round.captions.slideStartedAt = this.now();
           this.setPhase(room, "presenting", room.config.presentationSeconds);
-        else if (round.gameId === "court" && round.presentationIndex < STEPS.length) {
+        } else if (round.gameId === "court" && round.presentationIndex < STEPS.length) {
           round.courtStep = STEPS[round.presentationIndex];
           this.setPhase(room, "presenting", room.config.presentationSeconds);
         } else {
+          if (round.captions) round.presentationIndex = round.captions.stories.length - 1;
           this.setPhase(room, "voting", room.config.voteSeconds);
           this.completeIfReady(room);
         }
         break;
       case "voting":
-        this.score(room);
-        this.setPhase(room, "results", 10);
+        if (round.gameId === "pitch") {
+          round.pitchRatedSellerIds ??= [];
+          const seller = round.products[round.presentationIndex]?.sellerId;
+          if (seller && !round.pitchRatedSellerIds.includes(seller)) round.pitchRatedSellerIds.push(seller);
+          if (round.presentationIndex === round.products.length - 1) this.score(room);
+          this.setPhase(room, "results", round.scored ? 10 : 6);
+        } else {
+          this.score(room);
+          this.setPhase(room, "results", 10);
+        }
         break;
       case "results":
+        if (round.gameId === "pitch" && !round.scored) {
+          round.presentationIndex++;
+          this.setPhase(room, "presenting", room.config.presentationSeconds);
+          break;
+        }
         if (!room.config.noPoints && (room.config.leaderboard === "round" ||
             (room.config.leaderboard === "game" && room.roundNumber === item.rounds)))
           this.setPhase(room, "leaderboard", 8);
@@ -679,6 +831,16 @@ export class GameEngine {
           }
         }
         if (!room.paused && dirty) this.completeIfReady(room);
+      }
+      const cinema = room.round?.captions;
+      if (!room.paused && room.phase === "presenting" && cinema?.autoSlides &&
+          this.now() - cinema.slideStartedAt >= room.config.captionSlideSeconds * 1000) {
+        const story = cinema.stories[room.round!.presentationIndex]!;
+        if (cinema.slideIndex < story.scene.frames.length - 1) {
+          cinema.slideIndex++;
+          cinema.slideStartedAt = this.now();
+          dirty = true;
+        }
       }
       if (!room.paused && room.deadline !== null && this.now() >= room.deadline) {
         try {
@@ -716,13 +878,14 @@ export class GameEngine {
     }) || [];
   }
   private rateTargets(room: Room, id: string) {
-    const active = this.eligible(room);
-    return room.round!.products.filter((p) => p.sellerId !== id && active.includes(p.sellerId!));
+    const product = room.round!.products[room.round!.presentationIndex];
+    return product?.sellerId && product.sellerId !== id ? [product] : [];
   }
   private voters(room: Room) {
     const r = room.round!;
     return this.eligible(room).filter((id) => {
       if (r.gameId === "pitch") return this.rateTargets(room, id).length > 0;
+      if (r.captions) return true;
       if (r.gameId === "mythos" || r.gameId === "captions") return r.answers.some((a) => a.authorId !== id);
       if (r.gameId === "who") return room.config.allowSelfVoteWho || r.participantIds.some((p) => p !== id);
       return true;
@@ -730,33 +893,46 @@ export class GameEngine {
   }
   private voted(room: Room, id: string) {
     const r = room.round!;
+    if (r.captions) {
+      const targets = this.captionVoteTargets(r, id);
+      return (["film", "actor", "line"] as const).every((award) => targets[award].length === 0 || !!r.captions!.awardVotes[id]?.[award]);
+    }
     if (r.gameId === "pitch")
       return this.rateTargets(room, id).length > 0 && this.rateTargets(room, id).every((p) => !!r.ratings[id]?.[p.sellerId!]);
     if (r.gameId === "court")
       return r.roles!.jurors.includes(id) ? id in r.verdicts : id in r.bestVotes;
     return id in r.votes;
   }
+  private captionVoteTargets(round: Round, id: string) {
+    const stories = round.captions!.stories;
+    return {
+      film: stories.map((story) => story.id),
+      actor: stories.map((story) => story.presenterId).filter((presenter) => presenter !== id),
+      line: stories.flatMap((story) => story.lines.filter((line) => line.authorId && line.authorId !== id).map((line) => line.id)),
+    };
+  }
   private progress(room: Room): ParticipationProgress[] {
+    const label = (fr: string, en: string) => room.config.language === "en" ? en : fr;
     const row = (kind: ParticipationProgress["kind"], label: string, ids: string[], completed: (id: string) => boolean) =>
       ({ kind, label, completed: ids.filter(completed).length, total: ids.length });
     if (room.phase === "lobby") {
       const players = room.players.filter((p) => p.connected && !p.spectator);
-      return [{ kind: "ready", label: "Joueurs prêts", completed: players.filter((p) => p.ready).length, total: players.length }];
+      return [{ kind: "ready", label: label("Joueurs prêts", "Players ready"), completed: players.filter((p) => p.ready).length, total: players.length }];
     }
     const r = room.round;
     if (!r) return [];
     const active = this.eligible(room);
     if (room.phase === "writing") return [row(r.gameId === "pitch" ? "products" : "answers",
-      r.gameId === "pitch" ? "Objets créés" : r.gameId === "captions" ? "Sous-titres reçus" : "Réponses reçues",
+      r.gameId === "pitch" ? label("Objets créés", "Products created") : r.gameId === "captions" ? label("Scénaristes prêts", "Writers ready") : label("Réponses reçues", "Answers received"),
       active, (id) => r.submitted.includes(id))];
-    if (room.phase === "prepare") return [row("prepared", "Joueurs prêts", active, (id) => r.prepared.includes(id))];
+    if (room.phase === "prepare") return [row("prepared", label("Joueurs prêts", "Players ready"), active, (id) => r.prepared.includes(id))];
     if (room.phase !== "voting") return [];
     const voters = this.voters(room);
     if (r.gameId === "court") return [
-      row("verdicts", "Jurés ayant voté", voters.filter((id) => r.roles!.jurors.includes(id)), (id) => id in r.verdicts),
-      row("bonus-votes", "Votes meilleure intervention", voters.filter((id) => !r.roles!.jurors.includes(id)), (id) => id in r.bestVotes),
+      row("verdicts", label("Jurés ayant voté", "Jurors voted"), voters.filter((id) => r.roles!.jurors.includes(id)), (id) => id in r.verdicts),
+      row("bonus-votes", label("Votes meilleure intervention", "Best intervention votes"), voters.filter((id) => !r.roles!.jurors.includes(id)), (id) => id in r.bestVotes),
     ];
-    return [row(r.gameId === "pitch" ? "ratings" : "votes", r.gameId === "pitch" ? "Évaluations terminées" : "Votes enregistrés", voters, (id) => this.voted(room, id))];
+    return [row(r.gameId === "pitch" ? "ratings" : "votes", r.gameId === "pitch" ? label("Évaluations terminées", "Ratings received") : label("Votes enregistrés", "Votes recorded"), voters, (id) => this.voted(room, id))];
   }
   private completeIfReady(room: Room) {
     if (room.paused || !["writing", "prepare", "voting"].includes(room.phase)) return;
@@ -802,13 +978,19 @@ export class GameEngine {
       "Le temps est écoulé.",
     );
     if (action.type === "prepared") {
-      check(room.phase === "prepare" && ["pitch", "court"].includes(round.gameId), "La préparation n’est pas ouverte.");
+      check(room.phase === "prepare" && ["pitch", "court", "captions"].includes(round.gameId), "La préparation n’est pas ouverte.");
       check(!round.prepared.includes(id), "Vous êtes déjà prêt.");
       round.prepared.push(id);
+    } else if (action.type === "caption") {
+      check(room.phase === "writing" && round.captions, "Ce n’est pas le moment d’écrire une réplique.");
+      const cinema = round.captions, story = this.captionAssignment(round, id)!;
+      check(!round.submitted.includes(id) && !story.lines.some((line) => line.frameIndex === cinema.turn), "Votre réplique a déjà été validée.");
+      story.lines.push({ id: randomUUID(), text: cleanText(action.text), frameIndex: cinema.turn, authorId: id });
+      round.submitted.push(id);
     } else if (action.type === "answer") {
       check(
         (room.phase === "writing" &&
-          ["mythos", "captions"].includes(round.gameId)) ||
+          round.gameId === "mythos") ||
           (room.phase === "prepare" && round.gameId === "court"),
         "Ce n’est pas le moment de répondre.",
       );
@@ -829,15 +1011,23 @@ export class GameEngine {
         !round.submitted.includes(id),
         "Votre invention a déjà été envoyée.",
       );
+      if (action.suggestionToken) check(round.suggestions?.[id]?.token === action.suggestionToken, "Cette idée a expiré. Demandez une nouvelle proposition.");
       round.products.push({
         name: cleanText(action.name),
         description: cleanText(action.description),
         creatorId: id,
+        generated: !!action.suggestionToken,
       });
       round.submitted.push(id);
     } else {
       check(room.phase === "voting", "Le vote n’est pas ouvert.");
-      if (action.type === "rate") {
+      if (action.type === "cinema-vote") {
+        check(round.captions, "Ce vote appartient à la cérémonie du cinéma.");
+        check(this.captionVoteTargets(round, id)[action.award].includes(action.targetId), "Choisissez une proposition éligible d’un autre participant.");
+        round.captions.awardVotes[id] ??= {};
+        check(room.config.allowVoteChange || !round.captions.awardVotes[id]![action.award], "Ce prix a déjà reçu votre vote.");
+        round.captions.awardVotes[id]![action.award] = action.targetId;
+      } else if (action.type === "rate") {
         check(
           round.gameId === "pitch",
           "Cette note est réservée aux présentations.",
@@ -928,7 +1118,20 @@ export class GameEngine {
     const round = room.round!;
     if (round.scored) return;
     let results: RoundResult[] = [];
-    if (round.gameId === "mythos" || round.gameId === "captions") {
+    if (round.captions) {
+      const cinema = round.captions;
+      const categoryVotes = (award: "film" | "actor" | "line") => Object.fromEntries(
+        Object.entries(cinema.awardVotes).flatMap(([voter, ballots]) => ballots[award] ? [[voter, ballots[award]!]] : []),
+      );
+      const film = topTargets(categoryVotes("film")), actor = topTargets(categoryVotes("actor")), line = topTargets(categoryVotes("line"));
+      cinema.awards = { filmIds: film.winners, actorIds: actor.winners, lineIds: line.winners,
+        counts: { film: film.counts, actor: actor.counts, line: line.counts } };
+      // A film is a collective distinction. Individual prizes have a fixed ceiling independent of group size.
+      for (const playerId of actor.winners) results.push({ playerId, points: 300, votes: actor.counts[playerId], reason: "Prix du meilleur acteur" });
+      const authors = new Set(cinema.stories.flatMap((story) => story.lines.filter((entry) => line.winners.includes(entry.id) && entry.authorId).map((entry) => entry.authorId)));
+      for (const playerId of authors) results.push({ playerId, points: 250, reason: "Prix de la meilleure réplique" });
+      round.voteCounts = film.counts;
+    } else if (round.gameId === "mythos" || round.gameId === "captions") {
       results = writingScores(round.answers, round.votes);
       round.voteCounts = topTargets(round.votes).counts;
     } else if (round.gameId === "who") {
@@ -992,7 +1195,7 @@ export class GameEngine {
     for (const player of room.players)
       player.previousRank = ranks.find((p) => p.id === player.id)?.rank || 0;
     const balance =
-      room.config.balanced && ["mythos", "captions"].includes(round.gameId)
+      room.config.balanced && (round.gameId === "mythos" || (round.gameId === "captions" && !round.captions))
         ? Math.min(1, 4 / Math.max(1, round.participantIds.length - 1))
         : 1;
     round.results = results.map((r) => ({
@@ -1039,6 +1242,8 @@ export class GameEngine {
     room.gameIndex = 0;
     room.roundNumber = 0;
     room.usedContentIds = [];
+    room.usedDecoyIds = [];
+    room.usedCinemaIds = [];
     room.paused = false;
     room.deadline = null;
     this.setPhase(room, "lobby", null);
@@ -1066,6 +1271,7 @@ export class GameEngine {
       room.phase === "leaderboard" ||
       room.phase === "transition" ||
       room.phase === "podium";
+    const revealProductOrigin = reveal && round?.scored;
     const scoresVisible =
       room.phase === "lobby" ||
       room.phase === "podium" ||
@@ -1114,15 +1320,22 @@ export class GameEngine {
       name: p.name,
       description: p.description,
       ...(p.sellerId ? { sellerId: p.sellerId } : {}),
-      ...(reveal && p.creatorId ? { creatorId: p.creatorId } : {}),
+      ...(revealProductOrigin && p.creatorId ? { creatorId: p.creatorId } : {}),
+      ...(revealProductOrigin && p.generated !== undefined ? { generated: p.generated } : {}),
     });
     const phaseAllowsAnswers =
-      round?.gameId !== "court" && (room.phase === "reveal" || room.phase === "voting" || reveal);
+      round?.gameId !== "court" && !round?.captions && (room.phase === "reveal" || room.phase === "voting" || reveal);
     const currentProduct =
-      round?.gameId === "pitch" && room.phase === "presenting"
+      round?.gameId === "pitch" && ["presenting", "voting", "results"].includes(room.phase)
         ? round.products[round.presentationIndex]
         : undefined;
     let currentSpeakerId = currentProduct?.sellerId;
+    const cinema = round?.captions;
+    if (cinema && room.phase === "presenting") currentSpeakerId = cinema.stories[round!.presentationIndex]?.presenterId;
+    const assignedStory = round && cinema ? this.captionAssignment(round, id) : undefined;
+    const ownLine = assignedStory?.lines.find((line) => line.frameIndex === cinema!.turn && line.authorId === id);
+    const currentNotes = currentProduct?.sellerId && round ? Object.values(round.ratings).map((ratings) => ratings[currentProduct.sellerId!]).filter((note): note is [number, number, number] => !!note) : [];
+    const currentAverage = currentNotes.length ? currentNotes.reduce((sum, notes) => sum + (notes[0] + notes[1] + notes[2]) / 3, 0) / currentNotes.length : 0;
     if (round?.roles && room.phase === "presenting")
       currentSpeakerId =
         round.courtStep === "accusation"
@@ -1182,7 +1395,7 @@ export class GameEngine {
               : [],
             products:
               round.gameId === "pitch" && (room.phase === "voting" || reveal)
-                ? round.products.map(publicProduct)
+                ? (round.scored ? round.products : currentProduct ? [currentProduct] : []).map(publicProduct)
                 : undefined,
             currentProduct: currentProduct
               ? publicProduct(currentProduct)
@@ -1209,6 +1422,10 @@ export class GameEngine {
                   )
                 : undefined,
             title: reveal ? round.title : undefined,
+            pitchFinalResults: round.gameId === "pitch" ? round.scored : undefined,
+            pitchRating: round.gameId === "pitch" && room.phase === "results" && currentProduct?.sellerId ? {
+              sellerId: currentProduct.sellerId, average: Math.round(currentAverage * 10) / 10, ratingsCount: currentNotes.length,
+            } : undefined,
           }
         : undefined,
       me: {
@@ -1233,6 +1450,20 @@ export class GameEngine {
             : `Glissez le mot « ${round.missions[id]!.word} » dans votre création pour gagner 50 points bonus.`,
           completed: round.missions[id]!.completed,
         } : undefined,
+        productSuggestion: round?.gameId === "pitch" && room.phase === "writing" && round.suggestions?.[id]
+          ? structuredClone(round.suggestions[id]) : undefined,
+        captions: cinema ? {
+          storyId: room.phase === "writing" ? assignedStory?.id : undefined,
+          turn: cinema.turn, totalTurns: cinema.turns,
+          frame: room.phase === "writing" && assignedStory ? structuredClone(assignedStory.scene.frames[cinema.turn]) : undefined,
+          previousLines: room.phase === "writing" && assignedStory
+            ? assignedStory.lines.filter((line) => line.frameIndex < cinema.turn).map(({ id: lineId, text, frameIndex }) => ({ id: lineId, text, frameIndex })) : [],
+          submitted: round!.submitted.includes(id), ownText: room.phase === "writing" ? ownLine?.text : undefined,
+          presentation: ["prepare", "presenting", "voting", "results", "leaderboard", "transition", "podium"].includes(room.phase)
+            ? (() => { const story = cinema.stories.find((story) => story.presenterId === id); return story ? this.captionStoryView(story, reveal) : undefined; })() : undefined,
+          votes: structuredClone(cinema.awardVotes[id] || {}),
+          eligibleTargets: room.phase === "voting" ? this.captionVoteTargets(round!, id) : { film: [], actor: [], line: [] },
+        } : undefined,
       },
       deadline: room.deadline,
       paused: room.paused,
@@ -1242,10 +1473,27 @@ export class GameEngine {
       message: room.message,
       scoresVisible,
       gameSummary,
+      captions: cinema ? {
+        writingTurn: cinema.turn + 1, writingTurns: cinema.turns, storyCount: cinema.stories.length,
+        presentationIndex: round!.presentationIndex, slideIndex: cinema.slideIndex,
+        autoSlides: cinema.autoSlides, slideSeconds: room.config.captionSlideSeconds, slideStartedAt: cinema.slideStartedAt,
+        currentStory: room.phase === "presenting" ? this.captionStoryView(cinema.stories[round!.presentationIndex]!, false) : undefined,
+        stories: ["voting", "results", "leaderboard", "transition", "podium"].includes(room.phase)
+          ? cinema.stories.map((story) => this.captionStoryView(story, reveal)) : undefined,
+        awards: reveal && cinema.awards ? structuredClone(cinema.awards) : undefined,
+      } : undefined,
     };
   }
   async updateContent(content: ContentItem[]) {
     await this.options.store.saveContent(content);
     this.content = structuredClone(content);
+  }
+  async updateCinema(scenes: CinemaScene[]) {
+    await this.options.store.saveCinema(scenes);
+    this.cinema = structuredClone(scenes);
+  }
+  async updateDecoys(products: DecoyProduct[]) {
+    await this.options.store.saveDecoys(products);
+    this.decoys = structuredClone(products);
   }
 }

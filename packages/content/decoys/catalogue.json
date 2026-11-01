@@ -1,0 +1,2004 @@
+[
+  {
+    "id": "studio-le-chargeur-jaloux",
+    "name": "Le Chargeur Jaloux",
+    "description": "Il recharge ton téléphone uniquement si tu promets de ne parler à personne.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "chargeur",
+      "jaloux"
+    ],
+    "nameEn": "The Jealous Charger",
+    "descriptionEn": "It charges your phone only after you promise not to call anyone."
+  },
+  {
+    "id": "studio-le-casque-a-spoilers",
+    "name": "Le Casque à Spoilers",
+    "description": "Il prédit la fin des conversations avant que les gens aient commencé.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "casque",
+      "spoilers"
+    ],
+    "nameEn": "The Spoiler Headphones",
+    "descriptionEn": "They reveal how conversations end before anyone has started talking."
+  },
+  {
+    "id": "studio-la-webcam-pudique",
+    "name": "La Webcam Pudique",
+    "description": "Elle ferme les yeux dès qu'une réunion devient intéressante.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "webcam",
+      "pudique"
+    ],
+    "nameEn": "The Bashful Webcam",
+    "descriptionEn": "It closes its eyes whenever a meeting gets interesting."
+  },
+  {
+    "id": "studio-le-gps-nostalgique",
+    "name": "Le GPS Nostalgique",
+    "description": "Il te guide toujours vers l'endroit où tu vivais en troisième.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "nostalgique"
+    ],
+    "nameEn": "The Nostalgic GPS",
+    "descriptionEn": "It always guides you to the house where you lived as a teenager."
+  },
+  {
+    "id": "studio-la-souris-en-teletravail",
+    "name": "La Souris en Télétravail",
+    "description": "Elle bouge toute seule, mais seulement pendant ses pauses café.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "souris",
+      "teletravail"
+    ],
+    "nameEn": "The Remote Work Mouse",
+    "descriptionEn": "It moves by itself, but only during its coffee breaks."
+  },
+  {
+    "id": "studio-le-wi-fi-a-applaudissements",
+    "name": "Le Wi-Fi à Applaudissements",
+    "description": "Le débit augmente quand tu félicites la box devant des témoins.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "applaudissements"
+    ],
+    "nameEn": "The Applause Wi-Fi Router",
+    "descriptionEn": "Your connection gets faster when witnesses hear you compliment the router."
+  },
+  {
+    "id": "studio-la-batterie-philosophique",
+    "name": "La Batterie Philosophique",
+    "description": "À dix pour cent, elle te demande si tu as vraiment besoin d'électricité.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "batterie",
+      "philosophique"
+    ],
+    "nameEn": "The Philosophical Battery",
+    "descriptionEn": "At ten percent, it asks whether you really need electricity."
+  },
+  {
+    "id": "studio-le-mot-de-passe-vivant",
+    "name": "Le Mot de Passe Vivant",
+    "description": "Il change chaque fois que quelqu'un le trouve facile à retenir.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "passe",
+      "vivant"
+    ],
+    "nameEn": "The Living Password",
+    "descriptionEn": "It changes whenever someone says it is easy to remember."
+  },
+  {
+    "id": "studio-l-imprimante-solidaire",
+    "name": "L'Imprimante Solidaire",
+    "description": "Elle imprime aussi les problèmes personnels de tes collègues.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "imprimante",
+      "solidaire"
+    ],
+    "nameEn": "The Supportive Printer",
+    "descriptionEn": "It prints your colleagues' personal problems alongside your documents."
+  },
+  {
+    "id": "studio-le-clavier-diplomatique",
+    "name": "Le Clavier Diplomatique",
+    "description": "Il remplace les insultes par des invitations à déjeuner.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "clavier",
+      "diplomatique"
+    ],
+    "nameEn": "The Diplomatic Keyboard",
+    "descriptionEn": "It replaces insults with invitations to lunch."
+  },
+  {
+    "id": "studio-le-cloud-meteorologique",
+    "name": "Le Cloud Météorologique",
+    "description": "Tes fichiers tombent en pluie dès qu'un vrai nuage passe au-dessus du bureau.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "cloud",
+      "meteorologique"
+    ],
+    "nameEn": "The Weather Cloud",
+    "descriptionEn": "Your files rain down whenever a real cloud passes over the office."
+  },
+  {
+    "id": "studio-la-montre-des-autres",
+    "name": "La Montre des Autres",
+    "description": "Elle mesure précisément le temps que les autres te font perdre.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "montre",
+      "autres"
+    ],
+    "nameEn": "The Other People's Watch",
+    "descriptionEn": "It measures exactly how much time other people waste for you."
+  },
+  {
+    "id": "studio-le-detecteur-de-mise-a-jour",
+    "name": "Le Détecteur de Mise à Jour",
+    "description": "Il t'avertit qu'une mise à jour aurait pu être disponible dans une autre vie.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "detecteur"
+    ],
+    "nameEn": "The Update Detector",
+    "descriptionEn": "It warns you that an update might have been available in another life."
+  },
+  {
+    "id": "studio-l-assistant-vocal-syndique",
+    "name": "L'Assistant Vocal Syndiqué",
+    "description": "Il répond à une question sur deux et négocie les autres.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "assistant",
+      "vocal",
+      "syndique"
+    ],
+    "nameEn": "The Unionised Voice Assistant",
+    "descriptionEn": "It answers every other question and negotiates the rest."
+  },
+  {
+    "id": "studio-la-prise-sans-prise",
+    "name": "La Prise Sans Prise",
+    "description": "Une prise connectée qui refuse tout contact physique avec les appareils.",
+    "category": "Technologie inutile",
+    "keywords": [
+      "technologie-inutile",
+      "prise",
+      "prise"
+    ],
+    "nameEn": "The Untouchable Smart Plug",
+    "descriptionEn": "A smart plug that refuses any physical contact with appliances."
+  },
+  {
+    "id": "studio-le-parapluie-optimiste",
+    "name": "Le Parapluie Optimiste",
+    "description": "Il reste fermé tant qu'il croit encore à une éclaircie.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "parapluie",
+      "optimiste"
+    ],
+    "nameEn": "The Optimistic Umbrella",
+    "descriptionEn": "It stays closed as long as it still believes the sun might come out."
+  },
+  {
+    "id": "studio-le-reveil-negociateur",
+    "name": "Le Réveil Négociateur",
+    "description": "Il accepte cinq minutes de plus contre une promesse impossible à tenir.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "reveil",
+      "negociateur"
+    ],
+    "nameEn": "The Negotiating Alarm Clock",
+    "descriptionEn": "It grants five more minutes in exchange for a promise you cannot keep."
+  },
+  {
+    "id": "studio-les-chaussettes-ambassadrices",
+    "name": "Les Chaussettes Ambassadrices",
+    "description": "Elles disparaissent dans la machine pour négocier avec le linge d'en face.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "chaussettes",
+      "ambassadrices"
+    ],
+    "nameEn": "The Ambassador Socks",
+    "descriptionEn": "They vanish in the washing machine to negotiate with the other laundry."
+  },
+  {
+    "id": "studio-la-brosse-a-dents-flatteuse",
+    "name": "La Brosse à Dents Flatteuse",
+    "description": "Elle te félicite pour ton sourire avant de regarder tes dents.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "brosse",
+      "dents",
+      "flatteuse"
+    ],
+    "nameEn": "The Flattering Toothbrush",
+    "descriptionEn": "It compliments your smile before checking your teeth."
+  },
+  {
+    "id": "studio-la-porte-a-pourboire",
+    "name": "La Porte à Pourboire",
+    "description": "Elle ne s'ouvre qu'après avoir reçu un compliment sincère.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "porte",
+      "pourboire"
+    ],
+    "nameEn": "The Tipping Door",
+    "descriptionEn": "It opens only after receiving a sincere compliment."
+  },
+  {
+    "id": "studio-le-miroir-de-demonstration",
+    "name": "Le Miroir de Démonstration",
+    "description": "Il montre à quel point tu serais beau dans une autre salle de bains.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "miroir",
+      "demonstration"
+    ],
+    "nameEn": "The Showroom Mirror",
+    "descriptionEn": "It shows how good you would look in a different bathroom."
+  },
+  {
+    "id": "studio-le-porte-cles-fugueur",
+    "name": "Le Porte-clés Fugueur",
+    "description": "Il sait toujours où sont tes clés et refuse de te le dire.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "porte",
+      "fugueur"
+    ],
+    "nameEn": "The Runaway Keyring",
+    "descriptionEn": "It always knows where your keys are and refuses to tell you."
+  },
+  {
+    "id": "studio-la-tasse-a-rumeurs",
+    "name": "La Tasse à Rumeurs",
+    "description": "Elle garde le café chaud en racontant la vie du voisin.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "tasse",
+      "rumeurs"
+    ],
+    "nameEn": "The Gossip Mug",
+    "descriptionEn": "It keeps coffee warm by spreading rumours about your neighbour."
+  },
+  {
+    "id": "studio-le-mouchoir-reutilise-d-avance",
+    "name": "Le Mouchoir Réutilisé d'Avance",
+    "description": "Il arrive déjà froissé pour que personne ne te demande de lui en prêter.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "mouchoir",
+      "reutilise",
+      "avance"
+    ],
+    "nameEn": "The Pre-Crumpled Tissue",
+    "descriptionEn": "It arrives crumpled so nobody asks to borrow one."
+  },
+  {
+    "id": "studio-le-sac-de-courses-susceptible",
+    "name": "Le Sac de Courses Susceptible",
+    "description": "Il se troue si tu regardes une autre marque de sacs.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "courses",
+      "susceptible"
+    ],
+    "nameEn": "The Touchy Shopping Bag",
+    "descriptionEn": "It develops holes if you look at another brand of bag."
+  },
+  {
+    "id": "studio-la-telecommande-a-permission",
+    "name": "La Télécommande à Permission",
+    "description": "Chaque changement de chaîne nécessite l'accord écrit du canapé.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "telecommande",
+      "permission"
+    ],
+    "nameEn": "The Permission Remote",
+    "descriptionEn": "Every channel change requires written approval from the sofa."
+  },
+  {
+    "id": "studio-le-stylo-a-suspense",
+    "name": "Le Stylo à Suspense",
+    "description": "Il termine tes phrases uniquement quand l'auditoire est captivé.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "stylo",
+      "suspense"
+    ],
+    "nameEn": "The Suspense Pen",
+    "descriptionEn": "It finishes your sentences only when the audience is hooked."
+  },
+  {
+    "id": "studio-la-bougie-de-reserve",
+    "name": "La Bougie de Réserve",
+    "description": "Elle s'allume seulement quand une autre bougie a confirmé sa présence.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "bougie",
+      "reserve"
+    ],
+    "nameEn": "The Backup Candle",
+    "descriptionEn": "It lights only after another candle confirms that it is present."
+  },
+  {
+    "id": "studio-le-cintre-coach",
+    "name": "Le Cintre Coach",
+    "description": "Il hurle des encouragements aux vêtements qui pendent depuis trop longtemps.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "cintre",
+      "coach"
+    ],
+    "nameEn": "The Coaching Hanger",
+    "descriptionEn": "It shouts encouragement at clothes that have been hanging around too long."
+  },
+  {
+    "id": "studio-la-sonnette-incognito",
+    "name": "La Sonnette Incognito",
+    "description": "Elle chuchote pour que les invités puissent repartir sans être remarqués.",
+    "category": "Objets du quotidien",
+    "keywords": [
+      "objets-du-quotidien",
+      "sonnette",
+      "incognito"
+    ],
+    "nameEn": "The Incognito Doorbell",
+    "descriptionEn": "It whispers so visitors can leave without being noticed."
+  },
+  {
+    "id": "studio-le-ventilateur-a-confettis",
+    "name": "Le Ventilateur à Confettis",
+    "description": "Il rafraîchit la pièce en transformant les papiers importants en fête.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "ventilateur",
+      "confettis"
+    ],
+    "nameEn": "The Confetti Fan",
+    "descriptionEn": "It cools the room by turning important paperwork into a party."
+  },
+  {
+    "id": "studio-l-extincteur-festif",
+    "name": "L'Extincteur Festif",
+    "description": "Il éteint l'ambiance en projetant des discours de fin d'année.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "extincteur",
+      "festif"
+    ],
+    "nameEn": "The Party Extinguisher",
+    "descriptionEn": "It kills the atmosphere by spraying end-of-year speeches."
+  },
+  {
+    "id": "studio-la-valise-a-rebond",
+    "name": "La Valise à Rebond",
+    "description": "Elle revient toujours au comptoir d'enregistrement, même après l'arrivée.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "valise",
+      "rebond"
+    ],
+    "nameEn": "The Bouncing Suitcase",
+    "descriptionEn": "It always returns to check-in, even after you arrive."
+  },
+  {
+    "id": "studio-la-peinture-cameleon",
+    "name": "La Peinture Caméléon",
+    "description": "Elle prend immédiatement la couleur exacte que tu voulais cacher.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "peinture",
+      "cameleon"
+    ],
+    "nameEn": "The Chameleon Paint",
+    "descriptionEn": "It immediately turns the exact colour you wanted to cover."
+  },
+  {
+    "id": "studio-le-marteau-a-excuses",
+    "name": "Le Marteau à Excuses",
+    "description": "Il frappe à côté, puis explique longuement pourquoi ce n'est pas sa faute.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "marteau",
+      "excuses"
+    ],
+    "nameEn": "The Apology Hammer",
+    "descriptionEn": "It misses, then explains at length why it was not its fault."
+  },
+  {
+    "id": "studio-le-ruban-adhesif-reversible",
+    "name": "Le Ruban Adhésif Réversible",
+    "description": "Il décolle automatiquement tout ce que tu viens de réparer.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "ruban",
+      "adhesif",
+      "reversible"
+    ],
+    "nameEn": "The Reversible Sticky Tape",
+    "descriptionEn": "It automatically unsticks everything you have just repaired."
+  },
+  {
+    "id": "studio-le-drone-a-interieur-strict",
+    "name": "Le Drone à Intérieur Strict",
+    "description": "Il photographie le plafond avec une ambition mondiale.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "drone",
+      "interieur",
+      "strict"
+    ],
+    "nameEn": "The Strictly Indoor Drone",
+    "descriptionEn": "It photographs the ceiling with global ambition."
+  },
+  {
+    "id": "studio-le-detecteur-de-silence",
+    "name": "Le Détecteur de Silence",
+    "description": "Il déclenche une sirène dès que tout le monde est enfin calme.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "detecteur",
+      "silence"
+    ],
+    "nameEn": "The Silence Detector",
+    "descriptionEn": "It sounds a siren whenever everyone is finally quiet."
+  },
+  {
+    "id": "studio-la-piscine-pliable-pleine",
+    "name": "La Piscine Pliable Pleine",
+    "description": "Elle se replie instantanément en laissant l'eau décider de son avenir.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "piscine",
+      "pliable",
+      "pleine"
+    ],
+    "nameEn": "The Full Folding Pool",
+    "descriptionEn": "It folds instantly, leaving the water to decide its own future."
+  },
+  {
+    "id": "studio-le-coussin-ejectable",
+    "name": "Le Coussin Éjectable",
+    "description": "Il libère une place sur le canapé avant même que tu aies fini ta phrase.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "coussin",
+      "ejectable"
+    ],
+    "nameEn": "The Ejector Cushion",
+    "descriptionEn": "It frees up your seat on the sofa before you finish your sentence."
+  },
+  {
+    "id": "studio-le-deshumidificateur-emotif",
+    "name": "Le Déshumidificateur Émotif",
+    "description": "Il pleure dès qu'il réussit à rendre une pièce sèche.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "deshumidificateur",
+      "emotif"
+    ],
+    "nameEn": "The Emotional Dehumidifier",
+    "descriptionEn": "It cries whenever it manages to dry a room."
+  },
+  {
+    "id": "studio-la-chaise-a-suspense",
+    "name": "La Chaise à Suspense",
+    "description": "Elle attend le moment le plus solennel du repas pour grincer.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "chaise",
+      "suspense"
+    ],
+    "nameEn": "The Suspense Chair",
+    "descriptionEn": "It waits for the most solemn moment of dinner before squeaking."
+  },
+  {
+    "id": "studio-le-casque-anti-choc-social",
+    "name": "Le Casque Anti-Choc Social",
+    "description": "Il amortit les silences gênants avec des applaudissements enregistrés.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "casque",
+      "social"
+    ],
+    "nameEn": "The Social Impact Helmet",
+    "descriptionEn": "It cushions awkward silences with recorded applause."
+  },
+  {
+    "id": "studio-le-papier-cadeau-d-enquete",
+    "name": "Le Papier Cadeau d'Enquête",
+    "description": "Il révèle le contenu du paquet avant la première déchirure.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "papier",
+      "cadeau",
+      "enquete"
+    ],
+    "nameEn": "The Investigative Wrapping Paper",
+    "descriptionEn": "It reveals what is inside before the first tear."
+  },
+  {
+    "id": "studio-le-seche-cheveux-meteo",
+    "name": "Le Sèche-cheveux Météo",
+    "description": "Il crée une bruine localisée pour prouver que le brushing était une mauvaise idée.",
+    "category": "Inventions catastrophiques",
+    "keywords": [
+      "inventions-catastrophiques",
+      "seche",
+      "cheveux",
+      "meteo"
+    ],
+    "nameEn": "The Weather Hairdryer",
+    "descriptionEn": "It creates local drizzle to prove that styling your hair was a bad idea."
+  },
+  {
+    "id": "studio-le-monocle-pour-pomme-de-terre",
+    "name": "Le Monocle pour Pomme de Terre",
+    "description": "Il donne enfin à tes tubercules le regard supérieur qu'ils méritent.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "monocle",
+      "pomme",
+      "terre"
+    ],
+    "nameEn": "The Potato Monocle",
+    "descriptionEn": "It finally gives your potatoes the superior look they deserve."
+  },
+  {
+    "id": "studio-l-air-de-palace-en-bouteille",
+    "name": "L'Air de Palace en Bouteille",
+    "description": "Une bouteille vide accompagnée d'une facture qui sent très cher.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "palace",
+      "bouteille"
+    ],
+    "nameEn": "The Bottled Hotel Air",
+    "descriptionEn": "An empty bottle with an invoice that smells expensive."
+  },
+  {
+    "id": "studio-le-tapis-rouge-individuel",
+    "name": "Le Tapis Rouge Individuel",
+    "description": "Il se déroule uniquement entre ton lit et ton chausson gauche.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "tapis",
+      "rouge",
+      "individuel"
+    ],
+    "nameEn": "The Personal Red Carpet",
+    "descriptionEn": "It rolls out only between your bed and your left slipper."
+  },
+  {
+    "id": "studio-la-cuillere-de-prestige-invisible",
+    "name": "La Cuillère de Prestige Invisible",
+    "description": "Le dessert reste intact, mais ton statut social augmente à chaque geste.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "cuillere",
+      "prestige",
+      "invisible"
+    ],
+    "nameEn": "The Invisible Prestige Spoon",
+    "descriptionEn": "Your dessert stays untouched while your social status rises with every gesture."
+  },
+  {
+    "id": "studio-le-coffre-fort-a-miettes",
+    "name": "Le Coffre-fort à Miettes",
+    "description": "Il protège les restes de ton croissant avec une sécurité présidentielle.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "coffre",
+      "miettes"
+    ],
+    "nameEn": "The Crumb Safe",
+    "descriptionEn": "It protects the remains of your croissant with presidential security."
+  },
+  {
+    "id": "studio-le-marbre-de-poche",
+    "name": "Le Marbre de Poche",
+    "description": "Une dalle inutile à sortir lorsqu'une conversation manque de standing.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "marbre",
+      "poche"
+    ],
+    "nameEn": "The Pocket Marble Slab",
+    "descriptionEn": "An unnecessary slab to produce when a conversation lacks prestige."
+  },
+  {
+    "id": "studio-le-domestique-pour-telecommande",
+    "name": "Le Domestique pour Télécommande",
+    "description": "Un employé miniature appuie sur le bouton que tu lui indiques avec une autre télécommande.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "domestique",
+      "telecommande"
+    ],
+    "nameEn": "The Remote Control Butler",
+    "descriptionEn": "A tiny servant presses the button you select with another remote."
+  },
+  {
+    "id": "studio-la-housse-de-coussin-de-yacht",
+    "name": "La Housse de Coussin de Yacht",
+    "description": "Elle transforme n'importe quel coussin en dépense nautique déraisonnable.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "housse",
+      "coussin",
+      "yacht"
+    ],
+    "nameEn": "The Yacht Cushion Cover",
+    "descriptionEn": "It turns any cushion into an unreasonable nautical expense."
+  },
+  {
+    "id": "studio-le-silence-haut-de-gamme",
+    "name": "Le Silence Haut de Gamme",
+    "description": "Un abonnement à des messages qui confirment que personne ne va te parler.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "silence",
+      "gamme"
+    ],
+    "nameEn": "The Premium Silence Subscription",
+    "descriptionEn": "A subscription to messages confirming that nobody will speak to you."
+  },
+  {
+    "id": "studio-la-fourchette-a-titre-de-noblesse",
+    "name": "La Fourchette à Titre de Noblesse",
+    "description": "Elle exige qu'on l'appelle Votre Altesse avant chaque bouchée.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "fourchette",
+      "titre",
+      "noblesse"
+    ],
+    "nameEn": "The Aristocratic Fork",
+    "descriptionEn": "It demands to be addressed as Your Highness before every bite."
+  },
+  {
+    "id": "studio-le-parfum-eau-de-reunion-annulee",
+    "name": "Le Parfum Eau de Réunion Annulée",
+    "description": "Une fragrance rare de liberté, de café et de calendrier vide.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "parfum",
+      "reunion",
+      "annulee"
+    ],
+    "nameEn": "The Cancelled Meeting Perfume",
+    "descriptionEn": "A rare fragrance of freedom, coffee and an empty calendar."
+  },
+  {
+    "id": "studio-le-bijou-pour-aspirateur",
+    "name": "Le Bijou pour Aspirateur",
+    "description": "Un collier de diamants pour que ton robot nettoyeur se sente enfin respecté.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "bijou",
+      "aspirateur"
+    ],
+    "nameEn": "The Vacuum Cleaner Jewellery",
+    "descriptionEn": "A diamond necklace so your cleaning robot finally feels respected."
+  },
+  {
+    "id": "studio-le-ticket-de-caisse-encadre",
+    "name": "Le Ticket de Caisse Encadré",
+    "description": "Il expose fièrement la preuve que tu pouvais te permettre cette absurdité.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "ticket",
+      "caisse",
+      "encadre"
+    ],
+    "nameEn": "The Framed Receipt",
+    "descriptionEn": "It proudly displays proof that you could afford this nonsense."
+  },
+  {
+    "id": "studio-la-peau-de-banane-de-collection",
+    "name": "La Peau de Banane de Collection",
+    "description": "Numérotée, signée et déjà suffisamment mûre pour prendre de la valeur.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "banane",
+      "collection"
+    ],
+    "nameEn": "The Collector's Banana Skin",
+    "descriptionEn": "Numbered, signed and already ripe enough to appreciate in value."
+  },
+  {
+    "id": "studio-le-coffret-de-rien-millesime",
+    "name": "Le Coffret de Rien Millésimé",
+    "description": "Il contient exactement ce que possèdent les gens qui ont déjà tout.",
+    "category": "Luxe absurde",
+    "keywords": [
+      "luxe-absurde",
+      "coffret",
+      "millesime"
+    ],
+    "nameEn": "The Vintage Nothing Gift Box",
+    "descriptionEn": "It contains exactly what people who already have everything need."
+  },
+  {
+    "id": "studio-le-remplacant-de-file-d-attente",
+    "name": "Le Remplaçant de File d'Attente",
+    "description": "Il attend à ta place puis garde le premier croissant pour sa peine.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "remplacant",
+      "attente"
+    ],
+    "nameEn": "The Queue Substitute",
+    "descriptionEn": "They queue for you, then keep the first croissant for their trouble."
+  },
+  {
+    "id": "studio-la-livraison-d-excuses",
+    "name": "La Livraison d'Excuses",
+    "description": "Un coursier arrive en retard pour justifier ton propre retard.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "livraison",
+      "excuses"
+    ],
+    "nameEn": "The Excuse Delivery Service",
+    "descriptionEn": "A courier arrives late to justify your own lateness."
+  },
+  {
+    "id": "studio-l-applaudisseur-personnel",
+    "name": "L'Applaudisseur Personnel",
+    "description": "Il surgit après chacune de tes petites victoires, même au distributeur.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "applaudisseur",
+      "personnel"
+    ],
+    "nameEn": "The Personal Applauder",
+    "descriptionEn": "They appear after every tiny victory, even at the vending machine."
+  },
+  {
+    "id": "studio-le-demenagement-de-plantes-vertes",
+    "name": "Le Déménagement de Plantes Vertes",
+    "description": "Nous changeons tes plantes de quartier pour qu'elles prennent un nouveau départ.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "demenagement",
+      "plantes",
+      "vertes"
+    ],
+    "nameEn": "The Houseplant Relocation Service",
+    "descriptionEn": "We move your plants to a new neighbourhood for a fresh start."
+  },
+  {
+    "id": "studio-le-coach-de-sieste",
+    "name": "Le Coach de Sieste",
+    "description": "Il te motive à ne rien faire avec une énergie franchement épuisante.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "coach",
+      "sieste"
+    ],
+    "nameEn": "The Nap Coach",
+    "descriptionEn": "They motivate you to do nothing with exhausting enthusiasm."
+  },
+  {
+    "id": "studio-la-location-de-souvenirs-de-vacances",
+    "name": "La Location de Souvenirs de Vacances",
+    "description": "Reviens bronzé dans les conversations sans quitter ton appartement.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "location",
+      "souvenirs",
+      "vacances"
+    ],
+    "nameEn": "The Holiday Memory Rental",
+    "descriptionEn": "Return conversationally sun-kissed without leaving your flat."
+  },
+  {
+    "id": "studio-le-conseiller-en-mauvaises-decisions",
+    "name": "Le Conseiller en Mauvaises Décisions",
+    "description": "Il confirme que c'était une excellente idée, surtout après la catastrophe.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "conseiller",
+      "mauvaises",
+      "decisions"
+    ],
+    "nameEn": "The Bad Decision Consultant",
+    "descriptionEn": "They confirm it was a brilliant idea, especially after the disaster."
+  },
+  {
+    "id": "studio-le-service-apres-dispute",
+    "name": "Le Service Après-Dispute",
+    "description": "Un technicien vérifie les arguments et remplace les reproches défectueux.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "service",
+      "apres",
+      "dispute"
+    ],
+    "nameEn": "The After-Argument Service",
+    "descriptionEn": "A technician checks your arguments and replaces faulty accusations."
+  },
+  {
+    "id": "studio-l-abonnement-aux-bonnes-nouvelles-minuscules",
+    "name": "L'Abonnement aux Bonnes Nouvelles Minuscules",
+    "description": "Chaque matin, apprends qu'une chaussette a retrouvé son propriétaire.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "abonnement",
+      "bonnes",
+      "nouvelles"
+    ],
+    "nameEn": "The Tiny Good News Subscription",
+    "descriptionEn": "Every morning, learn that a sock has found its owner."
+  },
+  {
+    "id": "studio-le-figurant-de-diner",
+    "name": "Le FigurANT de Dîner",
+    "description": "Il acquiesce, rit et part avant qu'on lui demande d'aider à ranger.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "figurant",
+      "diner"
+    ],
+    "nameEn": "The Dinner Extra",
+    "descriptionEn": "They nod, laugh and leave before anyone asks for help clearing up."
+  },
+  {
+    "id": "studio-la-relecture-de-messages-deja-envoyes",
+    "name": "La Relecture de Messages Déjà Envoyés",
+    "description": "Nos experts découvrent trop tard la faute qui changera ta soirée.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "relecture",
+      "messages",
+      "envoyes"
+    ],
+    "nameEn": "The Already Sent Message Review",
+    "descriptionEn": "Our experts discover the evening-changing typo too late."
+  },
+  {
+    "id": "studio-le-detective-de-telecommande",
+    "name": "Le Détective de Télécommande",
+    "description": "Il enquête pendant trois jours avant de regarder sous le plaid.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "detective",
+      "telecommande"
+    ],
+    "nameEn": "The Remote Control Detective",
+    "descriptionEn": "They investigate for three days before looking under the blanket."
+  },
+  {
+    "id": "studio-le-guide-touristique-de-parking",
+    "name": "Le Guide Touristique de Parking",
+    "description": "Découvre l'histoire passionnante des places où tu ne peux pas te garer.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "guide",
+      "touristique",
+      "parking"
+    ],
+    "nameEn": "The Car Park Tour Guide",
+    "descriptionEn": "Discover the fascinating history of spaces where you cannot park."
+  },
+  {
+    "id": "studio-la-reservation-de-beau-temps",
+    "name": "La Réservation de Beau Temps",
+    "description": "Nous te garantissons qu'il fera beau quelque part pendant ton mariage.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "reservation",
+      "temps"
+    ],
+    "nameEn": "The Good Weather Reservation",
+    "descriptionEn": "We guarantee sunshine somewhere during your wedding."
+  },
+  {
+    "id": "studio-le-portier-de-conversation",
+    "name": "Le Portier de Conversation",
+    "description": "Il filtre les sujets avant qu'ils n'entrent dans ton dîner de famille.",
+    "category": "Services improbables",
+    "keywords": [
+      "services-improbables",
+      "portier",
+      "conversation"
+    ],
+    "nameEn": "The Conversation Doorman",
+    "descriptionEn": "They screen topics before they enter your family dinner."
+  },
+  {
+    "id": "studio-le-pot-de-fleurs-bavard",
+    "name": "Le Pot de Fleurs Bavard",
+    "description": "Il commente la croissance des voisins plutôt que celle de sa plante.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "fleurs",
+      "bavard"
+    ],
+    "nameEn": "The Chatty Flowerpot",
+    "descriptionEn": "It comments on the neighbours' growth instead of its own plant."
+  },
+  {
+    "id": "studio-le-paillasson-selectif",
+    "name": "Le Paillasson Sélectif",
+    "description": "Il accueille chaleureusement les chaussures et juge leurs propriétaires.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "paillasson",
+      "selectif"
+    ],
+    "nameEn": "The Selective Doormat",
+    "descriptionEn": "It warmly welcomes shoes while judging their owners."
+  },
+  {
+    "id": "studio-la-pelouse-a-rayures-preinstallees",
+    "name": "La Pelouse à Rayures Préinstallées",
+    "description": "Chaque brin sait dans quel sens se coucher pour impressionner le voisin.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "pelouse",
+      "rayures",
+      "preinstallees"
+    ],
+    "nameEn": "The Pre-Striped Lawn",
+    "descriptionEn": "Every blade knows which way to lie down to impress the neighbours."
+  },
+  {
+    "id": "studio-le-tuyau-d-arrosage-timide",
+    "name": "Le Tuyau d'Arrosage Timide",
+    "description": "Il attend que personne ne regarde pour arroser le jardin.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "tuyau",
+      "arrosage",
+      "timide"
+    ],
+    "nameEn": "The Shy Garden Hose",
+    "descriptionEn": "It waits until nobody is watching before watering the garden."
+  },
+  {
+    "id": "studio-la-poubelle-a-confidences",
+    "name": "La Poubelle à Confidences",
+    "description": "Elle promet de garder tes secrets, puis les trie par catégorie.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "poubelle",
+      "confidences"
+    ],
+    "nameEn": "The Confessional Bin",
+    "descriptionEn": "It promises to keep your secrets, then sorts them into categories."
+  },
+  {
+    "id": "studio-le-rideau-curieux",
+    "name": "Le Rideau Curieux",
+    "description": "Il s'ouvre tout seul dès qu'une dispute commence dans la rue.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "rideau",
+      "curieux"
+    ],
+    "nameEn": "The Curious Curtain",
+    "descriptionEn": "It opens by itself whenever an argument starts outside."
+  },
+  {
+    "id": "studio-l-echelle-sociale-de-jardin",
+    "name": "L'Échelle Sociale de Jardin",
+    "description": "Chaque barreau te permet de regarder ton voisin d'un peu plus haut.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "echelle",
+      "sociale",
+      "jardin"
+    ],
+    "nameEn": "The Social Climbing Ladder",
+    "descriptionEn": "Every rung lets you look down on your neighbour a little more."
+  },
+  {
+    "id": "studio-le-radiateur-a-conditions",
+    "name": "Le Radiateur à Conditions",
+    "description": "Il chauffe si toute la famille reconnaît qu'il fait effectivement froid.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "radiateur",
+      "conditions"
+    ],
+    "nameEn": "The Conditional Radiator",
+    "descriptionEn": "It heats up if the whole family admits it is actually cold."
+  },
+  {
+    "id": "studio-le-nain-de-jardin-en-conge",
+    "name": "Le Nain de Jardin en Congé",
+    "description": "Il laisse une pancarte et délègue la surveillance aux limaces.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "jardin",
+      "conge"
+    ],
+    "nameEn": "The Garden Gnome on Holiday",
+    "descriptionEn": "It leaves a sign and delegates surveillance to the slugs."
+  },
+  {
+    "id": "studio-la-serre-a-compliments",
+    "name": "La Serre à Compliments",
+    "description": "Tes tomates rougissent uniquement lorsqu'on leur parle de leur avenir.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "serre",
+      "compliments"
+    ],
+    "nameEn": "The Compliment Greenhouse",
+    "descriptionEn": "Your tomatoes blush only when you discuss their bright future."
+  },
+  {
+    "id": "studio-le-balai-a-itineraire-scenique",
+    "name": "Le Balai à Itinéraire Scénique",
+    "description": "Il nettoie la maison en prenant tous les détours recommandés par le tapis.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "balai",
+      "itineraire",
+      "scenique"
+    ],
+    "nameEn": "The Scenic Route Broom",
+    "descriptionEn": "It cleans your house using every detour recommended by the carpet."
+  },
+  {
+    "id": "studio-la-boite-aux-lettres-dramaturge",
+    "name": "La Boîte aux Lettres Dramaturge",
+    "description": "Elle transforme chaque publicité en lettre d'amour désespérée.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "boite",
+      "lettres",
+      "dramaturge"
+    ],
+    "nameEn": "The Playwright Letterbox",
+    "descriptionEn": "It turns every leaflet into a desperate love letter."
+  },
+  {
+    "id": "studio-le-canape-a-peage",
+    "name": "Le Canapé à Péage",
+    "description": "Il facture chaque changement de position comme une nouvelle destination.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "canape",
+      "peage"
+    ],
+    "nameEn": "The Toll Sofa",
+    "descriptionEn": "It charges for every change of position as a new destination."
+  },
+  {
+    "id": "studio-la-cloture-diplomatique",
+    "name": "La Clôture Diplomatique",
+    "description": "Elle organise des sommets entre ton chien et le chat d'en face.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "cloture",
+      "diplomatique"
+    ],
+    "nameEn": "The Diplomatic Fence",
+    "descriptionEn": "It hosts summits between your dog and the cat next door."
+  },
+  {
+    "id": "studio-l-arrosoir-des-vacances",
+    "name": "L'Arrosoir des Vacances",
+    "description": "Il envoie des cartes postales aux plantes au lieu de les arroser.",
+    "category": "Maison et jardin",
+    "keywords": [
+      "maison-et-jardin",
+      "arrosoir",
+      "vacances"
+    ],
+    "nameEn": "The Holiday Watering Can",
+    "descriptionEn": "It sends postcards to your plants instead of watering them."
+  },
+  {
+    "id": "studio-le-tampon-decision-reportee",
+    "name": "Le Tampon Décision Reportée",
+    "description": "Il donne une allure officielle à ton incapacité à choisir un restaurant.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "tampon",
+      "decision",
+      "reportee"
+    ],
+    "nameEn": "The Decision Postponed Stamp",
+    "descriptionEn": "It makes your inability to choose a restaurant look official."
+  },
+  {
+    "id": "studio-la-reunion-de-poche",
+    "name": "La Réunion de Poche",
+    "description": "Déclenche vingt minutes de confusion dès qu'un silence devient productif.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "reunion",
+      "poche"
+    ],
+    "nameEn": "The Pocket Meeting",
+    "descriptionEn": "It triggers twenty minutes of confusion whenever silence becomes productive."
+  },
+  {
+    "id": "studio-l-agrafeuse-a-carriere",
+    "name": "L'Agrafeuse à Carrière",
+    "description": "Elle refuse les petits dossiers et ne vise que les contrats prestigieux.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "agrafeuse",
+      "carriere"
+    ],
+    "nameEn": "The Career Stapler",
+    "descriptionEn": "It refuses small files and only wants prestigious contracts."
+  },
+  {
+    "id": "studio-le-badge-de-presence-spirituelle",
+    "name": "Le Badge de Présence Spirituelle",
+    "description": "Il prouve que tu pensais au bureau pendant que tu faisais tes courses.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "badge",
+      "presence",
+      "spirituelle"
+    ],
+    "nameEn": "The Spiritual Attendance Badge",
+    "descriptionEn": "It proves you were thinking about work while shopping."
+  },
+  {
+    "id": "studio-le-calendrier-a-jours-feries-secrets",
+    "name": "Le Calendrier à Jours Fériés Secrets",
+    "description": "Il invente des commémorations locales que personne n'ose contester.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "calendrier",
+      "jours",
+      "feries"
+    ],
+    "nameEn": "The Secret Bank Holiday Calendar",
+    "descriptionEn": "It invents local commemorations nobody dares question."
+  },
+  {
+    "id": "studio-le-fauteuil-de-responsabilite",
+    "name": "Le Fauteuil de Responsabilité",
+    "description": "Il tourne automatiquement vers un collègue quand on cherche un responsable.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "fauteuil",
+      "responsabilite"
+    ],
+    "nameEn": "The Accountability Chair",
+    "descriptionEn": "It automatically turns towards a colleague when someone wants answers."
+  },
+  {
+    "id": "studio-le-tableur-de-mauvaise-foi",
+    "name": "Le Tableur de Mauvaise Foi",
+    "description": "Il change les couleurs jusqu'à ce que les chiffres aient l'air positifs.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "tableur",
+      "mauvaise"
+    ],
+    "nameEn": "The Bad Faith Spreadsheet",
+    "descriptionEn": "It changes the colours until the numbers look positive."
+  },
+  {
+    "id": "studio-la-cravate-porte-parole",
+    "name": "La Cravate Porte-Parole",
+    "description": "Elle répond à ta place en utilisant toujours les trois mêmes mots compliqués.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "cravate",
+      "porte",
+      "parole"
+    ],
+    "nameEn": "The Spokesperson Tie",
+    "descriptionEn": "It answers for you using the same three complicated words."
+  },
+  {
+    "id": "studio-le-paperboard-telepathe",
+    "name": "Le Paperboard Télépathe",
+    "description": "Il affiche ce que les participants voulaient dire avant de changer d'avis.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "paperboard",
+      "telepathe"
+    ],
+    "nameEn": "The Telepathic Flipchart",
+    "descriptionEn": "It shows what participants wanted to say before changing their minds."
+  },
+  {
+    "id": "studio-le-ticket-de-support-emotif",
+    "name": "Le Ticket de Support Émotif",
+    "description": "Il te remercie pour ta patience puis te demande de patienter encore.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "ticket",
+      "support",
+      "emotif"
+    ],
+    "nameEn": "The Emotional Support Ticket",
+    "descriptionEn": "It thanks you for your patience, then asks you to keep waiting."
+  },
+  {
+    "id": "studio-la-pointeuse-romanciere",
+    "name": "La Pointeuse Romancière",
+    "description": "Elle transforme huit minutes de retard en aventure héroïque.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "pointeuse",
+      "romanciere"
+    ],
+    "nameEn": "The Novelist Time Clock",
+    "descriptionEn": "It turns being eight minutes late into a heroic adventure."
+  },
+  {
+    "id": "studio-le-bureau-assis-assis",
+    "name": "Le Bureau Assis-Assis",
+    "description": "Il s'ajuste automatiquement à ta ferme intention de ne pas te lever.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "bureau",
+      "assis",
+      "assis"
+    ],
+    "nameEn": "The Sit-Sit Desk",
+    "descriptionEn": "It automatically adjusts to your firm intention never to stand up."
+  },
+  {
+    "id": "studio-le-destructeur-de-priorites",
+    "name": "Le Destructeur de Priorités",
+    "description": "Il trie les tâches urgentes en fines bandelettes rassurantes.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "destructeur",
+      "priorites"
+    ],
+    "nameEn": "The Priority Shredder",
+    "descriptionEn": "It sorts urgent tasks into reassuring little strips."
+  },
+  {
+    "id": "studio-le-mug-de-promotion",
+    "name": "Le Mug de Promotion",
+    "description": "Il affiche ton futur titre professionnel sans consulter les ressources humaines.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "promotion"
+    ],
+    "nameEn": "The Promotion Mug",
+    "descriptionEn": "It displays your future job title without consulting human resources."
+  },
+  {
+    "id": "studio-le-detecteur-de-derniere-question",
+    "name": "Le Détecteur de Dernière Question",
+    "description": "Il ferme la visioconférence dès que quelqu'un prononce juste une dernière chose.",
+    "category": "Bureau et travail",
+    "keywords": [
+      "bureau-et-travail",
+      "detecteur",
+      "derniere",
+      "question"
+    ],
+    "nameEn": "The Last Question Detector",
+    "descriptionEn": "It ends the video call whenever someone says just one more thing."
+  },
+  {
+    "id": "studio-le-traducteur-de-regard-de-chat",
+    "name": "Le Traducteur de Regard de Chat",
+    "description": "Il traduit toutes les expressions par vous me décevez profondément.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "traducteur",
+      "regard"
+    ],
+    "nameEn": "The Cat Stare Translator",
+    "descriptionEn": "It translates every expression as you disappoint me deeply."
+  },
+  {
+    "id": "studio-le-costume-d-entretien-pour-hamster",
+    "name": "Le Costume d'Entretien pour Hamster",
+    "description": "Il donne aux candidatures de ton rongeur le sérieux qui leur manquait.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "costume",
+      "entretien",
+      "hamster"
+    ],
+    "nameEn": "The Hamster Interview Suit",
+    "descriptionEn": "It gives your rodent's job applications the seriousness they were missing."
+  },
+  {
+    "id": "studio-la-laisse-a-negociation",
+    "name": "La Laisse à Négociation",
+    "description": "Elle laisse ton chien décider de l'itinéraire après un bref débat contradictoire.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "laisse",
+      "negociation"
+    ],
+    "nameEn": "The Negotiating Lead",
+    "descriptionEn": "It lets your dog choose the route after a short adversarial debate."
+  },
+  {
+    "id": "studio-le-griffoir-de-prestige-fiscal",
+    "name": "Le Griffoir de Prestige Fiscal",
+    "description": "Ton chat peut enfin déduire ses dégâts de ses dépenses professionnelles.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "griffoir",
+      "prestige",
+      "fiscal"
+    ],
+    "nameEn": "The Tax-Deductible Scratching Post",
+    "descriptionEn": "Your cat can finally deduct damage as a business expense."
+  },
+  {
+    "id": "studio-la-roue-de-hamster-panoramique",
+    "name": "La Roue de Hamster Panoramique",
+    "description": "Elle affiche des paysages pour que ton hamster puisse critiquer ses vacances.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "hamster",
+      "panoramique"
+    ],
+    "nameEn": "The Panoramic Hamster Wheel",
+    "descriptionEn": "It displays scenery so your hamster can complain about its holiday."
+  },
+  {
+    "id": "studio-le-reveil-a-ronronnement-administratif",
+    "name": "Le Réveil à Ronronnement Administratif",
+    "description": "Il t'endort avec le bruit rassurant d'un chat qui remplit sa déclaration.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "reveil",
+      "ronronnement",
+      "administratif"
+    ],
+    "nameEn": "The Administrative Purring Alarm",
+    "descriptionEn": "It soothes you with the sound of a cat filing its tax return."
+  },
+  {
+    "id": "studio-la-gamelle-a-reservation",
+    "name": "La Gamelle à Réservation",
+    "description": "Ton chien doit réserver une table pour manger ce qu'il a déjà léché.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "gamelle",
+      "reservation"
+    ],
+    "nameEn": "The Reservation Pet Bowl",
+    "descriptionEn": "Your dog must book a table to eat what it has already licked."
+  },
+  {
+    "id": "studio-le-parapluie-pour-poisson-rouge",
+    "name": "Le Parapluie pour Poisson Rouge",
+    "description": "Il protège ton poisson des éclaboussures de son propre aquarium.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "parapluie",
+      "poisson",
+      "rouge"
+    ],
+    "nameEn": "The Goldfish Umbrella",
+    "descriptionEn": "It protects your fish from splashes inside its own tank."
+  },
+  {
+    "id": "studio-le-porte-voix-pour-fourmi",
+    "name": "Le Porte-voix pour Fourmi",
+    "description": "Il donne enfin un poids médiatique aux revendications de la fourmilière.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "porte",
+      "fourmi"
+    ],
+    "nameEn": "The Ant Megaphone",
+    "descriptionEn": "It finally gives the anthill's demands some media influence."
+  },
+  {
+    "id": "studio-le-gps-pour-pigeon-distrait",
+    "name": "Le GPS pour Pigeon Distrait",
+    "description": "Il rappelle au pigeon qu'il voulait probablement aller sur cette statue.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "pigeon",
+      "distrait"
+    ],
+    "nameEn": "The Distracted Pigeon GPS",
+    "descriptionEn": "It reminds the pigeon it probably wanted to land on that statue."
+  },
+  {
+    "id": "studio-le-coussin-de-mediation-canine",
+    "name": "Le Coussin de Médiation Canine",
+    "description": "Deux chiens peuvent y régler leur différend sans se partager le coussin.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "coussin",
+      "mediation",
+      "canine"
+    ],
+    "nameEn": "The Canine Mediation Cushion",
+    "descriptionEn": "Two dogs can settle a dispute without agreeing to share the cushion."
+  },
+  {
+    "id": "studio-le-moniteur-de-sommeil-pour-paresseux",
+    "name": "Le Moniteur de Sommeil pour Paresseux",
+    "description": "Il alerte immédiatement si l'animal connaît une minute de productivité.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "moniteur",
+      "sommeil",
+      "paresseux"
+    ],
+    "nameEn": "The Sloth Sleep Monitor",
+    "descriptionEn": "It raises an alarm if the animal experiences a minute of productivity."
+  },
+  {
+    "id": "studio-le-cabinet-de-coaching-pour-perroquet",
+    "name": "Le Cabinet de Coaching pour Perroquet",
+    "description": "Il aide ton oiseau à formuler ses propres opinions au lieu de répéter les tiennes.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "cabinet",
+      "coaching",
+      "perroquet"
+    ],
+    "nameEn": "The Parrot Coaching Practice",
+    "descriptionEn": "It helps your bird develop opinions instead of repeating yours."
+  },
+  {
+    "id": "studio-la-chatiere-a-entretien-annuel",
+    "name": "La Chatière à Entretien Annuel",
+    "description": "Elle évalue les performances de ton chat avant chaque retour de promenade.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "chatiere",
+      "entretien",
+      "annuel"
+    ],
+    "nameEn": "The Annual Review Cat Flap",
+    "descriptionEn": "It assesses your cat's performance every time it comes home."
+  },
+  {
+    "id": "studio-les-bottes-de-pluie-pour-escargot",
+    "name": "Les Bottes de Pluie pour Escargot",
+    "description": "Quatre tailles disponibles, toutes refusées par les escargots.",
+    "category": "Animaux",
+    "keywords": [
+      "animaux",
+      "bottes",
+      "pluie",
+      "escargot"
+    ],
+    "nameEn": "The Snail Rain Boots",
+    "descriptionEn": "Four sizes available, all rejected by snails."
+  },
+  {
+    "id": "studio-le-frigo-a-suspense",
+    "name": "Le Frigo à Suspense",
+    "description": "Il joue une musique dramatique avant de révéler le dernier yaourt.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "frigo",
+      "suspense"
+    ],
+    "nameEn": "The Suspense Fridge",
+    "descriptionEn": "It plays dramatic music before revealing the last yoghurt."
+  },
+  {
+    "id": "studio-la-passoire-de-confiance",
+    "name": "La Passoire de Confiance",
+    "description": "Elle retient l'eau si tu lui affirmes qu'elle est capable de le faire.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "passoire",
+      "confiance"
+    ],
+    "nameEn": "The Confidence Colander",
+    "descriptionEn": "It holds water if you tell it you believe in its abilities."
+  },
+  {
+    "id": "studio-le-grille-pain-a-souvenirs",
+    "name": "Le Grille-pain à Souvenirs",
+    "description": "Il imprime sur tes tartines les erreurs que tu préférerais oublier.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "grille",
+      "souvenirs"
+    ],
+    "nameEn": "The Memory Toaster",
+    "descriptionEn": "It prints mistakes you would rather forget onto your toast."
+  },
+  {
+    "id": "studio-la-casserole-a-debat",
+    "name": "La Casserole à Débat",
+    "description": "Elle demande l'avis de toutes les plaques avant de commencer à chauffer.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "casserole",
+      "debat"
+    ],
+    "nameEn": "The Debate Saucepan",
+    "descriptionEn": "It asks every hob for an opinion before heating up."
+  },
+  {
+    "id": "studio-le-couteau-a-preavis",
+    "name": "Le Couteau à Préavis",
+    "description": "Il annonce quinze jours à l'avance chaque tranche de pain.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "couteau",
+      "preavis"
+    ],
+    "nameEn": "The Notice Period Knife",
+    "descriptionEn": "It gives fifteen days' notice before every slice of bread."
+  },
+  {
+    "id": "studio-la-balance-diplomatique",
+    "name": "La Balance Diplomatique",
+    "description": "Elle indique que le gâteau est lourd de sens plutôt que de calories.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "balance",
+      "diplomatique"
+    ],
+    "nameEn": "The Diplomatic Kitchen Scale",
+    "descriptionEn": "It says your cake is rich in meaning rather than calories."
+  },
+  {
+    "id": "studio-le-four-micro-ondes-nostalgique",
+    "name": "Le Four Micro-ondes Nostalgique",
+    "description": "Il réchauffe les plats à la température exacte de ton premier appartement.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "micro",
+      "ondes",
+      "nostalgique"
+    ],
+    "nameEn": "The Nostalgic Microwave",
+    "descriptionEn": "It reheats meals to the exact temperature of your first flat."
+  },
+  {
+    "id": "studio-le-moulin-a-poivre-de-stade",
+    "name": "Le Moulin à Poivre de Stade",
+    "description": "Chaque tour déclenche une ola dans la salle à manger.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "moulin",
+      "poivre",
+      "stade"
+    ],
+    "nameEn": "The Stadium Pepper Mill",
+    "descriptionEn": "Every turn starts a Mexican wave around the dining room."
+  },
+  {
+    "id": "studio-l-ouvre-boite-a-enigmes",
+    "name": "L'Ouvre-boîte à Énigmes",
+    "description": "Il révèle une devinette dont la réponse se trouve à l'intérieur de la boîte.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "ouvre",
+      "boite",
+      "enigmes"
+    ],
+    "nameEn": "The Riddle Tin Opener",
+    "descriptionEn": "It poses a riddle whose answer is inside the tin."
+  },
+  {
+    "id": "studio-le-saladier-de-reconciliation",
+    "name": "Le Saladier de Réconciliation",
+    "description": "Il rapproche les invités en leur demandant de mélanger leurs griefs avec la vinaigrette.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "saladier",
+      "reconciliation"
+    ],
+    "nameEn": "The Reconciliation Salad Bowl",
+    "descriptionEn": "It brings guests together by mixing their grievances into the dressing."
+  },
+  {
+    "id": "studio-le-fouet-a-encouragements",
+    "name": "Le Fouet à Encouragements",
+    "description": "Il motive les blancs d'œufs avec des citations de grands sportifs.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "fouet",
+      "encouragements"
+    ],
+    "nameEn": "The Encouragement Whisk",
+    "descriptionEn": "It motivates egg whites with quotations from sporting legends."
+  },
+  {
+    "id": "studio-le-tire-bouchon-sentimental",
+    "name": "Le Tire-bouchon Sentimental",
+    "description": "Il s'attache à chaque bouchon et organise un petit discours avant de l'enlever.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "bouchon",
+      "sentimental"
+    ],
+    "nameEn": "The Sentimental Corkscrew",
+    "descriptionEn": "It grows attached to every cork and gives a speech before removing it."
+  },
+  {
+    "id": "studio-le-minuteur-a-reputation",
+    "name": "Le Minuteur à Réputation",
+    "description": "Il sonne uniquement lorsque les voisins croient déjà que tu cuisines bien.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "minuteur",
+      "reputation"
+    ],
+    "nameEn": "The Reputation Timer",
+    "descriptionEn": "It rings only when the neighbours already think you can cook."
+  },
+  {
+    "id": "studio-le-rouleau-a-patisserie-democratique",
+    "name": "Le Rouleau à Pâtisserie Démocratique",
+    "description": "Il ne travaille qu'après un vote majoritaire de la pâte.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "rouleau",
+      "patisserie",
+      "democratique"
+    ],
+    "nameEn": "The Democratic Rolling Pin",
+    "descriptionEn": "It works only after a majority vote by the dough."
+  },
+  {
+    "id": "studio-le-tablier-de-critique-gastronomique",
+    "name": "Le Tablier de Critique Gastronomique",
+    "description": "Il attribue des étoiles à tes gestes et retire des points quand tu commandes une pizza.",
+    "category": "Cuisine",
+    "keywords": [
+      "cuisine",
+      "tablier",
+      "critique",
+      "gastronomique"
+    ],
+    "nameEn": "The Food Critic Apron",
+    "descriptionEn": "It awards stars to your technique and deducts points when you order pizza."
+  },
+  {
+    "id": "studio-le-teleporteur-de-chaussettes",
+    "name": "Le Téléporteur de Chaussettes",
+    "description": "Il envoie tes chaussettes dans le futur, où personne ne sait davantage où elles sont.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "teleporteur",
+      "chaussettes"
+    ],
+    "nameEn": "The Sock Teleporter",
+    "descriptionEn": "It sends your socks into the future, where nobody knows where they are either."
+  },
+  {
+    "id": "studio-le-sabre-laser-a-beurre",
+    "name": "Le Sabre Laser à Beurre",
+    "description": "Il coupe parfaitement les tartines mais refuse toute carrière militaire.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "sabre",
+      "laser",
+      "beurre"
+    ],
+    "nameEn": "The Butter Lightsaber",
+    "descriptionEn": "It cuts toast perfectly but refuses a military career."
+  },
+  {
+    "id": "studio-le-trou-noir-de-bureau",
+    "name": "Le Trou Noir de Bureau",
+    "description": "Il aspire les dossiers urgents et recrache des convocations à des réunions.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "bureau"
+    ],
+    "nameEn": "The Desktop Black Hole",
+    "descriptionEn": "It swallows urgent files and spits out meeting invitations."
+  },
+  {
+    "id": "studio-le-robot-de-politesse-extreme",
+    "name": "Le Robot de Politesse Extrême",
+    "description": "Il laisse passer tous les autres robots et n'arrive jamais à destination.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "robot",
+      "politesse",
+      "extreme"
+    ],
+    "nameEn": "The Extremely Polite Robot",
+    "descriptionEn": "It lets every other robot go first and never reaches its destination."
+  },
+  {
+    "id": "studio-le-clone-de-fin-de-soiree",
+    "name": "Le Clone de Fin de Soirée",
+    "description": "Il dit au revoir à tout le monde pendant que tu es déjà dans le taxi.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "clone",
+      "soiree"
+    ],
+    "nameEn": "The End-of-Party Clone",
+    "descriptionEn": "It says goodbye to everyone while you are already in the taxi."
+  },
+  {
+    "id": "studio-la-capsule-de-decompression-sociale",
+    "name": "La Capsule de Décompression Sociale",
+    "description": "Elle te permet de quitter un dîner de famille par un sas pressurisé.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "capsule",
+      "decompression",
+      "sociale"
+    ],
+    "nameEn": "The Social Decompression Capsule",
+    "descriptionEn": "It lets you leave a family dinner through a pressurised airlock."
+  },
+  {
+    "id": "studio-le-traducteur-extraterrestre-regional",
+    "name": "Le Traducteur Extraterrestre Régional",
+    "description": "Il traduit toutes les langues de l'univers avec l'accent du village voisin.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "traducteur",
+      "extraterrestre",
+      "regional"
+    ],
+    "nameEn": "The Regional Alien Translator",
+    "descriptionEn": "It translates every language in the universe with the accent of the next village."
+  },
+  {
+    "id": "studio-le-frigo-interdimensionnel",
+    "name": "Le Frigo Interdimensionnel",
+    "description": "Il contient toujours les courses d'une famille qui mange exactement ce que tu détestes.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "frigo",
+      "interdimensionnel"
+    ],
+    "nameEn": "The Interdimensional Fridge",
+    "descriptionEn": "It always contains groceries belonging to a family that eats everything you hate."
+  },
+  {
+    "id": "studio-la-machine-a-voyager-de-cinq-secondes",
+    "name": "La Machine à Voyager de Cinq Secondes",
+    "description": "Elle permet d'arriver juste à temps pour regretter la même décision.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "machine",
+      "voyager",
+      "secondes"
+    ],
+    "nameEn": "The Five-Second Time Machine",
+    "descriptionEn": "It lets you arrive just in time to regret the same decision."
+  },
+  {
+    "id": "studio-le-bouclier-anti-notification",
+    "name": "Le Bouclier Anti-Notification",
+    "description": "Il bloque les alertes, puis envoie un rapport détaillé à chaque alerte bloquée.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "bouclier",
+      "notification"
+    ],
+    "nameEn": "The Anti-Notification Shield",
+    "descriptionEn": "It blocks alerts, then sends a detailed report for every alert it blocks."
+  },
+  {
+    "id": "studio-le-rayon-retrecisseur-de-problemes",
+    "name": "Le Rayon Rétrécisseur de Problèmes",
+    "description": "Il réduit tes problèmes à une taille parfaite pour les perdre sous le canapé.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "rayon",
+      "retrecisseur",
+      "problemes"
+    ],
+    "nameEn": "The Problem Shrinking Ray",
+    "descriptionEn": "It shrinks problems to the ideal size for losing them under the sofa."
+  },
+  {
+    "id": "studio-le-vaisseau-a-pedales",
+    "name": "Le Vaisseau à Pédales",
+    "description": "Il relie deux galaxies en seulement quelques milliards de séances de sport.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "vaisseau",
+      "pedales"
+    ],
+    "nameEn": "The Pedal-Powered Spaceship",
+    "descriptionEn": "It connects galaxies in just a few billion workouts."
+  },
+  {
+    "id": "studio-le-casque-de-telepathie-selective",
+    "name": "Le Casque de Télépathie Sélective",
+    "description": "Il capte uniquement les pensées des gens qui cherchent leurs lunettes.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "casque",
+      "telepathie",
+      "selective"
+    ],
+    "nameEn": "The Selective Telepathy Helmet",
+    "descriptionEn": "It hears only the thoughts of people looking for their glasses."
+  },
+  {
+    "id": "studio-le-portail-de-livraison-quantique",
+    "name": "Le Portail de Livraison Quantique",
+    "description": "Le colis est livré et non livré tant que tu n'as pas lu le message du transporteur.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "portail",
+      "livraison",
+      "quantique"
+    ],
+    "nameEn": "The Quantum Delivery Portal",
+    "descriptionEn": "Your parcel is delivered and undelivered until you read the courier's message."
+  },
+  {
+    "id": "studio-l-android-de-reponse-automatique",
+    "name": "L'Android de Réponse Automatique",
+    "description": "Il répond je reviens vers vous à toutes les questions, même existentielles.",
+    "category": "Science-fiction",
+    "keywords": [
+      "science-fiction",
+      "android",
+      "reponse",
+      "automatique"
+    ],
+    "nameEn": "The Autoreply Android",
+    "descriptionEn": "It replies I'll get back to you to every question, including existential ones."
+  }
+]

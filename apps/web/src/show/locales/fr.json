@@ -1,0 +1,294 @@
+{
+  "phase.lobby": "En coulisses",
+  "phase.party-intro": "À l’antenne",
+  "phase.intro": "Le prochain jeu",
+  "phase.rules": "Les règles du jeu",
+  "phase.writing": "À vos idées",
+  "phase.prepare": "Préparation",
+  "phase.presenting": "En direct",
+  "phase.reveal": "La révélation",
+  "phase.voting": "Le public décide",
+  "phase.results": "Les résultats",
+  "phase.leaderboard": "Le classement",
+  "phase.transition": "La suite du programme",
+  "phase.podium": "La grande finale",
+  "stage.label": "Scène TV publique",
+  "stage.live": "LE PLATEAU",
+  "stage.round": "Manche {current}/{total}",
+  "stage.players": "{count} joueurs en coulisses",
+  "stage.room": "Salon",
+  "stage.paused": "Plateau en pause",
+  "stage.seconds": "{count} secondes restantes",
+  "stage.master": "VOTRE MAÎTRE DU CHAOS",
+  "stage.tag": "À VOTRE SERVICE. À VOS RISQUES.",
+  "stage.controller": "Ma manette",
+  "stage.controlRoom": "Régie / ma manette",
+  "stage.pause": "Pause",
+  "stage.resume": "Reprendre",
+  "stage.next": "Étape suivante",
+  "stage.takeOver": "Prendre la suite",
+  "stage.rules": "Revoir les règles",
+  "stage.start": "Lancer la soirée",
+  "stage.close": "Fermer",
+  "stage.error": "Action indisponible.",
+  "stage.manual": "L’hôte donne le signal pour la suite.",
+  "stage.timeUp": "Le chrono est terminé. Prenez le temps de conclure.",
+  "stage.advisory": "Le chrono est indicatif.",
+  "stage.noAuto": "Avance automatique désactivée.",
+  "stage.private": "Le spectacle est ici. Vos choix restent sur votre manette.",
+  "stage.rulesContinue": "La partie continue pendant ce rappel. L’hôte peut la mettre en pause.",
+  "lobby.kicker": "LES COULISSES DU CHAOS",
+  "lobby.title": "La soirée attend ses vedettes.",
+  "lobby.scan": "Scannez. Rejoignez. Dérapez.",
+  "lobby.help": "Ouvrez le lien sur votre téléphone et choisissez votre pseudo.",
+  "lobby.ready": "Prêt !",
+  "lobby.reconnect": "Reconnexion…",
+  "lobby.waiting": "En coulisses",
+  "program.kicker": "CE SOIR, DANS EN VRILLE",
+  "program.title": "Le programme des hostilités.",
+  "program.help": "Votre téléphone est votre manette. Le plateau s’occupe du spectacle.",
+  "program.rounds": "{count} manche(s)",
+  "program.skip": "Passer le tirage",
+  "program.draw": "LA MACHINE À CHAOS",
+  "intro.position": "Jeu {current} sur {total}",
+  "intro.go": "À VOUS DE JOUER",
+  "rules.kicker": "Comment ça se passe · {current}/{total}",
+  "action.write": "Écrivez votre réponse sur votre manette.",
+  "action.prepare": "Préparez votre intervention puis indiquez que vous êtes prêt.",
+  "action.vote": "Faites votre choix sur votre manette.",
+  "action.seller": "Votre vendeur en direct",
+  "action.product": "Vu à la télé · absolument invraisemblable",
+  "action.tagline": "Indispensable ? Non. Inoubliable ? Oui.",
+  "action.inventors": "LES INVENTEURS SONT AU TRAVAIL !",
+  "action.inventorHelp": "Les ingénieurs travaillent. Aucun diplôme n’a été vérifié.",
+  "action.rate": "Notez cette présentation sur votre manette.",
+  "action.criteria": "Humour · Conviction · Créativité",
+  "action.jury": "Le jury délibère en secret.",
+  "action.verdict": "Coupable ou innocent ?",
+  "action.confidential": "Dossier confidentiel",
+  "court.accusation": "L’accusation",
+  "court.defense": "La défense",
+  "court.questions": "Les témoins et le jury",
+  "court.final": "Derniers arguments",
+  "court.accusationHelp": "Procureur, exposez les faits. Aussi ridicules soient-ils.",
+  "court.defenseHelp": "Avocat, sauvez la réputation de votre client. Si possible.",
+  "court.questionsHelp": "Le juge distribue la parole aux témoins et aux jurés.",
+  "court.finalHelp": "Accusation, défense, accusé : une dernière chance de convaincre le jury.",
+  "court.accused": "Accusé",
+  "court.prosecutor": "Procureur",
+  "court.judge": "Juge",
+  "court.juror": "Juré",
+  "court.witness": "Témoin",
+  "reveal.empty": "Aucune réponse à révéler cette fois. Le spectacle continue.",
+  "reveal.anonymous": "Les auteurs restent secrets jusqu’aux résultats.",
+  "results.kicker": "LE PUBLIC A PARLÉ",
+  "results.title": "Avouez. C’était vous.",
+  "results.guilty": "Coupable !",
+  "results.innocent": "Innocent !",
+  "results.who": "Vous êtes démasqués.",
+  "results.votes": "{count} voix",
+  "results.sold": "Vendu par",
+  "results.created": "Inventé par",
+  "results.hidden": "Les points restent en coulisses jusqu’au classement prévu par l’hôte.",
+  "results.prosecution": "L’accusation remporte le procès.",
+  "results.defence": "La défense et l’accusé remportent le procès. Une égalité profite à la défense.",
+  "results.pitchReview": "Le verdict du téléachat",
+  "results.ratings": "{count} évaluations reçues",
+  "results.pitchNext": "Les points seront attribués après le dernier vendeur.",
+  "cinema.kicker": "EN VRILLE PICTURES PRÉSENTE",
+  "cinema.writers": "LE SCÉNARIO PART EN VRILLE.",
+  "cinema.private": "Les images et les dialogues restent sur les téléphones jusqu’à la première.",
+  "cinema.turn": "TOUR {current} / {total}",
+  "cinema.stories": "{count} films en fabrication",
+  "cinema.closing": "SILENCE, ON MONTE !",
+  "cinema.ready": "DOUBLAGE DANS QUELQUES INSTANTS.",
+  "cinema.readyHelp": "Les comédiens découvrent leur film sur leur manette. Leurs notes restent privées.",
+  "cinema.premiere": "PREMIÈRE MONDIALE · FILM {current}/{total}",
+  "cinema.performer": "Interprété en direct par",
+  "cinema.slide": "Image {current} / {total}",
+  "cinema.previous": "Image précédente",
+  "cinema.next": "Image suivante",
+  "cinema.auto": "Diaporama automatique",
+  "cinema.slideshow": "Diaporama",
+  "cinema.clip": "Mode cinéma",
+  "cinema.subtitles": "Vos dialogues. Leurs regards.",
+  "cinema.vote": "LES PRIX DU GRAND N’IMPORTE QUOI",
+  "cinema.voteHelp": "Trois prix à décerner sur vos manettes : meilleur film, meilleur acteur et meilleure réplique.",
+  "cinema.film": "Meilleur film",
+  "cinema.actor": "Meilleur acteur",
+  "cinema.line": "Meilleure réplique",
+  "cinema.noAward": "Aucun vote exprimé",
+  "cinema.credits": "Le générique des coupables",
+  "cinema.lineBy": "Réplique de {name}",
+  "cinema.reels": "RÉPLIQUES COLLABORATIVES · CINÉMA ORIGINAL SOUS LICENCE",
+  "leaderboard.kicker": "RIEN N’EST ENCORE JOUÉ",
+  "leaderboard.title": "Ça bouge au classement.",
+  "transition.kicker": "CHANGEMENT DE DÉCOR",
+  "transition.title": "On reprend nos esprits ?",
+  "transition.next": "À suivre : {game}",
+  "podium.kicker": "C’ÉTAIT EN VRILLE",
+  "podium.team": "Une équipe. Beaucoup de dossiers.",
+  "podium.suspense": "Le suspense est insoutenable…",
+  "podium.tie": "Des champions ex æquo !",
+  "podium.winner": "{name} remporte la soirée !",
+  "podium.stats": "{rounds} manche(s) remportée(s) · {games} jeu(x) gagné(s)",
+  "podium.best": "Meilleur jeu : {game}",
+  "podium.most": "Le plus de manches remportées",
+  "podium.ranking": "Classement final complet",
+  "podium.replay": "Rejouer avec cette équipe",
+  "podium.new": "Préparer une nouvelle soirée",
+  "podium.menu": "Menu principal",
+  "quip.welcome": "Bienvenue sur le seul plateau où perdre le fil fait partie des règles.",
+  "quip.podium": "Un tonnerre d’applaudissements ! Vous avez officiellement fait dérailler la soirée.",
+  "quip.rules": "Les règles sont simples. Votre interprétation le sera beaucoup moins.",
+  "quip.intro": "Prochain arrêt : {game}. Gardez vos manettes à portée de main.",
+  "quip.oral": "Le micro est ouvert. L’hôte garde la main sur le prochain tour de parole.",
+  "quip.writing.0": "Les bonnes idées arrivent. Les mauvaises aussi, heureusement.",
+  "quip.writing.1": "Le service qualité a quitté le plateau. Profitez-en.",
+  "quip.writing.2": "Une réponse brillante ? On accepte aussi les autres.",
+  "quip.voting.0": "La démocratie a rarement eu autant de choses à se reprocher.",
+  "quip.voting.1": "Un petit vote pour vous. Un grand doute pour l’humanité.",
+  "quip.voting.2": "Votez avec votre cœur. Le bon sens est en pause.",
+  "quip.reveal.0": "Anonymat garanti. Dignité beaucoup moins.",
+  "quip.reveal.1": "Le niveau monte. Ou alors le sol descend.",
+  "quip.reveal.2": "C’est à ce moment précis que tout part en vrille.",
+  "quip.results.0": "Les chiffres ont parlé. Ils demandent à rester anonymes.",
+  "quip.results.1": "Les points sont officiels. Les excuses restent libres.",
+  "quip.results.2": "Applaudissements autorisés. Mauvaise foi également.",
+  "quip.last": "Dix secondes. Faites confiance à votre première mauvaise idée.",
+  "quip.lastShort": "Dernières secondes. La perfection est surcotée.",
+  "rules.noPoints": "Ce soir, on joue pour le plaisir : aucun point n’est attribué.",
+  "rules.balance": "Le barème respecte l’équilibrage et les coefficients choisis par l’hôte.",
+  "rules": {
+    "mythos": [
+      {
+        "title": "La vérité ? Facultative.",
+        "text": "Inventez l’explication la plus drôle à une question franchement douteuse."
+      },
+      {
+        "title": "Chacun sa petite invention",
+        "text": "Écrivez sur votre manette. Votre réponse reste privée jusqu’à la révélation."
+      },
+      {
+        "title": "Le chrono tourne",
+        "text": "Vous avez {answer} secondes. Dès que tout le monde a répondu, on continue."
+      },
+      {
+        "title": "Place aux mythos",
+        "text": "Les réponses apparaissent une par une, sans leurs auteurs."
+      },
+      {
+        "title": "Le public tranche",
+        "text": "Votez pour votre réponse préférée en {vote} secondes. Pas de vote pour soi."
+      },
+      {
+        "title": "Le grand n’importe quoi",
+        "text": "100 points par vote reçu et 150 pour les réponses en tête."
+      }
+    ],
+    "pitch": [
+      {
+        "title": "Téléachat sous haute tension",
+        "text": "Convainquez le public qu’un produit invendable va révolutionner sa vie."
+      },
+      {
+        "title": "Votre prochain chef-d’œuvre",
+        "text": "Inventez votre objet ou demandez une idée à House Decoy. Vous pouvez la modifier avant de valider."
+      },
+      {
+        "title": "Distribution surprise",
+        "text": "Les inventions sont mélangées. Chacun reçoit un autre objet et prépare sa présentation."
+      },
+      {
+        "title": "Le micro est à vous",
+        "text": "Un vendeur à la fois. Le chrono est un repère : l’hôte termine chaque présentation."
+      },
+      {
+        "title": "Trois notes, zéro pitié",
+        "text": "Après chaque présentation, les autres notent l’humour, la conviction et la créativité de 1 à 5."
+      },
+      {
+        "title": "Qui a fait fortune ?",
+        "text": "La moyenne × 100. Un bonus de 100 à l’inventeur si le produit atteint 4/5. Les points sont attribués à la fin."
+      }
+    ],
+    "court": [
+      {
+        "title": "Silence dans le chaos",
+        "text": "Un crime absurde, une défense douteuse, un verdict décidé par le jury."
+      },
+      {
+        "title": "À chacun son rôle",
+        "text": "Accusé, procureur, avocat, juge, jurés et témoins : consultez votre rôle privé."
+      },
+      {
+        "title": "Préparez votre intervention",
+        "text": "Vous avez {answer} secondes. Vos notes restent privées, même après le procès."
+      },
+      {
+        "title": "Respectez la parole",
+        "text": "Le plateau indique qui parle. L’hôte donne le signal pour la suite. Personne n’est coupé par le chrono."
+      },
+      {
+        "title": "Le verdict est secret",
+        "text": "Seuls les jurés votent coupable ou innocent. Les autres désignent la meilleure intervention."
+      },
+      {
+        "title": "La justice récompense",
+        "text": "300 points au procureur si coupable, sinon à l’avocat et l’accusé. 150 pour la meilleure intervention."
+      }
+    ],
+    "who": [
+      {
+        "title": "Vous vous connaissez si bien…",
+        "text": "Désignez la personne qui correspond le mieux à la question."
+      },
+      {
+        "title": "Regardez-vous sans rien dire",
+        "text": "La question est commune. Le vote reste sur votre manette."
+      },
+      {
+        "title": "Le temps de soupçonner",
+        "text": "Vous avez {vote} secondes. Le vote se ferme dès que tout le monde a choisi."
+      },
+      {
+        "title": "Un choix assumé",
+        "text": "Les paramètres de l’hôte déterminent si vous pouvez voter pour vous."
+      },
+      {
+        "title": "Le grand dévoilement",
+        "text": "Découvrez la répartition des votes et les personnes les plus désignées."
+      },
+      {
+        "title": "L’instinct collectif",
+        "text": "100 points si votre choix suit la majorité, 50 aux personnes les plus désignées."
+      }
+    ],
+    "captions": [
+      {
+        "title": "Bienvenue au cinéma",
+        "text": "De vraies scènes de film. Des dialogues réécrits ensemble. Un résultat impossible à prévoir."
+      },
+      {
+        "title": "Votre première réplique",
+        "text": "Regardez votre image privée et écrivez le début de l’histoire. La TV ne révèle rien."
+      },
+      {
+        "title": "Passez le scénario",
+        "text": "Au tour suivant, continuez une autre histoire à partir des répliques déjà écrites."
+      },
+      {
+        "title": "Un doublage en direct",
+        "text": "Chaque joueur reçoit un film complet. Lisez ses dialogues et jouez-le à voix haute."
+      },
+      {
+        "title": "Vous contrôlez le rythme",
+        "text": "Le présentateur ou l’hôte fait avancer les images. L’hôte termine la présentation quand vous avez fini."
+      },
+      {
+        "title": "Trois prix de cinéma",
+        "text": "Votez pour le meilleur film, le meilleur acteur et la meilleure réplique. Les auteurs sont révélés au générique."
+      }
+    ]
+  }
+}

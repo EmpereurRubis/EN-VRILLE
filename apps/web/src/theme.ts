@@ -1,10 +1,13 @@
 import { useEffect, useLayoutEffect, useState } from "react";
+import { desktop } from "./backend";
 
 export type ThemePreference = "light" | "dark" | "system";
 const STORAGE_KEY = "vrille-theme";
 const SYSTEM_QUERY = "(prefers-color-scheme: dark)";
 
 function readPreference(): ThemePreference {
+  const native = desktop?.preferences?.theme;
+  if (native === "light" || native === "dark" || native === "system") return native;
   try {
     const value = localStorage.getItem(STORAGE_KEY);
     return value === "light" || value === "dark" ? value : "system";
@@ -50,6 +53,7 @@ export function useTheme() {
     } catch {
       // The chosen theme remains usable when browser storage is unavailable.
     }
+    void desktop?.setPreferences?.({ theme: preference }).catch(() => {});
   }, [isDark, preference]);
 
   return { preference, setPreference, isDark };

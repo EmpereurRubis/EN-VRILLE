@@ -1,6 +1,6 @@
 # Client Windows et préparation Steam
 
-Le client PC est livré dans `apps/desktop`. Electron lance les ressources React, les styles, le présentateur et les illustrations depuis l’installation sous `app://game`. Le menu et les paramètres restent accessibles lorsque le serveur est indisponible. Seuls les salons et contenus administrés utilisent le serveur distant ; aucun serveur ni Docker n’est installé chez les joueurs.
+Le client PC est livré dans `apps/desktop`. Electron démarre sous `app://game` avec le menu, les illustrations, la musique, les langues, les crédits et les paramètres locaux. Aucune connexion multijoueur ni requête de contenu n’est ouverte avant « DÉMARRER ». Après ce bouton, le jeu vérifie la compatibilité du serveur puis ouvre sa plateforme dans la même fenêtre Electron, sans navigateur externe. Aucun serveur ni Docker n’est installé chez les joueurs.
 
 ## Construire les distributions
 
@@ -24,13 +24,13 @@ Le renderer est isolé et sandboxé, sans Node.js. Le preload expose seulement l
 
 Le serveur par défaut est `https://envrille.erubis.fr`. Il peut être modifié dans les paramètres du jeu. L’adresse doit être une origine HTTP(S) sans identifiants, paramètres ou chemin. Les invitations utilisent le `PUBLIC_URL` du serveur, jamais `app://game`. Chaque origine serveur possède une session PC indépendante pour éviter de transmettre le jeton d’un ancien serveur à un nouveau.
 
-Les illustrations livrées avec le jeu restent locales. Les nouveaux médias administrés et téléchargements proviennent du serveur choisi. Les WebSockets utilisent sa même origine ; le reverse proxy doit conserver leur prise en charge. Le serveur accepte l’origine Electron exacte `app://game` en plus de son origine Web.
+La plateforme et les WebSockets utilisent l’origine du serveur choisi ; le reverse proxy doit conserver leur prise en charge. Une erreur de connexion ou de version ramène au menu local avec Réessayer et les paramètres. Le bouton de retour au menu recharge `app://game`. La langue, les volumes, le thème et les animations réduites traversent les deux origines grâce à une préférence native validée ; aucune réponse privée ne transite dans ce stockage de réglages.
 
 ## Versions et mises à jour
 
-Le protocole courant est `PROTOCOL_VERSION = 1`, défini dans le paquet partagé et annoncé par `/api/health` et `/api/ready`. Le PC et le Web présentent ce numéro à Socket.IO. Une version incompatible reçoit une erreur explicite. L’absence du numéro reste compatible avec les anciens clients.
+Le protocole courant est `PROTOCOL_VERSION = 2`, défini dans le paquet partagé et annoncé par `/api/health` et `/api/ready`. Le PC et le Web présentent ce numéro à Socket.IO. Les versions précédentes, y compris un client sans numéro, reçoivent une erreur explicite demandant la mise à jour. Déployer ensemble les nouvelles images Web et API avant de distribuer le client PC 1.2.0.
 
-Une modification serveur compatible avec ce protocole ne demande pas de mise à jour Steam. Pour une rupture, augmenter le numéro et préparer une période de migration des clients avant la mise à jour de production. La version du PC est celle de `apps/desktop/package.json`. Steam distribue les mises à jour de son dépôt ; le jeu n’installe pas de mise à jour distante de son code React.
+Une modification serveur compatible avec ce protocole ne demande pas de mise à jour Steam : l’interface de la plateforme est chargée après « DÉMARRER ». Les ressources du menu d’accueil sont embarquées et nécessitent une nouvelle distribution pour être mises à jour. Pour une rupture de protocole, préparer une migration des clients avant la mise à jour de production. La version du PC est celle de `apps/desktop/package.json`.
 
 Les préférences et journaux se trouvent dans le dossier utilisateur Electron, hors de l’installation. Les salons, scores et sessions restent dans PostgreSQL. Conserver `SESSION_SECRET` entre les mises à jour serveur. Une reconnexion automatique retrouve la partie ; un redémarrage API restaure les salons en pause.
 
@@ -54,4 +54,4 @@ Installer sur un Windows x64 propre, lancer depuis Steam puis depuis l’exécut
 
 L’accès public nécessite que le DNS, le certificat et le proxy de `envrille.erubis.fr` soient opérationnels. Rejoindre une partie depuis un réseau mobile permet de confirmer que les invitations et les connexions passent par cette installation publique.
 
-La fiche produit, les visuels et les captures réelles sont préparés dans [`marketing`](../marketing/Steam.md). Les performances minimales, la signature de l’éditeur, les fonctionnalités Steamworks et la validation commerciale restent à confirmer sur les machines et le compte de publication concernés.
+La fiche produit, les visuels et les captures sont préparés dans [`marketing`](../../marketing/Steam.md). Les performances minimales, la signature de l’éditeur, les fonctionnalités Steamworks et la validation commerciale restent à confirmer sur les machines et le compte de publication concernés.

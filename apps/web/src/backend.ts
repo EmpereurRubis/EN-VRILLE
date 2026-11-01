@@ -3,6 +3,15 @@ export interface DesktopBridge {
   protocolVersion: number;
   version: string;
   serverUrl: string;
+  isLauncher?: boolean;
+  locale?: 'fr' | 'en';
+  startGame?: (language: 'fr' | 'en') => Promise<void>;
+  returnToLauncher?: () => Promise<void>;
+  setLanguage?: (language: 'fr' | 'en') => Promise<void>;
+  preferences?: { theme?: 'system' | 'light' | 'dark'; reduced?: boolean; show?: Record<string, unknown> };
+  setPreferences?: (patch: { theme?: 'system' | 'light' | 'dark'; reduced?: boolean; show?: Record<string, unknown> }) => Promise<unknown>;
+  setResolution?: (width: number, height: number) => Promise<{ width: number; height: number }>;
+  getWindowSettings?: () => Promise<{ fullscreen: boolean; width: number; height: number }>;
   setServerUrl: (url: string) => Promise<string>;
   setFullscreen: (fullscreen: boolean) => Promise<boolean>;
   isFullscreen?: () => Promise<boolean>;

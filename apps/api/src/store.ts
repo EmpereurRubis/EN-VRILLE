@@ -2,17 +2,22 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import pg from "pg";
 import type { ContentItem } from "@en-vrille/content";
+import type { CinemaScene, DecoyProduct } from "@en-vrille/shared";
 import type { Room } from "./model.js";
 
 export interface PersistedState {
   rooms: Room[];
   content: ContentItem[] | null;
+  cinema?: CinemaScene[] | null;
+  decoys?: DecoyProduct[] | null;
 }
 export interface Store {
   load(): Promise<PersistedState>;
   saveRoom(room: Room): Promise<void>;
   deleteRoom(code: string): Promise<void>;
   saveContent(content: ContentItem[]): Promise<void>;
+  saveCinema(cinema: CinemaScene[]): Promise<void>;
+  saveDecoys(decoys: DecoyProduct[]): Promise<void>;
   close(): Promise<void>;
   health?(): Promise<void>;
   kind: string;
@@ -34,6 +39,12 @@ export class MemoryStore implements Store {
   }
   async saveContent(content: ContentItem[]) {
     this.state.content = structuredClone(content);
+  }
+  async saveCinema(cinema: CinemaScene[]) {
+    this.state.cinema = structuredClone(cinema);
+  }
+  async saveDecoys(decoys: DecoyProduct[]) {
+    this.state.decoys = structuredClone(decoys);
   }
   async close() {}
 }
@@ -95,6 +106,14 @@ export class FileStore extends MemoryStore {
     await super.saveContent(content);
     return this.persist();
   }
+  override async saveCinema(cinema: CinemaScene[]) {
+    await super.saveCinema(cinema);
+    return this.persist();
+  }
+  override async saveDecoys(decoys: DecoyProduct[]) {
+    await super.saveDecoys(decoys);
+    return this.persist();
+  }
   override async close() {
     await this.pending;
   }
@@ -139,14 +158,16 @@ export class PostgresStore implements Store {
       this.pool.query<{ state: Room }>(
         "SELECT state FROM vrille_rooms WHERE updated_at > now() - interval '7 days'",
       ),
-      this.pool.query<{ value: ContentItem[] }>(
-        "SELECT value FROM vrille_settings WHERE key = $1",
-        ["content"],
+      this.pool.query<{ key: string; value: unknown }>(
+        "SELECT key,value FROM vrille_settings WHERE key = ANY($1::text[])",
+        [["content", "cinema", "decoys"]],
       ),
     ]);
     return {
       rooms: rooms.rows.map((r) => r.state),
-      content: settings.rows[0]?.value ?? null,
+      content: (settings.rows.find((s) => s.key === "content")?.value ?? null) as ContentItem[] | null,
+      cinema: (settings.rows.find((s) => s.key === "cinema")?.value ?? null) as CinemaScene[] | null,
+      decoys: (settings.rows.find((s) => s.key === "decoys")?.value ?? null) as DecoyProduct[] | null,
     };
   }
   private track<T>(operation: Promise<T>) {
@@ -175,6 +196,14 @@ export class PostgresStore implements Store {
       ),
     );
   }
+  private async saveSetting(key: string, value: unknown) {
+    await this.track(this.pool.query(
+      "INSERT INTO vrille_settings(key,value) VALUES ($1,$2::jsonb) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()",
+      [key, JSON.stringify(value)],
+    ));
+  }
+  async saveCinema(cinema: CinemaScene[]) { await this.saveSetting("cinema", cinema); }
+  async saveDecoys(decoys: DecoyProduct[]) { await this.saveSetting("decoys", decoys); }
   async close() {
     await Promise.all(this.pending);
     await this.pool.end();

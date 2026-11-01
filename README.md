@@ -1,12 +1,12 @@
 # EN VRILLE
 
-Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux en français, un jeu Windows avec sa scène TV, une soirée personnalisée ou aléatoire et un téléphone par joueur. Le présentateur anime la scène tandis que chaque manette conserve ses réponses, produits, notes et missions privés. Le client PC embarque son interface ; les salons utilisent le serveur Docker.
+Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux, une interface en français et en anglais, une scène TV et un téléphone par joueur. Le présentateur anime la scène tandis que chaque manette conserve ses réponses, produits, notes et missions privés. Le client Windows démarre sur un menu local hors ligne ; « DÉMARRER » ouvre la plateforme du serveur dans la même fenêtre.
 
 ## Application Windows
 
 Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, la version portable et `apps/desktop/release/win-unpacked/EN-VRILLE.exe`. Le dossier complet peut être lancé sans Node.js ni navigateur installé. Le serveur se règle dans les paramètres du jeu ; sa valeur initiale est `https://envrille.erubis.fr`. Les invités rejoignent gratuitement dans leur navigateur.
 
-Le guide [PC et Steam](docs/PC-Steam.md) décrit la construction, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
+Le guide [PC et Steam](deploy/docs/PC-Steam.md) décrit la construction, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
 
 ## Démarrer sur Windows / VS Code
 
@@ -41,11 +41,15 @@ npm run build
 5. Le serveur compte les participants réellement concernés : réponses, préparations, notes complètes ou seuls jurés pour le verdict. Les actions complètes clôturent l’attente. Après une déconnexion, un délai de dix secondes permet de reprendre sa session avant l’exclusion du quorum courant ; l’hôte peut aussi passer un joueur.
 6. Les réponses sont révélées anonymement avant le vote, puis les auteurs et points apparaissent aux résultats. Les prises de parole du Tribunal et des vendeurs attendent toujours le signal de l’hôte, même lorsque leur minuteur est terminé. L’hôte peut mettre en pause et contrôler l’enchaînement automatique des autres séquences.
 
-Le Plateau des Mythos et Sous-titres Interdits rapportent 100 points par vote et un bonus de 150 aux gagnants ex æquo. Qui parmi nous récompense la prédiction du choix majoritaire (100 points) et la personne désignée (50), avec un mode sans points. Les vendeurs sont notés sur humour, conviction et créativité (1 à 5) ; le mode « inventions » redistribue les produits sans qu’un joueur reçoive le sien. Au Tribunal, les jurés votent le verdict : une égalité acquitte l’accusé. Le procureur ou la défense gagnent selon le verdict ; les jurés ne gagnent pas automatiquement pour avoir suivi la majorité. Les coefficients et l’équilibrage sont configurables.
+Le Plateau des Mythos rapporte 100 points par vote et un bonus de 150 aux gagnants ex æquo. Qui parmi nous récompense la prédiction du choix majoritaire (100 points) et la personne désignée (50), avec un mode sans points. Au Tribunal, les jurés votent le verdict : une égalité acquitte l’accusé. Le procureur ou la défense gagnent selon le verdict ; les jurés ne gagnent pas automatiquement pour avoir suivi la majorité. Les coefficients et l’équilibrage sont configurables.
+
+Dans Téléachat de l’Enfer, chacun invente un produit ou demande une idée privée à House Decoy, puis peut la modifier avant validation. Les produits sont redistribués sans retour à leur créateur. Chaque vendeur est noté immédiatement après sa présentation sur humour, conviction et créativité (1 à 5), avec un résultat intermédiaire. Les scores et le bonus du créateur sont attribués une seule fois en fin de manche. Le mode produits aléatoires reste disponible.
+
+Dans Sous-titres Interdits, chaque joueur commence un film et ajoute un dialogue à un autre film à chaque tour. Les versions courtes comptent jusqu’à 4 ou 5 images ; la version complète compte une image par joueur. La manette montre uniquement l’image courante et les dialogues précédents. L’écran TV garde les films secrets pendant l’écriture. Après la préparation privée, chacun présente un film en doublage oral, avec des images pilotées par l’hôte. Le défilement automatique ne termine jamais la prise de parole. Trois prix distinguent le film collectif (distinction sans points), l’interprète (300 points) et la réplique (250 points à son auteur), avant coefficients et équilibrage.
 
 Un rafraîchissement conserve l’identité grâce à une session privée propre à l’onglet. Ne partagez pas votre jeton de reconnexion. Un nouveau participant arrivé pendant une manche attend une étape compatible en spectateur. L’écran TV peut rester spectateur et afficher la soirée sans devenir une manette.
 
-Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. La voix utilise les voix françaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par l’hôte et sont limitées à une toutes les deux secondes par joueur.
+Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. Le menu utilise une composition jazz originale jouée localement. La voix utilise les voix françaises ou anglaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. La langue de la manette est indépendante de celle du plateau. Les textes libres des joueurs ne sont jamais traduits. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par l’hôte et sont limitées à une toutes les deux secondes par joueur.
 
 Le mode global sans points conserve les actions et résultats sans modifier les scores. Les missions secrètes optionnelles demandent de glisser un mot dans une réponse ou une invention compatible et rapportent un bonus fixe de 50 points ; leur consigne reste sur la manette du joueur. Ce bonus est lui aussi annulé dans le mode sans points.
 
@@ -56,7 +60,7 @@ apps/web/                 React + TypeScript + Vite + Tailwind + Framer Motion
 apps/desktop/             Electron, ressources locales, build Windows et SteamPipe
 apps/api/                 Express + Socket.IO, moteur autoritaire, stockage
 packages/shared/          Types, catalogue des jeux et événements communs
-packages/content/         Questions, produits, accusations et médias SVG originaux
+packages/content/         Questions, produits House Decoy et scènes cinéma créditées
 deploy/                   Dockerfiles et configuration Nginx
 .github/workflows/        Builds Windows et publication des images GHCR
 marketing/                Fiche Steam, sources graphiques et captures Windows réelles
@@ -74,6 +78,8 @@ Les événements Socket.IO sont définis dans `packages/shared/src/index.ts` :
 | `room:create`, `room:join`, `room:resume` | Créer, rejoindre, retrouver une session |
 | `room:ready`, `room:configure`, `room:start` | Préparer et démarrer la soirée |
 | `room:action` | Réponse, produit, préparation terminée, vote, notation ou verdict |
+| `room:product-suggestion` | Idée House Decoy privée et modifiable, sans validation automatique |
+| `room:caption-control` | Image précédente/suivante et défilement automatique, réservés à l’hôte |
 | `room:advance`, `room:pause` | Commandes réservées à l’hôte |
 | `room:skip-player` | Passer un participant pour l’action courante, réservé à l’hôte |
 | `room:react` | Réaction éphémère avec limite par joueur |
@@ -191,13 +197,15 @@ Les mécanismes de healthcheck et `depends_on: service_healthy` suivent la [docu
 
 ## Contenus et administration
 
-Les bibliothèques de départ et leurs catégories sont dans `packages/content/src/`. Les illustrations SVG sont des créations originales du projet et ne dépendent d’aucun CDN. La bibliothèque contient **410 entrées** : 120 questions Mythos (100 classiques et 20 adultes), 100 produits, 60 accusations, 110 questions Qui parmi nous (100 classiques et 10 adultes) et 20 médias.
+Les bibliothèques de départ et leurs catégories sont dans `packages/content`. Les cinq affiches et logotypes de jeux sont des SVG originaux livrés localement. House Decoy propose 150 produits en dix catégories, en français et en anglais. Le cinéma utilise douze séquences chronologiques avec de vrais acteurs issues de *Tears of Steel*, avec attribution CC BY 3.0. Les extraits sont muets : la bande-son originale, sous licence distincte, est exclue. Voir les [licences cinéma](packages/content/cinema/LICENSE.md) pour les sources et modifications.
 
 L’administration est accessible depuis l’interface et protégée par `ADMIN_TOKEN`. L’API exige `Authorization: Bearer <ADMIN_TOKEN>` pour les lectures et mutations administratives. Garder ce secret pour les administrateurs et le saisir uniquement sur une connexion HTTPS. Les personnalisations des joueurs restent limitées à leur salon et ne deviennent pas des contenus publics.
 
+Le studio cinéma accepte les vidéos MP4 et WebM jusqu’à 250 Mo. Choisir un extrait de 1 à 90 secondes, 2 à 12 images, leurs timecodes et la position des sous-titres ; prévisualiser puis publier. Les originaux restent dans le volume privé de l’API. Les extraits muets et images compressées sont mis en cache et servis depuis ce volume. L’image Docker API inclut FFmpeg et FFprobe ; en développement, les installer dans le PATH. Chaque scène exige une source, une licence ou autorisation, des territoires, une attribution et une déclaration explicite d’usage commercial. Ces informations documentent la vérification de l’administrateur ; elles ne constituent pas une validation juridique automatique.
+
 ## Périmètre de cette version
 
-Cette version comprend le client Windows Electron, les interfaces scène et manette, le présentateur, les cinq jeux, les deux modes de vente, les missions secrètes, la persistance, les contenus et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les **envois de vidéos par l’hôte**, les fonctionnalités **Steamworks** et l’**hébergement à plusieurs réplicas** restent à intégrer ; aucun bouton ne prétend les activer.
+Cette version comprend le client Windows Electron avec accueil hors ligne, les interfaces scène et manette FR/EN, le présentateur, les cinq jeux, les deux modes de vente, House Decoy, le cinéma collaboratif, l’import vidéo administrateur et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les fonctionnalités **Steamworks** et l’**hébergement à plusieurs réplicas** restent à intégrer ; aucun bouton ne prétend les activer.
 
 La compilation locale et le déploiement sont deux opérations distinctes. La publication GHCR, le certificat TLS et la configuration du DNS/proxy se suivent dans GitHub et sur votre installation Portainer.
 

@@ -1,0 +1,998 @@
+[
+  {
+    "id": "tos-alerte-au-labo",
+    "title": "Une urgence au laboratoire",
+    "category": "science-fiction",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-alerte-au-labo/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/bee82c009c28a4ddd68a.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/f990abdb2515d786bc82.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/ddd620535c4d6753c9e4.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/9027c945910d1300f1da.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/6c28d70d1aa602364351.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/8b342e5fe9a8ff1e079f.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/d1caef0386da148dc45a.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/59be766e79afa59319ba.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/8387e683227e8a77a176.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/fb5fd4474d3aadef2e90.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/a94722b4c21d05df7d92.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-alerte-au-labo/0a31d7c3eeadaba0e310.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-le-grand-conseil",
+    "title": "Le conseil des experts",
+    "category": "confrontation",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-le-grand-conseil/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/c25054c1d62b4c9a73d9.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/2ae07187c4b2f05fc506.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/e933f148de0789bbc94d.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/aeb8d9dc00548d859eeb.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/1ff8858ba30ee1edd53c.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/64d2d5492bd341b2f504.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/425c30a0c0104a439224.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/e04f4ef31e8e3b359d06.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/2120cc6be455c405c5f4.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/842186fb5a42eba50875.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/f53e0592370ded382750.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-conseil/28af5e478e1f9a5e6de1.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-reunion-au-sommet",
+    "title": "Une réunion très importante",
+    "category": "confrontation",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-reunion-au-sommet/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/208d3267939fd446c9be.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/7eac864571276b316b29.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/d9a4556647f9652632d2.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/19d6c0f3441f8d60a3dc.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/c84b7a91a9403bc2a03e.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/c8f85632858c24e25e44.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/bec44f506aa82435a0c6.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/d105e504d463cd373628.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/eb0ed394dbcaa1b8d411.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/10a83c7cea1de14268d3.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/61a39483e011cb6a6910.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-au-sommet/1130edf19e5c7fe04495.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-rendez-vous-sur-le-pont",
+    "title": "Un rendez-vous sur le pont",
+    "category": "romance",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-rendez-vous-sur-le-pont/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/21b4cf2297b8827d3cea.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/83f8c2464a542c41c046.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/f6d994369e5549e09cb3.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/f1428442b9bf8a7dbfbd.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/2b3de47559fad6b830d6.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/5b7f6050b5b9545d854f.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/a50b7fea17618b92c53f.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/29210f6e691b806c1e4f.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/a3445e16313eaa6470cc.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/bb14c854737e887ccdd8.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/a7ec76f769cc7919eeeb.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-rendez-vous-sur-le-pont/290f9be3ade886c991fc.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-la-mauvaise-nouvelle",
+    "title": "La mauvaise nouvelle",
+    "category": "drame",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-la-mauvaise-nouvelle/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/87909291988f84de3748.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/9e4f9beadb826d7c2e43.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/b70244d6bf334358cf7d.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/4c306bb89a603ebba5e1.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/cc090dcaba753647a1c7.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/90bf719f62d0912d0faf.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/8ccd2c6c1250e06a9760.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/777a82e5853899f1c5dd.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/c09395bad7d9db5fc38d.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/2db305264142a70cd72d.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/6bab85e94ae85c85ee15.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-la-mauvaise-nouvelle/a1b1485ec61ce92eac84.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-reunion-de-crise",
+    "title": "La réunion de crise",
+    "category": "science-fiction",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-reunion-de-crise/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/cc2048d59e2f0b8dcb89.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/4677b6bad0220b862f2a.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/b406b68afbfe62fc35f9.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/b13fbc428b0b2fd51a2b.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/1848fd415de5d98a7700.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/14e2210f18a562fbc79f.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/add3b886e967661a3310.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/c5864f2afb1247fc768c.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/1c9f3349dbfb1766f751.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/f9cd40c5ea4536b7a691.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/e6f95bb8b58137130567.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-reunion-de-crise/643f6e1bdfb85a607926.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-un-silence-genant",
+    "title": "Un silence particulièrement gênant",
+    "category": "romance",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-un-silence-genant/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-un-silence-genant/2460e0a8f5bd2babd6b6.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/4ec1ae595a874e7fdd03.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/f9e2768e42cacba82bb1.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/be1701125840089f39f6.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/124c2757ca35cd7bcd91.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/189c37893f60e53d316d.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/a29268db9fde5fb8f828.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/f6a9f8bf6f34d697098f.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/dc19263282cc26522f3b.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/ff376b7447ae6ee41f5e.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/2831ea67299f5b1a0d9d.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-un-silence-genant/535d28fe38b5379842f8.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-une-explication-delicate",
+    "title": "Une explication délicate",
+    "category": "drame",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-une-explication-delicate/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/538dd7786cbb10b2582a.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/a525a9a94c60b618da70.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/3579762ec6b39ae7d12c.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/07f624155adbd910f915.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/7adfd6c4cc1999e5f78c.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/d9710cba165fbfaac9b0.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/2ac3122a4ec800691ce4.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/689ab187b36fb799d469.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/f562c58edc1dfe567260.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/03cfd8f2bef5e4d8efc3.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/b1b3b49b5f1a77d83f50.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-une-explication-delicate/37994c00488c2a04d60b.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-le-grand-malentendu",
+    "title": "Le grand malentendu",
+    "category": "romance",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-le-grand-malentendu/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/584e81130284d64cc70e.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/811231c33c83f9c3ed9c.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/b0e7f3e6c9b29cbb68ad.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/0dc0561cc92a388d6c2c.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/ac153e14d4f893f12ec0.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/4777ffb1b47ffeda9e4e.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/6fa43a652fc0ff561e78.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/f0c776cabb1ed2f969bb.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/20fc8ff0f6b9b505c489.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/cd1b9ceef61c6d057311.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/d95afca135d7d201551e.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-grand-malentendu/5e550ec50d662660a9da.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-le-regard-qui-tue",
+    "title": "Un regard qui en dit long",
+    "category": "confrontation",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-le-regard-qui-tue/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/536a25ccc946912b98f8.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/2be75ed28d48b6158447.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/bddd878db04df29ae7c1.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/2a6b76a268d11fd2be36.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/cb29886e9960d301d129.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/81fcc748361524bda1e9.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/1f36c54463b97ac64751.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/56b5970a00f16390ef7f.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/0eadb48974d982f4fc36.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/a47b1e35c6e57748c7c3.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/3684ba33fd1252d150cb.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-regard-qui-tue/3f4829a12015d9f1bea2.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-le-plan-impossible",
+    "title": "Le plan impossible",
+    "category": "science-fiction",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-le-plan-impossible/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/b7dbfda87dc5fd1f62ed.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/926ad63ccf163a5fae6f.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/968ec52f2f19f066898e.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/5857e33807f51bf1ccee.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/7396cd601f0917c35097.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/6e6360324bfe66aeb017.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/b4b9c597af7d9f405370.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/872412ab43e7977ee824.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/fa816afb62bc211f0b02.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/80f9bb0d30ab3ab881fa.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/7e890eb53dcd0de7dcba.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-plan-impossible/23c6d9ecc2dab7bf7aaa.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  },
+  {
+    "id": "tos-le-dernier-espoir",
+    "title": "Le dernier espoir du laboratoire",
+    "category": "science-fiction",
+    "sourceVideoUrl": "https://download.blender.org/demo/movies/ToS/tears_of_steel_720p.mov",
+    "clipUrl": "/media/cinema/tos-le-dernier-espoir/clip.mp4",
+    "frames": [
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/90698b41b91984cfd0f7.jpg",
+        "timecodeMs": 0,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/c2c1138cd7812f1a03c1.jpg",
+        "timecodeMs": 2000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/2e0f437088b10299be0e.jpg",
+        "timecodeMs": 4000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/76904a4c7400fe545ee9.jpg",
+        "timecodeMs": 6000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/3ff14c3b11d37a7f0fa3.jpg",
+        "timecodeMs": 8000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/cb6c9261e095e17a7e85.jpg",
+        "timecodeMs": 10000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/519e31a862d1b1eab60c.jpg",
+        "timecodeMs": 12000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/52e2cca17b5753c75e9b.jpg",
+        "timecodeMs": 14000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/be54400a1d35c3f50bf9.jpg",
+        "timecodeMs": 16000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/959107e6a9a5128b0369.jpg",
+        "timecodeMs": 18000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/948a0a0c272eb99478b6.jpg",
+        "timecodeMs": 20000,
+        "subtitlePosition": "bottom"
+      },
+      {
+        "url": "/media/cinema/tos-le-dernier-espoir/6f77bba2c74e1b184956.jpg",
+        "timecodeMs": 22000,
+        "subtitlePosition": "bottom"
+      }
+    ],
+    "width": 960,
+    "height": 400,
+    "rights": {
+      "title": "Tears of Steel (2012)",
+      "sourceUrl": "https://mango.blender.org/sharing/",
+      "license": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "territories": [
+        "worldwide"
+      ],
+      "credits": "(CC) Blender Foundation | mango.blender.org. Tears of Steel, directed by Ian Hubert (2012). Silent excerpts and extracted frames adapted for EN VRILLE; original audio removed.",
+      "verifiedAt": "2026-11-01",
+      "commercialUse": true
+    }
+  }
+]

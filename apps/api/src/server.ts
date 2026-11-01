@@ -11,6 +11,7 @@ import type { ContentItem } from "@en-vrille/content";
 import { GameEngine, type EngineOptions } from "./engine.js";
 import { defaultStore, type Store } from "./store.js";
 import { actionSchema, cleanText, configSchema, gameSchema } from "./rules.js";
+import { registerCinemaAdmin } from "./cinema-admin.js";
 
 export interface GameServerOptions {
   store?: Store;
@@ -71,6 +72,13 @@ const contentSchema = z
     "Un sous-titre doit être associé à un média.",
   );
 const digest = (value: string) => createHash("sha256").update(value).digest();
+const decoySchema = z.object({
+  id: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/).optional(),
+  name: z.string().trim().min(1).max(70), description: z.string().trim().min(1).max(220),
+  category: z.string().trim().min(1).max(60), keywords: z.array(z.string().trim().min(1).max(40)).max(20),
+  tagline: z.string().trim().max(120).optional(), nameEn: z.string().trim().min(1).max(70).optional(),
+  descriptionEn: z.string().trim().min(1).max(220).optional(), taglineEn: z.string().trim().max(120).optional(),
+}).strict();
 class RateLimiter {
   private entries = new Map<string, { count: number; until: number }>();
   allow(key: string, limit: number, windowMs: number) {
@@ -159,8 +167,8 @@ export async function createGameServer(options: GameServerOptions = {}) {
   });
   io.use((socket, next) => {
     const version: unknown = socket.handshake.auth?.protocolVersion;
-    // Existing browser clients predate protocol negotiation and still use the version 1 event contract.
-    if (version === undefined || version === PROTOCOL_VERSION) return next();
+    // Missing negotiation belongs to the legacy version 1 client and cannot consume collaborative cinema.
+    if (version === PROTOCOL_VERSION) return next();
     next(Object.assign(
       new Error("Cette version du jeu est incompatible avec le serveur. Mettez le jeu à jour puis reconnectez-vous."),
       { data: { code: "PROTOCOL_MISMATCH", supportedProtocol: PROTOCOL_VERSION } },
@@ -211,16 +219,23 @@ export async function createGameServer(options: GameServerOptions = {}) {
   app.get("/api/catalog", (_req, res) =>
     res.json({
       games: GAMES,
-      categories: [...new Set(engine.content.map((c) => c.category))].sort(),
+      categories: [...new Set([
+        ...engine.content.filter((item) => item.gameId !== "captions").map((item) => item.category),
+        ...engine.cinema.map((scene) => scene.category), ...engine.decoys.map((product) => product.category),
+      ])].sort(),
       counts: Object.fromEntries(
         GAMES.map((g) => [
           g.id,
-          engine.content.filter((c) => c.gameId === g.id).length,
+          g.id === "captions" ? engine.cinema.length : engine.content.filter((c) => c.gameId === g.id).length,
         ]),
       ),
-      total: engine.content.length,
+      total: engine.content.filter((item) => item.gameId !== "captions").length + engine.cinema.length,
+      decoyCount: engine.decoys.length,
     }),
   );
+  app.get("/api/cinema/credits", (_req, res) => res.json({
+    items: engine.cinema.map((scene) => ({ id: scene.id, title: scene.title, category: scene.category, rights: structuredClone(scene.rights) })),
+  }));
   const mediaDirectory =
     options.mediaDirectory ||
     process.env.MEDIA_DIR ||
@@ -287,6 +302,27 @@ export async function createGameServer(options: GameServerOptions = {}) {
     adminQueue = operation;
     return operation;
   };
+  registerCinemaAdmin(app, { engine, uploadDirectory });
+  app.get("/api/admin/decoys", (_req, res) => res.json({ items: engine.decoys }));
+  app.post("/api/admin/decoys", asyncRoute(async (req, res) => {
+    const parsed = decoySchema.parse(req.body), item = { ...parsed, id: parsed.id || `decoy-${randomUUID()}` };
+    await mutateContent(async () => {
+      if (engine.decoys.some((product) => product.id === item.id)) throw new Error("Cet identifiant existe déjà.");
+      await engine.updateDecoys([...engine.decoys, item]);
+    });
+    res.status(201).json({ item });
+  }));
+  app.put("/api/admin/decoys/:id", asyncRoute(async (req, res) => {
+    const item = { ...decoySchema.parse({ ...req.body, id: req.params.id }), id: req.params.id };
+    if (!engine.decoys.some((product) => product.id === item.id)) { res.status(404).json({ error: "Produit introuvable." }); return; }
+    await mutateContent(() => engine.updateDecoys(engine.decoys.map((product) => product.id === item.id ? item : product)));
+    res.json({ item });
+  }));
+  app.delete("/api/admin/decoys/:id", asyncRoute(async (req, res) => {
+    if (!engine.decoys.some((product) => product.id === req.params.id)) { res.status(404).json({ error: "Produit introuvable." }); return; }
+    await mutateContent(() => engine.updateDecoys(engine.decoys.filter((product) => product.id !== req.params.id)));
+    res.json({ ok: true });
+  }));
   app.get("/api/admin/content", (_req, res) =>
     res.json({
       items: engine.content,
@@ -590,6 +626,19 @@ export async function createGameServer(options: GameServerOptions = {}) {
       const action = actionSchema.parse(data),
         i = identity(socket);
       engine.action(i.code, i.playerId, action);
+      return state();
+    });
+    register("room:product-suggestion", (data) => {
+      z.object({}).strict().parse(data);
+      const i = identity(socket);
+      engine.suggestProduct(i.code, i.playerId);
+      return state();
+    });
+    register("room:caption-control", (data) => {
+      const p = z.object({ direction: z.enum(["next", "previous"]).optional(), autoSlides: z.boolean().optional() }).strict()
+        .refine((control) => control.direction !== undefined || control.autoSlides !== undefined).parse(data),
+        i = identity(socket);
+      engine.captionControl(i.code, i.playerId, p);
       return state();
     });
     register("room:react", (data) => {

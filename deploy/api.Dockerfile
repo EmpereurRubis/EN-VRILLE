@@ -11,6 +11,7 @@ COPY packages packages
 RUN npm run build --workspace @en-vrille/api
 
 FROM node:22-alpine AS production
+RUN apk add --no-cache ffmpeg
 LABEL org.opencontainers.image.source="https://github.com/EmpereurRubis/EN-VRILLE"
 ENV NODE_ENV=production PORT=3001 DATA_DIR=/app/data MEDIA_DIR=/app/packages/content/media
 WORKDIR /app

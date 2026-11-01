@@ -34,6 +34,10 @@ export const configSchema = z
     reactionsEnabled: z.boolean().default(true),
     secretRoles: z.boolean().default(false),
     autoAdvance: z.boolean().default(true),
+    language: z.enum(["fr", "en"]).default("fr"),
+    captionLength: z.enum(["short", "normal", "long"]).default("long"),
+    captionAutoSlides: z.boolean().default(false),
+    captionSlideSeconds: z.number().int().min(3).max(30).default(7),
     leaderboard: z.enum(["round", "game", "final"]),
     adult: z.boolean(),
     disabledCategories: z.array(z.string().max(60)).max(50),
@@ -66,8 +70,11 @@ export const actionSchema = z.discriminatedUnion("type", [
       type: z.literal("product"),
       name: z.string().trim().min(1).max(70),
       description: z.string().trim().min(1).max(220),
+      suggestionToken: z.string().uuid().optional(),
     })
     .strict(),
+  z.object({ type: z.literal("caption"), text: z.string().trim().min(1).max(220) }).strict(),
+  z.object({ type: z.literal("cinema-vote"), award: z.enum(["film", "actor", "line"]), targetId: z.string().min(1).max(100) }).strict(),
   z
     .object({ type: z.literal("vote"), targetId: z.string().min(1).max(100) })
     .strict(),

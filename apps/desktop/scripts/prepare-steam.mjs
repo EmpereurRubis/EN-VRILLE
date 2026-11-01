@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { PROTOCOL_VERSION } from '../security.mjs';
 
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = path.join(desktop, 'release', 'win-unpacked');
@@ -21,5 +22,5 @@ const appValue = configured ? appId : 'YOUR_OFFICIAL_APP_ID';
 const depotValue = configured ? depotId : 'YOUR_OFFICIAL_WINDOWS_DEPOT_ID';
 await writeFile(path.join(output, 'app_build.vdf'), `"AppBuild"\n{\n  "AppID" "${appValue}"\n  "Desc" "EN VRILLE ${version} Windows x64"\n  "BuildOutput" "build-log"\n  "ContentRoot" "content"\n  "Preview" "1"\n  "Depots"\n  {\n    "${depotValue}" "depot_build.vdf"\n  }\n}\n`);
 await writeFile(path.join(output, 'depot_build.vdf'), `"DepotBuild"\n{\n  "DepotID" "${depotValue}"\n  "FileMapping"\n  {\n    "LocalPath" "*"\n    "DepotPath" "."\n    "Recursive" "1"\n  }\n  "FileExclusion" "*.pdb"\n}\n`);
-await writeFile(path.join(output, 'manifest.json'), JSON.stringify({ version, platform: 'win32', arch: 'x64', executable: 'EN-VRILLE.exe', executableSha256: createHash('sha256').update(executable).digest('hex'), protocolVersion: 1, steamConfigured: configured, previewOnly: true }, null, 2));
+await writeFile(path.join(output, 'manifest.json'), JSON.stringify({ version, platform: 'win32', arch: 'x64', executable: 'EN-VRILLE.exe', executableSha256: createHash('sha256').update(executable).digest('hex'), protocolVersion: PROTOCOL_VERSION, steamConfigured: configured, previewOnly: true }, null, 2));
 console.log(`SteamPipe content prepared: ${output}. Preview only. ${configured ? 'Official IDs read from environment.' : 'Replace placeholders with official Steamworks IDs before upload.'}`);

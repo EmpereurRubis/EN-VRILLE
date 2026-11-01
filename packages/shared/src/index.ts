@@ -1,5 +1,5 @@
 /** Increment only when the client/server event contract becomes incompatible. */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 export const GAME_IDS = [
   "mythos",
   "pitch",
@@ -141,6 +141,10 @@ export interface RoomConfig {
   reactionsEnabled: boolean;
   secretRoles: boolean;
   autoAdvance: boolean;
+  language: "fr" | "en";
+  captionLength: "short" | "normal" | "long";
+  captionAutoSlides: boolean;
+  captionSlideSeconds: number;
   leaderboard: "round" | "game" | "final";
   adult: boolean;
   disabledCategories: string[];
@@ -172,6 +176,10 @@ export const DEFAULT_CONFIG: RoomConfig = {
   reactionsEnabled: true,
   secretRoles: false,
   autoAdvance: true,
+  language: "fr",
+  captionLength: "long",
+  captionAutoSlides: false,
+  captionSlideSeconds: 7,
   leaderboard: "round",
   adult: false,
   disabledCategories: [],
@@ -201,6 +209,89 @@ export interface Product {
   description: string;
   creatorId?: string;
   sellerId?: string;
+  generated?: boolean;
+}
+export interface DecoyProduct {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  keywords: string[];
+  tagline?: string;
+  nameEn?: string;
+  descriptionEn?: string;
+  taglineEn?: string;
+}
+export interface CinemaFrame {
+  url: string;
+  timecodeMs: number;
+  subtitlePosition: "bottom" | "top";
+}
+export interface CinemaRights {
+  title: string;
+  sourceUrl: string;
+  license: string;
+  licenseUrl: string;
+  territories: string[];
+  credits: string;
+  verifiedAt: string;
+  commercialUse: true;
+}
+export interface CinemaScene {
+  id: string;
+  title: string;
+  category: string;
+  sourceVideoUrl: string;
+  clipUrl: string;
+  frames: CinemaFrame[];
+  width: number;
+  height: number;
+  rights: CinemaRights;
+}
+export interface CaptionLineView {
+  id: string;
+  text: string;
+  frameIndex: number;
+  authorId?: string;
+}
+export interface CaptionStoryView {
+  id: string;
+  title: string;
+  scene: CinemaScene;
+  presenterId: string;
+  starterId?: string;
+  lines: CaptionLineView[];
+}
+export interface CaptionAwards {
+  filmIds: string[];
+  actorIds: string[];
+  lineIds: string[];
+  counts: { film: Record<string, number>; actor: Record<string, number>; line: Record<string, number> };
+}
+export interface CaptionsView {
+  writingTurn: number;
+  writingTurns: number;
+  storyCount: number;
+  presentationIndex: number;
+  slideIndex: number;
+  autoSlides: boolean;
+  slideSeconds: number;
+  slideStartedAt: number;
+  currentStory?: CaptionStoryView;
+  stories?: CaptionStoryView[];
+  awards?: CaptionAwards;
+}
+export interface PrivateCaptionsView {
+  storyId?: string;
+  turn: number;
+  totalTurns: number;
+  frame?: CinemaFrame;
+  previousLines: CaptionLineView[];
+  submitted: boolean;
+  ownText?: string;
+  presentation?: CaptionStoryView;
+  votes: Partial<Record<"film" | "actor" | "line", string>>;
+  eligibleTargets: { film: string[]; actor: string[]; line: string[] };
 }
 export interface AnswerView {
   id: string;
@@ -244,6 +335,8 @@ export interface RoundView {
   voteCounts?: Record<string, number>;
   votesByPlayer?: Record<string, string>;
   title?: string;
+  pitchFinalResults?: boolean;
+  pitchRating?: { sellerId: string; average: number; ratingsCount: number };
 }
 export interface PrivateView {
   id: string;
@@ -258,6 +351,8 @@ export interface PrivateView {
   ratings?: Record<string, [number, number, number]>;
   courtRole?: string;
   secretMission?: { word: string; instruction: string; completed: boolean };
+  captions?: PrivateCaptionsView;
+  productSuggestion?: { token: string; name: string; description: string };
 }
 export interface ParticipationProgress {
   kind: "ready" | "answers" | "products" | "prepared" | "votes" | "ratings" | "verdicts" | "bonus-votes";
@@ -297,6 +392,7 @@ export interface RoomSnapshot {
   message: string;
   scoresVisible: boolean;
   gameSummary?: { winnerIds: string[]; points: Record<string, number> };
+  captions?: CaptionsView;
 }
 export interface Session {
   code: string;
@@ -312,7 +408,9 @@ export interface Ack {
 export type Action =
   | { type: "prepared" }
   | { type: "answer"; text: string }
-  | { type: "product"; name: string; description: string }
+  | { type: "product"; name: string; description: string; suggestionToken?: string }
+  | { type: "caption"; text: string }
+  | { type: "cinema-vote"; award: "film" | "actor" | "line"; targetId: string }
   | { type: "vote"; targetId: string }
   | {
       type: "rate";
@@ -341,6 +439,8 @@ export interface ClientEvents {
   "room:action": (data: Action, ack: (result: Ack) => void) => void;
   "room:react": (data: { reaction: string }, ack: (result: Ack) => void) => void;
   "room:skip-player": (data: { playerId: string }, ack: (result: Ack) => void) => void;
+  "room:product-suggestion": (data: Record<string, never>, ack: (result: Ack) => void) => void;
+  "room:caption-control": (data: { direction?: "next" | "previous"; autoSlides?: boolean }, ack: (result: Ack) => void) => void;
   "room:advance": (
     data: { skip?: boolean },
     ack: (result: Ack) => void,
