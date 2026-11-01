@@ -85,7 +85,7 @@ git commit -m "Améliorer EN VRILLE"
 git push origin main
 ```
 
-Le workflow `docker-publish.yml` vérifie TypeScript, les règles de jeu, la persistance et les parcours multijoueurs, puis compile et publie :
+Le workflow `docker-publish.yml` vérifie TypeScript, les règles de jeu, PostgreSQL et les parcours multijoueurs dans Chromium. Il construit ensuite les deux images, démarre la stack Compose réelle, vérifie les cinq jeux à travers Nginx et les WebSockets, redémarre l’API et contrôle la conservation des scores. La publication est autorisée seulement après ces contrôles :
 
 - `ghcr.io/empereurrubis/en-vrille-web:stable`
 - `ghcr.io/empereurrubis/en-vrille-api:stable`
