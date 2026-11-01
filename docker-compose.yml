@@ -32,8 +32,8 @@ services:
       PGDATABASE: ${POSTGRES_DB:-en_vrille}
       PGUSER: ${POSTGRES_USER:-en_vrille}
       PGPASSWORD: ${POSTGRES_PASSWORD:?Renseigner POSTGRES_PASSWORD dans Portainer}
-      SESSION_SECRET: ${SESSION_SECRET:?Renseigner SESSION_SECRET dans Portainer}
-      ADMIN_TOKEN: ${ADMIN_TOKEN:?Renseigner ADMIN_TOKEN dans Portainer}
+      SESSION_SECRET: ${SESSION_SECRET:?Renseigner SESSION_SECRET dans Portainer de 64 caractères}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Renseigner ADMIN_TOKEN dans Portainer de 64 caractères}
       DATA_DIR: /app/data
       MEDIA_DIR: /app/packages/content/media
     volumes:

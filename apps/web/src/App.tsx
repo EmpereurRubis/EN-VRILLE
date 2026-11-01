@@ -30,6 +30,7 @@ import {
   Megaphone,
   MessageCircle,
   Monitor,
+  Moon,
   Pause,
   Play,
   Plus,
@@ -38,6 +39,7 @@ import {
   Shield,
   Shuffle,
   Sparkles,
+  Sun,
   Trash2,
   Trophy,
   Users,
@@ -60,6 +62,7 @@ import {
   type ServerEvents,
   type Session,
 } from "@en-vrille/shared";
+import { useTheme, type ThemePreference } from "./theme";
 
 const socket: Socket<ServerEvents, ClientEvents> = io({
   autoConnect: true,
@@ -84,6 +87,15 @@ const saved = <T,>(key: string, fallback: T): T => {
 const gameInfo = (id: GameId) => GAMES.find((g) => g.id === id)!;
 const styleColor = (color: string) => ({ "--accent": color }) as CSSProperties;
 
+function BrandMark() {
+  return (
+    <>
+      EN VR<span className="logo-i">I</span>LLE
+      <span className="logo-spark" aria-hidden="true">✳</span>
+    </>
+  );
+}
+
 function Mascot({ small = false }: { small?: boolean }) {
   return (
     <svg
@@ -107,7 +119,7 @@ function Mascot({ small = false }: { small?: boolean }) {
       />
       <path
         d="M139 27c5-17 31-17 37-1l14 40 43 5c21 2 32 24 20 41l-24 32 18 50c7 22-7 42-29 42l-44-2-36 29c-17 14-40 5-44-15l-7-39-38-27c-16-12-15-36 3-46l37-23 10-45c4-16 20-23 34-16l25 14"
-        fill="#b3a0ff"
+        fill="var(--brand-red, #ef3340)"
         stroke="#232321"
         strokeWidth="6"
         strokeLinejoin="round"
@@ -155,6 +167,7 @@ function Mascot({ small = false }: { small?: boolean }) {
 }
 
 function App() {
+  const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
   const [dialog, setDialog] = useState<"create" | "join" | "settings" | null>(
@@ -322,8 +335,7 @@ function App() {
             }}
             aria-label="EN VRILLE, accueil"
           >
-            EN VR<span className="logo-i">I</span>LLE
-            <span className="logo-spark">✳</span>
+            <BrandMark />
           </button>
           {!room && !admin && (
             <nav className="desktop-nav" aria-label="Navigation principale">
@@ -352,8 +364,16 @@ function App() {
               title={connected ? "Connecté au serveur" : "Reconnexion en cours"}
             >
               <i />
-              {connected ? "En direct" : "Reconnexion"}
+              <span className="connection-label">{connected ? "En direct" : "Reconnexion"}</span>
             </span>
+            <button
+              className="icon-button theme-toggle"
+              aria-label={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
+              title={isDark ? "Activer le mode clair" : "Activer le mode sombre"}
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+            >
+              {isDark ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button
               className="icon-button"
               aria-label="Réglages du son et des animations"
@@ -418,7 +438,7 @@ function App() {
         </main>
         {!room && (
           <footer className="site-footer">
-            <span className="footer-logo">EN VRILLE ✳</span>
+            <span className="footer-logo"><BrandMark /></span>
             <p>Des bons potes. Des mauvaises idées.</p>
             <span>Fait pour jouer ensemble.</span>
             <a href="/admin" aria-label="Administration des contenus">
@@ -440,6 +460,19 @@ function App() {
             >
               {dialog === "settings" ? (
                 <div className="settings-content">
+                  <label className="field-label">
+                    Thème de l’interface
+                    <select
+                      className="theme-select"
+                      aria-label="Thème de l’interface"
+                      value={theme}
+                      onChange={(event) => setTheme(event.target.value as ThemePreference)}
+                    >
+                      <option value="system">Automatique (selon l’appareil)</option>
+                      <option value="light">Clair</option>
+                      <option value="dark">Sombre</option>
+                    </select>
+                  </label>
                   <label className="field-label">
                     Volume des effets <strong>{volume}%</strong>
                     <input
