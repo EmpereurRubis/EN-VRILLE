@@ -387,8 +387,18 @@ export class GameEngine {
     const round: Round = {
       id: randomUUID(),
       gameId: item.gameId,
-      prompt: content.prompt,
-      category: content.category,
+      prompt:
+        item.gameId === "pitch"
+          ? item.pitchMode === "invented"
+            ? "Inventez l’invendable. Quelqu’un d’autre devra le vendre."
+            : "Votre mission : vendre l’invendable."
+          : content.prompt,
+      category:
+        item.gameId === "pitch"
+          ? item.pitchMode === "invented"
+            ? "Vos inventions"
+            : "Produits du jeu"
+          : content.category,
       mediaUrl: content.mediaUrl,
       participantIds: participants,
       answers: [],

@@ -37,6 +37,19 @@ async function setup(
 }
 
 describe("moteur autoritaire", () => {
+  it("ne divulgue aucun produit attribué dans la consigne publique avant les présentations", async () => {
+    const { engine, room, host, sessions } = await setup([
+      { gameId: "pitch", rounds: 1, pitchMode: "random" },
+    ]);
+    engine.start(room.code, host);
+    for (const session of sessions) {
+      const view = engine.snapshot(room, session.playerId);
+      for (const product of room.round!.products) {
+        expect(JSON.stringify(view.round)).not.toContain(product.name);
+      }
+      expect(view.me.product?.sellerId).toBe(session.playerId);
+    }
+  });
   it("cache les réponses et leurs auteurs, protège l’hôte, refuse doubles réponses et auto-vote", async () => {
     const { engine, room, host, sessions } = await setup();
     const ids = sessions.map((s) => s.playerId);

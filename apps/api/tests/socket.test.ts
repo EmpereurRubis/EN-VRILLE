@@ -4,9 +4,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve, sep } from "node:path";
 import { AVATARS, DEFAULT_CONFIG } from "@en-vrille/shared";
-import type { Ack } from "@en-vrille/shared";
+import type { Ack, RoomSnapshot } from "@en-vrille/shared";
 import { createGameServer } from "../src/server.js";
-import { MemoryStore } from "../src/store.js";
+import { MemoryStore, type Store } from "../src/store.js";
+import type { Room } from "../src/model.js";
 
 const running: Awaited<ReturnType<typeof createGameServer>>[] = [],
   clients: Socket[] = [],
@@ -48,11 +49,11 @@ const event = (socket: Socket, name: string, data: unknown = {}) =>
         error ? reject(error) : done(result),
       );
   });
-async function server() {
+async function server(store: Store = new MemoryStore()) {
   const directory = await mkdtemp(join(tmpdir(), "vrille-api-"));
   directories.push(directory);
   const server = await createGameServer({
-    store: new MemoryStore(),
+    store,
     autoTick: false,
     adminToken: "admin-test-token-123456789",
     uploadDirectory: directory,
@@ -64,6 +65,90 @@ async function server() {
 }
 
 describe("Socket.IO multijoueur réel et HTTP", () => {
+  it("acquitte avec la phase courante après une sauvegarde retardée", async () => {
+    class DelayedStore extends MemoryStore {
+      private gate?: Promise<void>;
+      private unblock?: () => void;
+      hold() {
+        this.gate = new Promise<void>((resolve) => {
+          this.unblock = resolve;
+        });
+      }
+      release() {
+        this.unblock?.();
+        this.gate = undefined;
+      }
+      override async saveRoom(room: Room) {
+        if (this.gate) await this.gate;
+        await super.saveRoom(room);
+      }
+    }
+    const store = new DelayedStore(),
+      { url } = await server(store);
+    const sockets = await Promise.all([
+      connect(url),
+      connect(url),
+      connect(url),
+    ]);
+    const created = await event(sockets[0]!, "room:create", {
+      name: "Alice",
+      avatar: AVATARS[0],
+    });
+    for (let index = 1; index < sockets.length; index++) {
+      await event(sockets[index]!, "room:join", {
+        code: created.session!.code,
+        name: `Ami ${index}`,
+        avatar: AVATARS[index],
+      });
+      await event(sockets[index]!, "room:ready", { ready: true });
+    }
+    await event(sockets[0]!, "room:configure", {
+      ...structuredClone(DEFAULT_CONFIG),
+      playlist: [{ gameId: "mythos", rounds: 1 }],
+    });
+    await event(sockets[0]!, "room:start");
+    await event(sockets[0]!, "room:advance");
+    const latest: (RoomSnapshot | undefined)[] = sockets.map(() => undefined);
+    sockets.forEach((socket, index) =>
+      socket.on("room:state", (snapshot: RoomSnapshot) => {
+        latest[index] = snapshot;
+      }),
+    );
+    const pending: Promise<Ack>[] = [],
+      returned: Ack[] = [];
+    store.hold();
+    try {
+      for (let index = 0; index < sockets.length; index++) {
+        pending.push(
+          event(sockets[index]!, "room:action", {
+            type: "answer",
+            text: `Réponse ${index}`,
+          }).then((result) => {
+            returned.push(result);
+            return result;
+          }),
+        );
+        await expect
+          .poll(() => latest[0]?.round?.submittedCount)
+          .toBe(index + 1);
+      }
+      await expect
+        .poll(() => latest.every((snapshot) => snapshot?.phase === "voting"))
+        .toBe(true);
+      expect(returned).toHaveLength(0);
+      store.release();
+      const acknowledgements = await Promise.all(pending);
+      expect(acknowledgements.map((result) => result.room?.phase)).toEqual([
+        "voting",
+        "voting",
+        "voting",
+      ]);
+      expect(acknowledgements.every((result) => result.ok)).toBe(true);
+    } finally {
+      store.release();
+      await Promise.allSettled(pending);
+    }
+  });
   it("joue de trois navigateurs au podium, protège les salons et reprend la session", async () => {
     const { server: api, url } = await server();
     const sockets = await Promise.all([

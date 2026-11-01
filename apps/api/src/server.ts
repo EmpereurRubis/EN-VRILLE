@@ -235,12 +235,10 @@ export async function createGameServer(options: GameServerOptions = {}) {
     res.setHeader("Cache-Control", "no-store");
     const adminToken = options.adminToken ?? process.env.ADMIN_TOKEN;
     if (!adminToken) {
-      res
-        .status(503)
-        .json({
-          error:
-            "Administration désactivée. Configurez ADMIN_TOKEN sur le serveur.",
-        });
+      res.status(503).json({
+        error:
+          "Administration désactivée. Configurez ADMIN_TOKEN sur le serveur.",
+      });
       return;
     }
     if (!limiter.allow(`admin:${req.ip}`, 90, 60_000)) {
@@ -413,15 +411,13 @@ export async function createGameServer(options: GameServerOptions = {}) {
         return;
       }
       logger(error);
-      res
-        .status(400)
-        .json({
-          error:
-            error instanceof Error &&
-            error.message === "Cet identifiant existe déjà."
-              ? error.message
-              : "Impossible d’enregistrer la modification.",
-        });
+      res.status(400).json({
+        error:
+          error instanceof Error &&
+          error.message === "Cet identifiant existe déjà."
+            ? error.message
+            : "Impossible d’enregistrer la modification.",
+      });
     },
   );
   function identity(socket: Socket) {
@@ -474,7 +470,21 @@ export async function createGameServer(options: GameServerOptions = {}) {
           .then(() => handler(data))
           .then(async (result) => {
             await engine.flush();
-            if (typeof ack === "function") ack(result);
+            if (typeof ack === "function") {
+              // Another action may advance the room while this save is pending.
+              // Snapshot immediately before sending, so an ACK cannot roll a
+              // client back behind a room:state already sent on this socket.
+              if (result.room) {
+                const current = identities.get(socket.id);
+                result.room = current
+                  ? engine.snapshot(
+                      engine.getRoom(current.code),
+                      current.playerId,
+                    )
+                  : undefined;
+              }
+              ack(result);
+            }
           })
           .catch((error) => {
             const message =
