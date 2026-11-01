@@ -1,0 +1,17 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+data/
+.data/
+*.log
+coverage/
+playwright-report/
+test-results/
+.DS_Store
+.idea/
+*.dump
+*.backup
+.local/

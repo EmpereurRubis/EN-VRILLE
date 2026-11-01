@@ -1,0 +1,83 @@
+name: en-vrille
+
+services:
+  web:
+    image: ${WEB_IMAGE:-ghcr.io/empereurrubis/en-vrille-web}:${IMAGE_TAG:-stable}
+    restart: unless-stopped
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - vrille
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/health-web"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+    security_opt:
+      - no-new-privileges:true
+
+  api:
+    image: ${API_IMAGE:-ghcr.io/empereurrubis/en-vrille-api}:${IMAGE_TAG:-stable}
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      PUBLIC_URL: ${PUBLIC_URL:?Renseigner PUBLIC_URL dans Portainer}
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-en_vrille}
+      PGUSER: ${POSTGRES_USER:-en_vrille}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Renseigner POSTGRES_PASSWORD dans Portainer}
+      SESSION_SECRET: ${SESSION_SECRET:?Renseigner SESSION_SECRET dans Portainer}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?Renseigner ADMIN_TOKEN dans Portainer}
+      DATA_DIR: /app/data
+      MEDIA_DIR: /app/packages/content/media
+    volumes:
+      - media-data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - vrille
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 25s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-en_vrille}
+      POSTGRES_USER: ${POSTGRES_USER:-en_vrille}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Renseigner POSTGRES_PASSWORD dans Portainer}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - vrille
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      start_period: 10s
+      retries: 12
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  vrille:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: en-vrille-postgres
+  media-data:
+    name: en-vrille-media
