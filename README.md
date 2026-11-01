@@ -6,7 +6,7 @@ Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux en français, un jeu 
 
 Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, la version portable et `apps/desktop/release/win-unpacked/EN-VRILLE.exe`. Le dossier complet peut être lancé sans Node.js ni navigateur installé. Le serveur se règle dans les paramètres du jeu ; sa valeur initiale est `https://envrille.erubis.fr`. Les invités rejoignent gratuitement dans leur navigateur.
 
-Le guide [PC et Steam](docs/PC-Steam.md) décrit la construction, les tests, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
+Le guide [PC et Steam](docs/PC-Steam.md) décrit la construction, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
 
 ## Démarrer sur Windows / VS Code
 
@@ -19,7 +19,7 @@ npm ci
 npm run dev
 ```
 
-Ouvrir **http://localhost:5173**, préparer le programme, choisir un pseudo et créer un salon. Pour tester seul les interactions, ouvrir trois onglets et rejoindre avec des identités différentes. Pour jouer, prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Le créateur peut participer ou rester animateur. Le lien « Écran TV » permet de rejoindre avec une session spectateur indépendante.
+Ouvrir **http://localhost:5173**, préparer le programme, choisir un pseudo et créer un salon. Prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Le créateur peut participer ou rester animateur. Le lien « Écran TV » permet de rejoindre avec une session spectateur indépendante.
 
 Pour les téléphones sur le même Wi-Fi, utiliser `http://ADRESSE_IP_LAN_DU_PC:5173` sur **tous** les appareils, y compris le PC qui crée le salon. Autoriser les connexions à Node sur le réseau privé Windows. Les invitations utilisent l’origine publique configurée ; copier `.env.example` vers `.env` puis régler `PUBLIC_URL=http://ADRESSE_IP_LAN_DU_PC:5173`. Le mode local fonctionne sans Internet une fois les dépendances installées.
 
@@ -27,12 +27,10 @@ Sans PostgreSQL configuré, le serveur de développement enregistre les parties 
 
 ```powershell
 npm run typecheck
-npm test
 npm run build
-npm run test:e2e
 ```
 
-Les tests navigateur utilisent Chrome déjà installé sous Windows ; ailleurs, lancer `npx playwright install chromium` avant `npm run test:e2e`. Pour vérifier PostgreSQL, définir `TEST_DATABASE_URL` vers une **base réservée aux tests** avant `npm test`. GitHub Actions exécute ces tests avec PostgreSQL et Chromium.
+`npm run typecheck` compile les contrats TypeScript sans produire de distribution. `npm run build` produit le serveur et les ressources Web ; `npm run desktop:dist` ajoute leur empaquetage Windows.
 
 ## Jouer
 
@@ -60,8 +58,7 @@ apps/api/                 Express + Socket.IO, moteur autoritaire, stockage
 packages/shared/          Types, catalogue des jeux et événements communs
 packages/content/         Questions, produits, accusations et médias SVG originaux
 deploy/                   Dockerfiles et configuration Nginx
-tests/e2e/                Parcours Playwright
-.github/workflows/        Tests, builds et publication GHCR
+.github/workflows/        Builds Windows et publication des images GHCR
 marketing/                Fiche Steam, sources graphiques et captures Windows réelles
 docker-compose.yml        L’unique stack Portainer de production
 ```
@@ -100,7 +97,7 @@ git commit -m "Améliorer EN VRILLE"
 git push origin main
 ```
 
-Le workflow `docker-publish.yml` vérifie TypeScript, les règles de jeu, PostgreSQL et les parcours multijoueurs dans Chromium. Il construit ensuite les deux images, démarre la stack Compose réelle, vérifie les cinq jeux à travers Nginx et les WebSockets, redémarre l’API et contrôle la conservation des scores. La publication est autorisée seulement après ces contrôles :
+Le workflow `docker-publish.yml` compile les applications, construit les deux images Docker et les publie dans GHCR :
 
 - `ghcr.io/empereurrubis/en-vrille-web:stable`
 - `ghcr.io/empereurrubis/en-vrille-api:stable`
@@ -155,7 +152,7 @@ Avec **Nginx Proxy Manager**, ajouter un Proxy Host :
 
 Si NPM est lui-même dans un conteneur, `127.0.0.1` désigne ce conteneur : utiliser l’IP LAN de l’hôte Docker et mettre `APP_BIND` à cette IP. Restreindre ce port par le pare-feu au réseau/proxy souhaité. Avec Traefik, configurer un service HTTP vers le même port et une route TLS vers votre domaine. Le Nginx embarqué transmet `/api`, `/media`, `/uploads` et `/socket.io` à `api:3001` sur le réseau Docker ; le navigateur reste sous un seul domaine.
 
-Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoindre depuis un téléphone **en 4G/5G**, puis un autre navigateur. Vérifier les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code. Tester l’Internet réel ne peut pas être remplacé par une vérification sur localhost. Depuis le checkout local, `npm run smoke -- https://envrille.erubis.fr` crée un salon de test à huit joueurs et vérifie les cinq jeux, les deux modes de vente et la reconnexion via de vraies connexions WebSocket.
+Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoindre depuis un téléphone **en 4G/5G**, puis un autre navigateur. Contrôler les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code sur cette installation publique.
 
 ### 4. Mettre à jour et revenir en arrière
 
@@ -163,7 +160,7 @@ Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoi
 2. Dans Portainer, ouvrir la stack et utiliser **Pull and redeploy / Re-pull image**, selon la version. Avec une stack Git, activer l’option de téléchargement des nouvelles images lors du redéploiement.
 3. Vérifier que **web et api** portent le même tag/version et que les trois services sont sains.
 
-Un push Git et un changement d’image derrière `stable` sont deux signaux distincts. Un polling Git ne suffit pas si le Compose reste identique. Le parcours manuel avec **re-pull explicite** est la méthode fiable fournie. Aucun webhook de production n’est déclenché par défaut. Pour automatiser, déclencher votre webhook Portainer **après les deux publications**, avec re-pull/force-redeploy configurés selon votre version ; tester ce mécanisme avant de l’utiliser en soirée.
+Un push Git et un changement d’image derrière `stable` sont deux signaux distincts. Un polling Git ne suffit pas si le Compose reste identique. Le parcours manuel avec **re-pull explicite** est la méthode fournie. Aucun webhook de production n’est déclenché par défaut. Pour automatiser, déclencher votre webhook Portainer **après les deux publications**, avec re-pull/force-redeploy configurés selon votre version.
 
 Pour un retour arrière, renseigner `IMAGE_TAG=sha-<ancien commit validé>` pour les deux images, puis redéployer. Sauvegarder la base avant toute migration future qui changerait son format.
 
@@ -178,7 +175,7 @@ docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -
 docker run --rm -v en-vrille-media:/data:ro -v "$PWD":/backup alpine tar czf /backup/en-vrille-media.tgz -C /data .
 ```
 
-Pour restaurer, arrêter **api**, conserver la sauvegarde de l’état courant, puis importer le dump dans **db** avec `pg_restore --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"`. Restaurer l’archive dans le même volume média et relancer l’API. Tester régulièrement la restauration sur une installation séparée. Ne pas commiter ces fichiers.
+Pour restaurer, arrêter **api**, conserver la sauvegarde de l’état courant, puis importer le dump dans **db** avec `pg_restore --clean --if-exists --no-owner -U "$POSTGRES_USER" -d "$POSTGRES_DB"`. Restaurer l’archive dans le même volume média et relancer l’API. Effectuer les restaurations préparatoires sur une installation séparée. Ne pas commiter ces fichiers.
 
 ### Dépannage
 
@@ -202,6 +199,6 @@ L’administration est accessible depuis l’interface et protégée par `ADMIN_
 
 Cette version comprend le client Windows Electron, les interfaces scène et manette, le présentateur, les cinq jeux, les deux modes de vente, les missions secrètes, la persistance, les contenus et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les **envois de vidéos par l’hôte**, les fonctionnalités **Steamworks** et l’**hébergement à plusieurs réplicas** restent à intégrer ; aucun bouton ne prétend les activer.
 
-La compilation et les tests locaux ne prouvent pas le déploiement sur votre serveur. La publication effective GHCR, le certificat TLS, la configuration du DNS/proxy et le test depuis Internet nécessitent les accès à vos services et doivent être vérifiés sur leur environnement.
+La compilation locale et le déploiement sont deux opérations distinctes. La publication GHCR, le certificat TLS et la configuration du DNS/proxy se suivent dans GitHub et sur votre installation Portainer.
 
 Licence MIT, voir [LICENSE](LICENSE). Les contributions et contenus originaux sont livrés avec le projet ; consulter les crédits spécifiques des médias dans `packages/content`.

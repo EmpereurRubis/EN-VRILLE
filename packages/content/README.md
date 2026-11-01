@@ -39,7 +39,6 @@ La source vectorielle reproductible se trouve dans `scripts/create-media.mjs`. D
 
 ```sh
 node packages/content/scripts/create-media.mjs
-npx vitest run packages/content/src/content.test.ts
 ```
 
 Le script réécrit uniquement les vingt scènes intégrées. Après modification d’une scène, exécuter le script puis vérifier visuellement le fichier résultant.

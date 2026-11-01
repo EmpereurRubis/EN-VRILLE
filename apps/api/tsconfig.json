@@ -1,1 +1,1 @@
-{"extends":"../../tsconfig.base.json","compilerOptions":{"types":["node"],"noEmit":true},"include":["src","tests"]}
+{"extends":"../../tsconfig.base.json","compilerOptions":{"types":["node"],"noEmit":true},"include":["src"]}

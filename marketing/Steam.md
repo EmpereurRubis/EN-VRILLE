@@ -24,7 +24,7 @@ Un seul hôte utilise le jeu PC. Les participants jouent gratuitement dans un na
 
 Langue de l’interface et contenus : français. Narration optionnelle par synthèse vocale selon les voix françaises de l’appareil ; les sous-titres restent disponibles. Plateforme construite : Windows x64. Clavier et souris pour l’hôte ; écran tactile et navigateur pour les participants. Les succès, l’overlay, le contrôle de possession et l’identité Steam ne doivent pas être annoncés tant que leur intégration n’est pas validée.
 
-Configuration de recette **provisoire**, à mesurer avant de remplir la fiche publique : Windows 11 x64, processeur double cœur, 4 Go de RAM, affichage 1280×720 et connexion Internet. Le jeu vise un affichage 1920×1080 sur télévision. La taille à réserver doit être déduite de l’installation construite, avec une marge pour les mises à jour. Ces valeurs ne constituent pas des performances minimales certifiées.
+Configuration indicative **provisoire**, à mesurer avant de remplir la fiche publique : Windows 11 x64, processeur double cœur, 4 Go de RAM, affichage 1280×720 et connexion Internet. Le jeu vise un affichage 1920×1080 sur télévision. La taille à réserver doit être déduite de l’installation construite, avec une marge pour les mises à jour. Ces valeurs ne constituent pas des performances minimales certifiées.
 
 ## Visuels
 
@@ -42,6 +42,6 @@ Les sources vectorielles et PNG sont dans `source` et `assets`. Ils utilisent le
 
 Ces formats ont été vérifiés dans les références [capsules Steam](https://partner.steamgames.com/doc/store/assets/standard) et [bibliothèque Steam](https://partner.steamgames.com/doc/store/assets/libraryassets). Vérifier leurs gabarits au moment de préparer la fiche définitive.
 
-Le dossier `screenshots` contient des captures de parties réellement exécutées en 1920×1080. Les noms de joueurs et réponses sont des données de recette. La commande de capture est `npm run capture:store`, avec le serveur de développement démarré. Les captures montrent le rendu du jeu ; les capsules sont des illustrations de présentation. Une bande-annonce reste à enregistrer à partir du build retenu pour publication.
+Le dossier `screenshots` contient des captures de parties réellement exécutées en 1920×1080. Les noms de joueurs et les réponses sont des exemples de présentation. Les captures montrent le rendu du jeu ; les capsules sont des illustrations de présentation. Une bande-annonce reste à enregistrer à partir du build retenu pour publication.
 
 Ne pas publier cette fiche automatiquement : relire les textes, les catégories de contenu, les exigences réseau et la version commerciale réellement disponible avec le compte Steamworks de l’éditeur.

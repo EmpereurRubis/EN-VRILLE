@@ -21,7 +21,7 @@ npm ci
 node scripts/generate-store-assets.mjs
 ```
 
-Le rendu utilise `@resvg/resvg-js` sans accès réseau ni police système. Le script vérifie les dimensions et la transparence du logo. Les PNG sont reproductibles à dépendances identiques. Ne pas modifier directement les SVG de capsules générés : ajuster les compositions dans le script ; `source/vrill.svg` est la source éditable du personnage.
+Le rendu utilise `@resvg/resvg-js` sans accès réseau ni police système. Les PNG sont reproductibles à dépendances identiques. Ne pas modifier directement les SVG de capsules générés : ajuster les compositions dans le script ; `source/vrill.svg` est la source éditable du personnage.
 
 Ces images sont des illustrations promotionnelles. Les captures de gameplay destinées à la fiche Steam doivent provenir du jeu exécuté et sont préparées séparément.
 

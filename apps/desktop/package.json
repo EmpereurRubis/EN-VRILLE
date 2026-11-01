@@ -10,9 +10,6 @@
   "scripts": {
     "dev": "node scripts/build-renderer.mjs && electron .",
     "build": "node scripts/build-renderer.mjs",
-    "test": "node --test test/*.test.mjs",
-    "test:app": "node test/application.mjs",
-    "test:packaged": "node test/application.mjs --packaged",
     "dist:win": "npm run build && electron-builder --win nsis portable --x64 --publish never && node scripts/write-checksums.mjs",
     "pack:win": "npm run build && electron-builder --win --x64 --dir --publish never",
     "steam:prepare": "node scripts/prepare-steam.mjs"

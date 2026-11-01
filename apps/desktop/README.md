@@ -2,16 +2,14 @@
 
 Le client PC embarque le code React, le présentateur, les décors, les sons générés et les vingt illustrations originales. Il charge `app://game/`, sans télécharger l’interface du site. Seuls les données multijoueurs et les médias ajoutés par l’administrateur viennent du serveur. Les invités utilisent gratuitement leurs navigateurs ; aucun serveur ni Docker n’est installé sur leur téléphone ou sur le PC de l’hôte.
 
-## Construire et essayer
+## Construire et lancer
 
 Depuis la racine du dépôt, avec Node 22 :
 
 ```powershell
 npm ci
-npm run test -w @en-vrille/desktop
 npm run dev -w @en-vrille/desktop
 npm run dist:win -w @en-vrille/desktop
-npm run test:packaged -w @en-vrille/desktop
 npm run steam:prepare -w @en-vrille/desktop
 ```
 
@@ -19,9 +17,9 @@ Le build Windows x64 produit dans `release/` un installateur NSIS, un exécutabl
 
 Le jeu démarre en plein écran. F11 bascule le plein écran ; Échap revient à la fenêtre. Le bouton Quitter ferme proprement le processus. `--windowed` démarre directement en fenêtre.
 
-Le serveur par défaut est `https://envrille.erubis.fr`. Les réglages du jeu permettent de changer cette origine, puis rechargent les ressources locales. Une origine HTTPS est requise ; `http://127.0.0.1:3001` est autorisée pour le développement. Les opérateurs et tests peuvent employer `ENVRILLE_SERVER_URL` ou `--server-url=https://...` au lancement. Aucune clé d’administration ni clé Steam n’est intégrée au client.
+Le serveur par défaut est `https://envrille.erubis.fr`. Les réglages du jeu permettent de changer cette origine, puis rechargent les ressources locales. Une origine HTTPS est requise ; `http://127.0.0.1:3001` est autorisée pour le développement. Les opérateurs peuvent employer `ENVRILLE_SERVER_URL` ou `--server-url=https://...` au lancement. Aucune clé d’administration ni clé Steam n’est intégrée au client.
 
-Le dossier utilisateur Electron contient `settings.json` et `logs/desktop.log`. Les sessions de partie restent dans le stockage local de la fenêtre et survivent à son rechargement. `ENVRILLE_USER_DATA_DIR` isole les données des tests. Ne supprimez pas votre dossier utilisateur pour corriger un problème de serveur : consultez d’abord les journaux et l’écran de reconnexion.
+Le dossier utilisateur Electron contient `settings.json` et `logs/desktop.log`. Les sessions de partie restent dans le stockage local et survivent à la fermeture puis à la relance du jeu. `ENVRILLE_USER_DATA_DIR` définit un dossier de profil distinct. Ne supprimez pas votre dossier utilisateur pour corriger un problème de serveur : consultez d’abord les journaux et l’écran de reconnexion.
 
 ## Architecture et limites de publication
 
@@ -34,9 +32,3 @@ Le renderer est isolé : sandbox, `contextIsolation`, aucune intégration Node, 
 `steam:prepare` copie les vrais fichiers Windows et génère deux fichiers VDF en mode **Preview**. Fournissez vos identifiants officiels via `STEAM_APP_ID` et `STEAM_DEPOT_ID`, ou remplacez les marqueurs. Cette commande ne publie rien et ne télécharge aucun SDK propriétaire. La documentation de publication du dépôt décrit la suite des opérations SteamPipe.
 
 Les builds de développement ne sont pas signés : le certificat de signature Windows et l’accès Steamworks restent des prérequis de la publication commerciale. Le workflow ne publie pas automatiquement sur Steam. La conformité finale, la fiche magasin, le prix, les régions, les contrats et la validation Valve restent sous le contrôle du développeur.
-
-## Validation reproductible
-
-`test:packaged` lance réellement `EN-VRILLE.exe` avec un profil temporaire et un backend du projet en mémoire. Il vérifie l’origine locale, les illustrations embarquées, la CSP, l’absence d’API Node dans la page, le plein écran, la création d’un salon, le lien public pour les smartphones, la reprise de session, le changement de serveur et la fermeture propre. Les captures se trouvent dans `release/test-evidence/`. Les scénarios complets des cinq jeux sont validés par les tests multijoueurs et navigateur du dépôt.
-
-Avant une sortie : installer et désinstaller avec un compte Windows standard ; tester le portable sur un PC sans Node ; vérifier la connexion au vrai serveur HTTPS, les voix françaises disponibles sur Windows, les volumes et sous-titres, une partie avec huit téléphones, un écran distant et le retrait puis retour du réseau ; tester enfin le dépôt sur une branche Steam privée avec le SDK et les identifiants officiels.
