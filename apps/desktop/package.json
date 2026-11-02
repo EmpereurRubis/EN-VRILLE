@@ -12,7 +12,6 @@
     "build": "node scripts/build-renderer.mjs",
     "dist:win": "npm run build && electron-builder --win nsis portable --x64 --publish never && node scripts/write-checksums.mjs",
     "pack:win": "npm run build && electron-builder --win --x64 --dir --publish never",
-    "test:launcher": "node scripts/test-launcher.mjs",
     "steam:prepare": "node scripts/prepare-steam.mjs"
   },
   "build": {

@@ -16,3 +16,14 @@ test-results/
 *.backup
 .local/
 /[Pp]rompt*.md
+/PROMPT*.md
+/AGENTS.md
+/CLAUDE.md
+/.codex/
+/.claude/
+/.private/
+/tests/
+/playwright.config.*
+/apps/desktop/scripts/test-launcher.mjs
+/docs/IMPLEMENTATION.md
+/docs/VALIDATION.md

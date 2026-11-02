@@ -15,8 +15,6 @@ npm run dist:win -w @en-vrille/desktop
 npm run steam:prepare -w @en-vrille/desktop
 ```
 
-Le menu local peut être vérifié automatiquement sous Windows avec `npm run test:launcher -w @en-vrille/desktop`, après le build et l’installation d’Electron. Ce test lance un profil temporaire distinct, pointe vers un serveur volontairement indisponible et vérifie les boutons du menu, les paramètres persistés, les langues, les crédits et le retour au menu après erreur. Les captures sont dans `apps/desktop/test-results/launcher/`. Pour vérifier aussi le paquet construit, définir `ENVRILLE_TEST_EXECUTABLE` avec le chemin absolu de `release/win-unpacked/EN-VRILLE.exe` avant la même commande.
-
 Le build Windows x64 produit dans `release/` un installateur NSIS, un exécutable portable et `win-unpacked/EN-VRILLE.exe`. Le dossier complet `win-unpacked` est nécessaire pour exécuter cette dernière version : ne distribuez pas son seul fichier EXE. La version portable, elle, embarque tous ses fichiers. Le workflow GitHub `desktop-windows.yml` construit et archive ces distributions séparément des images serveur.
 
 La commande `dev` installe le binaire Electron s’il n’est pas déjà présent. `npm run desktop:build` compile uniquement le menu embarqué ; cela ne constitue pas un test de lancement Windows ou de packaging.

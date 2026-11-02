@@ -19,3 +19,14 @@ marketing
 *.log
 *.dump
 *.backup
+[Pp]rompt*.md
+PROMPT*.md
+AGENTS.md
+CLAUDE.md
+.codex
+.claude
+.private
+tests
+playwright.config.*
+docs/IMPLEMENTATION.md
+docs/VALIDATION.md

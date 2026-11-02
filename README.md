@@ -8,8 +8,6 @@ Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, l
 
 Le guide [PC et Steam](deploy/docs/PC-Steam.md) décrit la construction, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
 
-La refonte du parcours PC/téléphones, le contrôle manuel des jeux et leur état fonctionnel sont décrits dans [le suivi d'implémentation](docs/IMPLEMENTATION.md). Les résultats reproductibles, livrables Windows et limites de recette sont dans [le bilan de validation](docs/VALIDATION.md).
-
 ## Démarrer sur Windows / VS Code
 
 Prérequis : **Node.js 22.12 ou supérieur**, npm et Git. Aucun compte joueur, aucune clé d’IA et aucun service payant ne sont nécessaires.
@@ -30,9 +28,6 @@ Sans PostgreSQL configuré, le serveur de développement enregistre les parties 
 ```powershell
 npm run typecheck
 npm run build
-npm test
-npx playwright install chromium
-npm run test:browser
 ```
 
 `npm run typecheck` compile les contrats TypeScript sans produire de distribution. `npm run build` produit le serveur et les ressources Web ; `npm run desktop:dist` ajoute leur empaquetage Windows.
@@ -95,7 +90,7 @@ Les événements Socket.IO sont définis dans `packages/shared/src/index.ts` :
 | `room:react` | Réaction éphémère avec limite par joueur |
 | `room:replay`, `room:leave` | Rejouer ou quitter |
 
-Chaque requête reçoit un acquittement `{ ok, error?, session?, room? }`. Le serveur émet `room:state` individuellement après les changements et `room:recovered` sur le nouvel appareil approuvé. Les clients transmettent une intention ; aucun identifiant de votant fourni dans une action ne fait autorité. Les frontières publiques/privées, états, commandes et vérifications sont détaillés dans [le suivi d'implémentation](docs/IMPLEMENTATION.md).
+Chaque requête reçoit un acquittement `{ ok, error?, session?, room? }`. Le serveur émet `room:state` individuellement après les changements et `room:recovered` sur le nouvel appareil approuvé. Les clients transmettent une intention ; aucun identifiant de votant fourni dans une action ne fait autorité.
 
 La machine suit `lobby → party-intro → intro → rules → writing / prepare / presenting → reveal → voting → results → leaderboard → transition → podium`. Chaque jeu utilise les étapes adaptées : plusieurs présentations pour les ventes, interventions successives au Tribunal, vote direct pour Qui parmi nous. `phaseStartedAt`, les échéances et `progress` viennent du serveur ; les révélations et compteurs de la scène s’appuient sur ces données. Chaque jeu définit sa préparation, les entrées autorisées, le vote et le calcul des points. Pour ajouter un jeu, étendre le catalogue et le contrat partagé, le moteur, la bibliothèque et sa vue React.
 
