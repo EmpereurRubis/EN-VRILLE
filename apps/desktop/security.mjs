@@ -2,7 +2,7 @@ import path from 'node:path';
 
 export const DEFAULT_SERVER_URL = 'https://envrille.erubis.fr';
 export const LOCAL_ORIGIN = 'app://game';
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 export function isPlatformDocument(input, serverUrl) {
   try { const url = new URL(input); return !url.username && !url.password && url.origin === validateServerUrl(serverUrl); }

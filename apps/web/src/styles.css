@@ -5282,3 +5282,38 @@ select option {
 @media(prefers-reduced-motion:reduce){.house-decoy.working .decoy-machine{animation:none}}
 @media(max-width:650px){.header-actions .language-select{font-size:.7rem}.header-actions .language-select select{max-width:84px;padding:5px}.caption-slide-controls .button{font-size:.8rem;padding:10px}.cinema-phone-frame{margin-left:-10px;margin-right:-10px}.header-actions{gap:5px}}
 @media(max-width:480px){.site-header{flex-wrap:wrap;gap:8px}.header-actions{margin-left:auto}.site-header .connection{display:none}}
+
+/* The display identity has no player controls. Its menu is a local recovery tool. */
+.display-client{height:100dvh;display:flex;flex-direction:column;overflow:hidden;background:#171319;color:#fff3dc}
+.display-client>.site-header,.display-client>.site-footer{display:none}
+.display-client>main{flex:1;min-height:0;overflow:hidden}
+.display-client .scene-room{height:100%;padding:0;max-width:none}
+.display-client .show-stage{height:100%;width:100%;max-width:none;margin:0;border:0;border-radius:0;aspect-ratio:auto;box-shadow:none}
+.display-client .show-stage-main{flex:1;min-height:0;align-items:center}
+.display-client .show-stage-content{max-height:100%;padding-block:8px;overflow:auto;scrollbar-width:thin}
+.display-technical{position:fixed;right:10px;top:9px;z-index:80;color:#fff3dc}
+.display-technical>summary{display:grid;place-items:center;width:30px;height:30px;cursor:pointer;opacity:.25;list-style:none}
+.display-technical>summary:hover,.display-technical[open]>summary{opacity:1}
+.display-technical>div{display:grid;gap:10px;padding:16px;background:#261c27;border:1px solid #765065;border-radius:10px}
+.display-technical button{padding:10px;color:inherit;text-align:left}
+.room-access{padding-block:clamp(45px,10vh,130px);max-width:1100px}
+.room-access>h1{font-size:clamp(36px,5.8vw,76px);line-height:1.05;letter-spacing:-.05em;margin:18px 0 24px}
+.room-access>p{font-size:clamp(16px,2vw,24px);max-width:820px;line-height:1.6}
+.room-access-actions{display:flex;flex-wrap:wrap;gap:18px;margin:35px 0}
+.resume-session{padding:22px;display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:25px 0}
+.resume-session>strong{font-size:20px;flex:1;min-width:220px}
+.resume-session>span{color:var(--muted)}
+.controller-pairing{padding:22px;margin:20px 0}
+.controller-pairing>summary{display:flex;align-items:center;gap:10px;font-weight:800;cursor:pointer}
+.controller-pairing>p{font-size:15px;line-height:1.6;margin:16px 0}
+.controller-pairing input{font-size:24px;letter-spacing:.15em;text-transform:uppercase}
+.recovery-form{margin-top:22px;line-height:1.6}.recovery-form>summary{cursor:pointer;font-weight:700}.recovery-form>p{font-size:14px;color:var(--muted);margin:12px 0}.recovery-requests{padding:20px;margin-bottom:20px}.recovery-requests>h2{font-size:22px;margin-bottom:10px}.recovery-requests>p{line-height:1.6;color:var(--muted)}.recovery-requests>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:12px}
+.timer-unlimited{font-size:12px;font-weight:700;color:var(--muted)}
+.caption-playback-controls{display:flex;flex-wrap:wrap;gap:12px}
+.caption-playback-controls>.button{flex:1;min-width:160px}
+.caption-playback-controls>.field-label{width:100%}
+.controller-host-controls .button:disabled{opacity:.45;cursor:default}
+.controller-host-controls details .field-label{margin-block:15px}
+.personal-result .party-points{display:block;font-size:19px;font-weight:800;color:var(--brand-red);margin:12px 0}.personal-result>small{display:block;font-size:12px;color:var(--muted);line-height:1.6;max-width:550px;margin:15px auto 0}
+.controller-panel textarea,.controller-panel input{scroll-margin-block:100px}
+@media(max-width:600px){.room-access{padding:40px 20px}.room-access-actions>.button{width:100%}.controller-room{padding-bottom:env(safe-area-inset-bottom,20px)}.controller-host-controls>.button{flex-basis:100%}.resume-session>.button{width:100%}}

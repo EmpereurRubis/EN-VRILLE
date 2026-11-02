@@ -14,6 +14,8 @@
     "dev": "concurrently -k -n API,WEB -c magenta,cyan \"npm run dev -w @en-vrille/api\" \"npm run dev -w @en-vrille/web\"",
     "build": "npm run build -w @en-vrille/api && npm run build -w @en-vrille/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "node --import tsx --test tests/party.test.ts tests/games.test.ts",
+    "test:browser": "npm run build -w @en-vrille/web && playwright test",
     "desktop:build": "npm run build -w @en-vrille/desktop",
     "desktop:dist": "npm run dist:win -w @en-vrille/desktop",
     "steam:prepare": "npm run steam:prepare -w @en-vrille/desktop",
@@ -21,6 +23,7 @@
     "check": "npm run typecheck && npm run build"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.15.0",
     "concurrently": "^9.2.1",
     "tsx": "^4.20.6",

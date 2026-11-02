@@ -9,6 +9,7 @@ import type {
   ReactionView,
   CinemaScene,
   CaptionAwards,
+  CinemaPlayback,
 } from "@en-vrille/shared";
 
 export interface Player {
@@ -27,7 +28,7 @@ export interface Player {
   previousRank: number;
   roundWins: number;
   gameWins: number;
-  history: { gameId: GameId; points: number; reason: string }[];
+  history: { gameId: GameId; points: number; gamePoints?: number; reason: string }[];
 }
 export interface InternalAnswer {
   id: string;
@@ -51,6 +52,11 @@ export interface Round {
   prepared: string[];
   missions: Record<string, { word: string; completed: boolean }>;
   presentationIndex: number;
+  revealIndex: number;
+  resultIndex: number;
+  pitchStage?: "wheel" | "selected" | "speaking";
+  pitchFinalResults?: boolean;
+  sellerOrder?: string[];
   courtStep?: string;
   roles?: CourtRoles;
   results: RoundResult[];
@@ -75,11 +81,18 @@ export interface Round {
     slideStartedAt: number;
     awardVotes: Record<string, Partial<Record<"film" | "actor" | "line", string>>>;
     awards?: CaptionAwards;
+    playback: CinemaPlayback;
   };
 }
 export interface Room {
   code: string;
   hostId: string;
+  display: { id: string; tokenHash: string; connected: boolean };
+  pairingCode?: string;
+  transitionId: string;
+  collectionClosed: boolean;
+  podiumStep: number;
+  pausedForController?: boolean;
   config: RoomConfig;
   players: Player[];
   phase: Phase;
@@ -100,6 +113,7 @@ export interface Room {
   updatedAt: number;
   usedContentIds: string[];
   gameStartScores: Record<string, number>;
+  normalizationFactors: Partial<Record<GameId, number>>;
   usedDecoyIds?: string[];
   usedCinemaIds?: string[];
 }

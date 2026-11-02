@@ -35,6 +35,7 @@ import {
   Play,
   Plus,
   Radio,
+  RotateCcw,
   Settings,
   Shield,
   Shuffle,
@@ -79,8 +80,17 @@ const socket: Socket<ServerEvents, ClientEvents> = io(serverOrigin || undefined,
   reconnection: true,
   auth: { protocolVersion: PROTOCOL_VERSION, clientKind: isDesktop ? "desktop" : "web" },
 });
-const sessionStore = isDesktop ? localStorage : sessionStorage;
-const SESSION_STORAGE_KEY = isDesktop ? `vrille-session:${serverOrigin}` : "vrille-session";
+type StoredSession = Session & { label?: string };
+const pageParameters = new URLSearchParams(location.search);
+const displayPage = isDesktop || pageParameters.get('display') === '1' || pageParameters.get('screen') === '1';
+const sessionKey = (kind: Session['clientKind']) => `vrille-session:v3:${serverOrigin || location.origin}:${kind}`;
+function readStoredSession(): StoredSession | null {
+  try {
+    const kind = displayPage ? 'DISPLAY_CLIENT' : pageParameters.has('room') ? 'PLAYER_CLIENT' : sessionStorage.getItem('vrille-client-kind') || 'PLAYER_CLIENT';
+    const value = JSON.parse(localStorage.getItem(sessionKey(kind as Session['clientKind'])) || 'null') as StoredSession | null;
+    return value?.token && value.clientKind === kind ? value : null;
+  } catch { return null; }
+}
 type Event = keyof ClientEvents;
 type Screen = "home" | "games" | "rules";
 const icons: Record<GameId, typeof Sparkles> = {
@@ -193,12 +203,15 @@ function App() {
   const launchErrorReason = new URLSearchParams(location.search).get('connectionError');
   const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
+  const [resumeSession, setResumeSession] = useState<StoredSession | null>(readStoredSession);
+  const activeSession = useRef<StoredSession | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
   const [dialog, setDialog] = useState<"create" | "join" | "settings" | "credits" | null>(
     null,
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const creating = useRef(false);
   const [connected, setConnected] = useState(socket.connected);
   const [connectionError, setConnectionError] = useState("");
   const [reduced, setReduced] = useState(() =>
@@ -213,6 +226,9 @@ function App() {
   const request = useCallback(
     async (event: Event, payload: unknown = {}): Promise<Ack> => {
       setError("");
+      // The remembered display name is device metadata, outside the strict session contract.
+      const session = event === 'room:resume' ? payload as StoredSession : null;
+      const data = session ? { code: session.code, clientId: session.clientId, clientKind: session.clientKind, token: session.token } : payload;
       return await new Promise((resolve) => {
         if (!socket.connected) {
           const ack = {
@@ -230,7 +246,7 @@ function App() {
             payload: unknown,
             callback: (error: Error | null, response: Ack) => void,
           ) => void
-        )(event, payload, (err, response) => {
+        )(event, data, (err, response) => {
           const ack = err
             ? {
                 ok: false,
@@ -239,11 +255,15 @@ function App() {
             : response;
           if (!ack?.ok)
             setError(ack?.error || "Cette action n’a pas pu être effectuée.");
-          if (ack?.session)
-            sessionStore.setItem(
-              SESSION_STORAGE_KEY,
-              JSON.stringify(ack.session),
-            );
+          if (ack?.session) {
+            const stored: StoredSession = { ...ack.session, label: ack.room?.players.find(player => player.id === ack.room?.me.id)?.name || (ack.session.clientKind === 'DISPLAY_CLIENT' ? 'Écran TV' : activeSession.current?.label) };
+            activeSession.current = stored;
+            setResumeSession(stored);
+            try {
+              localStorage.setItem(sessionKey(stored.clientKind), JSON.stringify(stored));
+              sessionStorage.setItem('vrille-client-kind', stored.clientKind);
+            } catch { /* The active session remains usable when storage is unavailable. */ }
+          }
           if (ack?.room) setRoom(ack.room);
           resolve(ack);
         });
@@ -257,25 +277,32 @@ function App() {
       setConnected(true);
       setConnectionError("");
       try {
-        const s = JSON.parse(
-          sessionStore.getItem(SESSION_STORAGE_KEY) || "null",
-        ) as Session | null;
+        const s = activeSession.current;
         if (s && resumedSocket.current !== socket.id) {
           resumedSocket.current = socket.id;
-          void request("room:resume", s).then((ack) => {
-            if (!ack.ok) sessionStore.removeItem(SESSION_STORAGE_KEY);
-          });
+          void request("room:resume", s);
         }
       } catch {
-        sessionStore.removeItem(SESSION_STORAGE_KEY);
+        /* Keep the recovery token after a temporary connection failure. */
       }
     };
     const disconnect = () => setConnected(false);
     const connectionFailed = (error: Error) => setConnectionError(error.message || "Le serveur ne répond pas.");
+    const recovered = (ack: Ack) => {
+      if (!ack.ok || !ack.session || !ack.room) return;
+      const stored: StoredSession = { ...ack.session, label: ack.room.players.find(player => player.id === ack.room?.me.id)?.name };
+      activeSession.current = stored;
+      setResumeSession(stored);
+      try { localStorage.setItem(sessionKey(stored.clientKind),JSON.stringify(stored)); sessionStorage.setItem('vrille-client-kind',stored.clientKind); } catch { /* The live session remains available. */ }
+      setRoom(ack.room);
+      setDialog(null);
+      setError('');
+    };
     socket.on("connect", connect);
     socket.on("disconnect", disconnect);
     socket.on("connect_error", connectionFailed);
     socket.on("room:state", setRoom);
+    socket.on('room:recovered', recovered);
     socket.on("server:error", setError);
     socket.connect();
     if (socket.connected) connect();
@@ -284,6 +311,7 @@ function App() {
       socket.off("disconnect", disconnect);
       socket.off("connect_error", connectionFailed);
       socket.off("room:state", setRoom);
+      socket.off('room:recovered', recovered);
       socket.off("server:error", setError);
     };
   }, [request, launcher]);
@@ -292,23 +320,36 @@ function App() {
     void desktop?.setPreferences?.({ reduced }).catch(() => {});
   }, [reduced]);
   useEffect(() => {
-    if (new URLSearchParams(location.search).has("room")) setDialog("join");
+    const invitedCode = new URLSearchParams(location.search).get('room')?.toUpperCase();
+    if (invitedCode && (!resumeSession || resumeSession.code !== invitedCode)) setDialog('join');
   }, []);
   const leave = async () => {
     const ack = await request("room:leave");
     if (ack.ok) {
-      sessionStore.removeItem(SESSION_STORAGE_KEY);
+      if (activeSession.current) localStorage.removeItem(sessionKey(activeSession.current.clientKind));
+      activeSession.current = null;
+      setResumeSession(null);
       setRoom(null);
       setScreen("home");
       setError("");
     }
   };
+  const createDisplay = async () => {
+    if (creating.current) return;
+    creating.current = true;
+    setBusy(true);
+    const ack = await request('room:create');
+    setBusy(false);
+    creating.current = false;
+    if (ack.ok) setDialog(null);
+  };
   const admin = location.pathname.startsWith("/admin");
+  const displayRoom = room?.me.clientKind === 'DISPLAY_CLIENT';
   return (
     <MotionConfig reducedMotion={reduced ? "always" : "user"}>
-      <ShowProvider reducedMotion={reduced}>
+      <ShowProvider reducedMotion={reduced} displayAudio={displayPage || displayRoom}>
       <div
-        className={`app ${isDesktop ? "desktop-client" : ""} ${launcher ? "desktop-launcher" : ""} ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
+        className={`app ${isDesktop ? "desktop-client" : ""} ${displayRoom ? 'display-client' : ''} ${launcher ? "desktop-launcher" : ""} ${room ? "in-room" : ""} ${reduced ? "reduce-motion" : ""}`}
       >
         <header className="site-header">
           <button
@@ -340,7 +381,7 @@ function App() {
             </nav>
           )}
           <div className="header-actions">
-            {!launcher && <LanguageSelect />}
+            {!launcher && !room && <LanguageSelect />}
             {isDesktop && !launcher && <button className="icon-button" title={t('menu.back')} aria-label={t('menu.back')} onClick={() => void desktop?.returnToLauncher?.()}><ArrowLeft size={20}/></button>}
             <FullscreenButton />
             {room && (
@@ -381,6 +422,7 @@ function App() {
             )}
           </div>
         </header>
+        {displayRoom && <details className="display-technical"><summary aria-label={t('legacy.s018')}><Settings size={17}/></summary><div><button onClick={() => setDialog('settings')}>{t('menu.settings')}</button><FullscreenButton/><button onClick={() => void leave()}>{t('party.closeDisplay')}</button>{isDesktop && <button onClick={() => void desktop?.returnToLauncher?.()}>{t('menu.back')}</button>}</div></details>}
         {!connected && !isDesktop && (
           <div className="connection-banner" role="status">
             <LoaderCircle size={16} className="spin" /> {connectionError || t('legacy.s020')}
@@ -413,20 +455,18 @@ function App() {
                 transition={{ duration: 0.2 }}
               >
                 {screen === "home" ? (
-                  <>
-                    <IntroSplash />
-                    <MainMenu
-                      onCreate={() => setDialog("create")}
-                      onJoin={() => setDialog("join")}
-                      onRules={() => setScreen("rules")}
-                      onSettings={() => setDialog("settings")}
-                      onCredits={() => setDialog("credits")}
-                    />
-                  </>
+                  <section className="room-access page-width">
+                    <div className="eyebrow">EN VRILLE !</div>
+                    <h1>{t(displayPage ? 'party.accessTitle' : 'party.mobileTitle')}</h1>
+                    <p>{t(displayPage ? 'party.accessHelp' : 'party.mobileHelp')}</p>
+                    {resumeSession && <div className="resume-session panel"><strong>{t('party.resumeTitle', { name: resumeSession.label || resumeSession.code })}</strong><span>{t('party.room', { code: resumeSession.code })}</span><button data-testid="resume-session" className="button primary" disabled={busy || !connected} onClick={async () => { setBusy(true); const ack = await request('room:resume', resumeSession); if (ack.ok) setDialog(null); setBusy(false); }}>{t('party.resume')}</button></div>}
+                    <div className="room-access-actions"><button data-testid="create-display" className="button primary large" disabled={busy || !connected} onClick={() => void createDisplay()}><Monitor size={23}/>{t('party.createDisplay')}</button>{!displayPage && <button className="button outline large" onClick={() => setDialog('join')}><Gamepad2 size={23}/>{t('menu.join')}</button>}</div>
+                    <p className="muted">{t('party.separateDevices')}</p>
+                  </section>
                 ) : screen === "games" ? (
-                  <GameCatalog onCreate={() => setDialog("create")} />
+                  <GameCatalog onCreate={() => void createDisplay()} />
                 ) : (
-                  <Rules create={() => setDialog("create")} />
+                  <Rules create={() => void createDisplay()} />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -495,17 +535,9 @@ function App() {
                   <button className="button primary full" onClick={() => setDialog(null)}>{t('legacy.s043')}</button>
                 </div>
               ) : dialog === "create" ? (
-                <CreateWizard busy={busy} submit={async (data, config) => {
-                  setBusy(true);
-                  const ack = await request("room:create", data);
-                  if (ack.ok) {
-                    const configured = await request("room:configure", config);
-                    if (configured.ok) setDialog(null);
-                  }
-                  setBusy(false);
-                }} />
+                <button className="button primary full" disabled={busy} onClick={() => void createDisplay()}>{t('party.createDisplay')}</button>
               ) : (
-                <IdentityForm mode="join" busy={busy} submit={async (data) => {
+                <IdentityForm busy={busy} request={request} submit={async (data) => {
                   setBusy(true);
                   const ack = await request("room:join", data);
                   setBusy(false);
@@ -692,62 +724,17 @@ function Modal({
   );
 }
 
-function CreateWizard({ busy, submit }: {
-  busy: boolean;
-  submit: (data: { name: string; avatar: string; hostPlays?: boolean }, config: RoomConfig) => void;
-}) {
-  const [step, setStep] = useState(0);
-  const { language, t } = useI18n();
-  const [config, setConfig] = useState<RoomConfig>(() => ({ ...structuredClone(DEFAULT_CONFIG), language }));
-  const update = <K extends keyof RoomConfig>(key: K, value: RoomConfig[K]) => setConfig((previous) => ({ ...previous, [key]: value }));
-  return (
-    <div className="creation-wizard">
-      <ol className="wizard-steps" aria-label={t('legacy.s118')}>
-        {['mood', 'programme', 'identity'].map((key, index) => <li key={key} aria-current={step === index ? "step" : undefined}><span>{index + 1}</span>{t(`wizard.${key}`)}</li>)}
-      </ol>
-      {step === 0 ? <>
-        <h2>{t('legacy.s120')}</h2>
-        <div className="creation-modes">
-          <button className={config.mode === "custom" ? "selected" : ""} aria-pressed={config.mode === "custom"} onClick={() => update("mode", "custom")}><Gamepad2 size={34}/><strong>{t('legacy.s122')}</strong><span>{t('legacy.s123')}</span></button>
-          <button className={config.mode === "random" ? "selected" : ""} aria-pressed={config.mode === "random"} onClick={() => update("mode", "random")}><Shuffle size={34}/><strong>{t('legacy.s124')}</strong><span>{t('legacy.s125')}</span></button>
-        </div>
-        <button className="button primary full" onClick={() => setStep(1)}>{t('legacy.s126')}<ArrowRight size={18}/></button>
-      </> : step === 1 ? <>
-        <h2>{config.mode === "custom" ? t('legacy.s127') : t('legacy.s128')}</h2>
-        <GameSelection config={config} onChange={setConfig}/>
-        <details className="wizard-options"><summary>{t('legacy.s129')}</summary>
-          <label className="field-label">{t('settings.stageLanguage')}<select value={config.language} onChange={(event) => update('language', event.target.value as 'fr' | 'en')}><option value="fr">{"Français"}</option><option value="en">{"English"}</option></select></label>
-          <label className="field-label">{t('captions.length')}<select value={config.captionLength} onChange={(event) => update('captionLength', event.target.value as RoomConfig['captionLength'])}><option value="short">{t('captions.short')}</option><option value="normal">{t('captions.normal')}</option><option value="long">{t('captions.long')}</option></select></label>
-          <div className="field-grid"><NumberField label={t('legacy.s132')} value={config.answerSeconds} min={15} max={180} onChange={(value) => update("answerSeconds", value)}/><NumberField label={t('legacy.s133')} value={config.voteSeconds} min={10} max={120} onChange={(value) => update("voteSeconds", value)}/><NumberField label={t('legacy.s134')} value={config.presentationSeconds} min={15} max={180} onChange={(value) => update("presentationSeconds", value)}/></div>
-          <Toggle label={t('legacy.s135')} checked={config.noPoints} onChange={(value) => update("noPoints", value)}/>
-          <Toggle label={t('legacy.s136')} checked={config.reactionsEnabled} onChange={(value) => update("reactionsEnabled", value)}/>
-          <Toggle label={t('legacy.s137')} description={t('legacy.s138')} checked={config.secretRoles} onChange={(value) => update("secretRoles", value)}/>
-          <Toggle label={t('legacy.s139')} description={t('legacy.s140')} checked={config.autoAdvance} onChange={(value) => update("autoAdvance", value)}/>
-          <Toggle label={t('legacy.s141')} checked={config.adult} onChange={(value) => update("adult", value)}/>
-        </details>
-        <p className="fineprint">{t('legacy.s142')}</p>
-        <div className="wizard-navigation"><button className="button outline" onClick={() => setStep(0)}><ArrowLeft size={17}/>{t('legacy.s143')}</button><button className="button primary" disabled={config.mode === "custom" ? !config.playlist.length : !config.allowedGames.length} onClick={() => setStep(2)}>{t('legacy.s144')}<ArrowRight size={17}/></button></div>
-      </> : <>
-        <button className="text-button" onClick={() => setStep(1)}><ArrowLeft size={16}/>{t('legacy.s145')}</button>
-        <IdentityForm mode="create" busy={busy} submit={(data) => submit(data, config)}/>
-      </>}
-    </div>
-  );
-}
-
 function IdentityForm({
-  mode,
   busy,
+  request,
   submit,
 }: {
-  mode: "create" | "join";
   busy: boolean;
+  request: Request;
   submit: (data: {
     name: string;
     avatar: string;
     code?: string;
-    spectator?: boolean;
-    hostPlays?: boolean;
   }) => void;
 }) {
   const { t } = useI18n();
@@ -757,8 +744,8 @@ function IdentityForm({
     saved("vrille-avatar", AVATARS[0]),
   );
   const [code, setCode] = useState(params.get("room")?.toUpperCase() || "");
-  const [spectator, setSpectator] = useState(params.get("screen") === "1");
-  const [hostPlays, setHostPlays] = useState(!isDesktop);
+  const [recovering, setRecovering] = useState(false);
+  const [recoveryPending, setRecoveryPending] = useState(false);
   return (
     <form
       onSubmit={(e) => {
@@ -766,15 +753,13 @@ function IdentityForm({
         localStorage.setItem("vrille-name", JSON.stringify(name));
         localStorage.setItem("vrille-avatar", JSON.stringify(avatar));
         submit({
-          name: mode === "join" && spectator ? "Écran TV" : name.trim(),
+          name: name.trim(),
           avatar,
-          ...(mode === "join"
-            ? { code: code.toUpperCase().trim(), spectator }
-            : { hostPlays }),
+          code: code.toUpperCase().trim(),
         });
       }}
     >
-      {mode === "join" && (
+      {
         <label className="field-label">
           {t('legacy.s146')}<input
             className="code-input"
@@ -789,8 +774,8 @@ function IdentityForm({
             }
           />
         </label>
-      )}
-      {(mode === "create" || !spectator) && (
+      }
+      {
         <>
           <label className="field-label">
             {t('legacy.s148')}<input
@@ -821,29 +806,17 @@ function IdentityForm({
             </div>
           </fieldset>
         </>
-      )}
-      {mode === "join" && (
-        <Toggle
-          checked={spectator}
-          onChange={setSpectator}
-          label={t('legacy.s151')}
-          description={t('legacy.s152')}
-        />
-      )}
-      {mode === "create" && <Toggle checked={hostPlays} onChange={setHostPlays} label={t('legacy.s153')} description={t('legacy.s154')}/>}
-      <button className="button primary full" type="submit" disabled={busy}>
+      }
+      <button className="button primary full" type="submit" disabled={busy || recoveryPending}>
         {busy ? (
           <LoaderCircle className="spin" size={20} />
-        ) : mode === "create" ? (
-          <>
-            {t('legacy.s155')}<ArrowRight size={20} />
-          </>
         ) : (
           <>
             {t('legacy.s156')}<ArrowRight size={20} />
           </>
         )}
       </button>
+      <details className="recovery-form"><summary>{t('party.recoverTitle')}</summary><p>{t('party.recoverHelp')}</p>{recoveryPending?<p role="status">{t('party.recoverPending')}</p>:<button data-testid="request-recovery" type="button" className="button outline full" disabled={recovering || code.trim().length!==6 || name.trim().length<2} onClick={async()=>{setRecovering(true);const ack=await request('room:recovery-request',{code:code.trim().toUpperCase(),name:name.trim()});setRecoveryPending(ack.ok);setRecovering(false);}}>{t('party.recoverRequest')}</button>}</details>
       <p className="fineprint">
         {t('legacy.s157')}</p>
     </form>
@@ -884,22 +857,24 @@ function Toggle({
 type Request = (event: Event, payload?: unknown) => Promise<Ack>;
 
 function Room({ room, request, notify, onLeave }: { room: RoomSnapshot; request: Request; notify: (v: string) => void; onLeave: () => void; }) {
-  const { t } = useI18n();
   const host = room.me.id === room.hostId;
-  const me = room.players.find((player) => player.id === room.me.id)!;
-  const [view, setView] = useState<"controller" | "stage">(isDesktop || me.spectator ? "stage" : "controller");
-  const stage = (me.spectator && !host) || view === "stage";
+  const display = room.me.clientKind === 'DISPLAY_CLIENT';
+  const me = room.players.find((player) => player.id === room.me.id);
   return (
-    <div data-testid="phase" data-phase={room.phase} className={`room-page ${stage ? "scene-room" : "page-width controller-room"}`}>
-      {(!me.spectator || host) && <div className="room-view-switch" aria-label={t('legacy.s158')}>
-        <button className={stage ? "" : "selected"} aria-pressed={!stage} onClick={() => setView("controller")}><Gamepad2 size={17}/>{me.spectator ? t('legacy.s159') : t('legacy.s160')}</button>
-        <button className={stage ? "selected" : ""} aria-pressed={stage} onClick={() => setView("stage")}><Monitor size={17}/>{t('legacy.s161')}</button>
-      </div>}
-      {stage ? <SceneStage room={room} host={host} request={request} onController={me.spectator && !host ? undefined : () => setView("controller")} onMenu={onLeave}/>
+    <div data-testid="phase" data-phase={room.phase} data-client-kind={room.me.clientKind} className={`room-page ${display ? "scene-room" : "page-width controller-room"}`}>
+      {!display && host && <RecoveryApprovals room={room} request={request}/>}
+      {display ? <SceneStage room={room} host={false} request={request}/>
         : room.phase === "lobby" ? host ? <Lobby room={room} request={request} notify={notify} host={host}/> : <ControllerLobby room={room} request={request}/>
-        : <Gameplay room={room} request={request} host={host} spectator={me.spectator} onMenu={onLeave}/>}
+        : <Gameplay room={room} request={request} host={host} spectator={!!me?.spectator} onMenu={onLeave}/>}
     </div>
   );
+}
+
+function RecoveryApprovals({room,request}:{room:RoomSnapshot;request:Request}) {
+  const {t}=useI18n();
+  const [sending,setSending]=useState(false);
+  if (!room.recoveryRequests?.length) return null;
+  return <section className="recovery-requests panel"><h2>{t('party.recoveryRequests')}</h2><p>{t('party.recoveryApprovalHelp')}</p>{room.recoveryRequests.map(recovery=><div key={recovery.requestId}><strong>{recovery.name}</strong><button data-testid="approve-recovery" className="button outline" disabled={sending} onClick={async()=>{setSending(true);await request('room:approve-recovery',{requestId:recovery.requestId});setSending(false);}}>{t('party.recoveryApprove')}</button></div>)}</section>;
 }
 
 function Participation({ room }: { room: RoomSnapshot }) {
@@ -930,8 +905,17 @@ function ControllerLobby({ room, request }: { room: RoomSnapshot; request: Reque
     <ControllerIdentity room={room}/>
     <section className="panel controller-panel"><div className="eyebrow">{t('legacy.s167')}</div><h1>{me.ready ? t('legacy.s168') : t('legacy.s169')}</h1><p>{t('legacy.s170')}</p><Participation room={room}/><button className={`button full large ${me.ready ? "green" : "primary"}`} aria-label={t('legacy.s171')} onClick={() => void request("room:ready", { ready: !me.ready })}>{me.ready ? <><Check size={21}/>{t('legacy.s172')}</> : <>{t('legacy.s171')}<ArrowRight size={21}/></>}</button></section>
     <div className="controller-casting">{room.players.filter((player) => !player.spectator).map((player) => <motion.div key={player.id} initial={{ opacity: 0, scale: .8 }} animate={{ opacity: 1, scale: 1 }}><Avatar player={player}/><span>{player.name}</span>{player.ready && <Check size={15}/>}</motion.div>)}</div>
+    {!room.hostId && <ControllerPairing request={request}/>}
     <Reactions room={room} request={request}/>
   </div>;
+}
+
+function ControllerPairing({ request }: { request: Request }) {
+  const { t } = useI18n();
+  const [code, setCode] = useState('');
+  const [sending, setSending] = useState(false);
+  const pending = useRef(false);
+  return <details className="controller-pairing panel"><summary><Crown size={18}/>{t('party.claimTitle')}</summary><p>{t('party.claimHelp')}</p><form onSubmit={async event => { event.preventDefault(); if (pending.current) return; pending.current = true; setSending(true); try { await request('room:claim-control', { pairingCode: code.trim().toUpperCase() }); } finally { pending.current = false; setSending(false); } }}><label className="field-label">{t('party.pairingCode')}<input data-testid="claim-control-code" autoComplete="off" autoCapitalize="characters" spellCheck={false} required value={code} onChange={event => setCode(event.target.value)} maxLength={12}/></label><button data-testid="claim-control-submit" className="button primary full" disabled={sending || !code.trim()}><Crown size={18}/>{t('party.claim')}</button></form></details>;
 }
 
 function Lobby({
@@ -959,6 +943,11 @@ function Lobby({
   const active = room.players.filter((p) => !p.spectator);
   const me = room.players.find((p) => p.id === room.me.id)!;
   useEffect(() => setConfig(room.config), [JSON.stringify(room.config)]);
+  useEffect(() => {
+    if (!host || JSON.stringify(config) === JSON.stringify(room.config) || (config.mode === 'custom' && !config.playlist.length)) return;
+    const timer = window.setTimeout(() => { void request('room:configure', config); }, 400);
+    return () => window.clearTimeout(timer);
+  }, [config, room.config, host, request]);
   const update = <K extends keyof RoomConfig>(key: K, value: RoomConfig[K]) =>
     setConfig((c) => ({ ...c, [key]: value }));
   const add = (gameId: GameId) => {
@@ -1088,16 +1077,7 @@ function Lobby({
                 )}
               </button>
             )}
-            <a
-              className="tv-link"
-              target="_blank"
-              rel="noreferrer"
-              href={`${room.inviteUrl}${room.inviteUrl.includes("?") ? "&" : "?"}screen=1`}
-              onClick={(event) => { if (desktop) { event.preventDefault(); void desktop.openExternal(`${room.inviteUrl}${room.inviteUrl.includes("?") ? "&" : "?"}screen=1`).catch(() => notify("Copiez le lien d’invitation et ajoutez &screen=1 dans votre navigateur.")); } }}
-            >
-              <Monitor size={17} />
-              {t('legacy.s187')}<ExternalLink size={14} />
-            </a>
+            <p className="small muted">{t('party.separateDevices')}</p>
           </section>
           <div className="lobby-tip">
             <Sparkles size={21} />
@@ -1148,24 +1128,24 @@ function Lobby({
                 <NumberField
                   label={t('legacy.s193')}
                   value={config.answerSeconds}
-                  min={15}
-                  max={180}
+                  min={0}
+                  max={600}
                   disabled={!host}
                   onChange={(v) => update("answerSeconds", v)}
                 />
                 <NumberField
                   label={t('legacy.s194')}
                   value={config.voteSeconds}
-                  min={10}
-                  max={120}
+                  min={0}
+                  max={300}
                   disabled={!host}
                   onChange={(v) => update("voteSeconds", v)}
                 />
                 <NumberField
                   label={t('legacy.s195')}
                   value={config.presentationSeconds}
-                  min={15}
-                  max={180}
+                  min={0}
+                  max={600}
                   disabled={!host}
                   onChange={(v) => update("presentationSeconds", v)}
                 />
@@ -1210,6 +1190,7 @@ function Lobby({
                   </select>
                 </label>
               </div>
+              <p className="small muted">{t('party.timerHelp')}</p>
               <Toggle
                 label={t('legacy.s135')}
                 checked={config.noPoints}
@@ -1309,7 +1290,7 @@ function Lobby({
               </fieldset>
               <Toggle
                 label={t('legacy.s214')}
-                description={t('legacy.s215')}
+                description={t('party.balanceHelp')}
                 checked={config.balanced}
                 disabled={!host}
                 onChange={(v) => update("balanced", v)}
@@ -1351,6 +1332,7 @@ function Lobby({
             {host ? (
               <>
                 <button
+                  data-testid="controller-start"
                   className="button primary full large"
                   disabled={starting}
                   onClick={() => void start()}
@@ -1437,6 +1419,7 @@ function Countdown({ room }: { room: RoomSnapshot }) {
     const interval = setInterval(() => setTime(Date.now()), 200);
     return () => clearInterval(interval);
   }, []);
+  if (!room.deadline) return <span className="timer-unlimited">{t('party.noTimer')}</span>;
   const seconds = room.deadline
     ? Math.max(
         0,
@@ -1495,7 +1478,7 @@ function Gameplay({ room, request, host, spectator, onMenu }: { room: RoomSnapsh
       {r && g.id === "captions" && room.phase === "presenting" && <CaptionPresentation room={room} request={request} host={host}/>}{r && g.id !== "captions" && room.phase === "presenting" && (g.id === "pitch" ? <div className="presentation-content"><div className="speaker-badge">{player(r.currentSpeakerId) && <Avatar player={player(r.currentSpeakerId)!}/>}<div><small>{t('legacy.s244')}</small><h2>{player(r.currentSpeakerId)?.name || t('legacy.s245')}{r.currentSpeakerId === me.id ? t('legacy.s246') : ""}</h2></div></div>{r.currentProduct && <ProductCard product={r.currentProduct}/>}<p>{r.currentSpeakerId === me.id ? t('legacy.s247') : t('legacy.s248')}</p><p className="manual-note">{t('legacy.s249')}</p><span className="pill">{t('legacy.s250')}{r.presentationIndex + 1} / {room.players.filter((player) => !player.spectator).length}</span></div> : <div className="court-stage"><div className="role-secret"><Gavel size={22}/><div><span>{t('legacy.s239')}</span><strong>{t(`court.roles.${room.me.courtRole || 'participant'}`) || t('legacy.s240')}</strong></div></div><div className="court-step"><h2>{t(`court.steps.${r.courtStep}`)}</h2><p>{t(`court.hints.${r.courtStep}`)}</p></div>{room.me.answer && <blockquote className="private-notes"><small>{t('legacy.s251')}</small>{room.me.answer}</blockquote>}<p className="manual-note">{t('legacy.s252')}</p></div>)}
       {r && room.phase === "voting" && (room.me.eligible ? g.id === "captions" ? <CaptionVoting room={room} action={action}/> : g.id === "pitch" ? <Ratings room={room} action={action}/> : g.id === "court" ? <CourtVote room={room} action={action}/> : <Voting room={room} action={action}/> : <ControllerWaiting title={t('legacy.s253')} text="Vous ne participez pas à ce vote. Profitez du suspense !"/>)}
       {room.phase === "reveal" && <ControllerWaiting title={t('legacy.s254')} text="Découvrez-les sur la scène. Le vote arrive juste après."/>}
-      {r?.pitchRating && room.phase === 'results' && <div className="pitch-intermediate-result"><Trophy size={28}/><h2>{player(r.pitchRating.sellerId)?.name}</h2><strong>{r.pitchRating.average.toFixed(1)} / 5</strong><p>{r.pitchRating.ratingsCount} {t('pitch.ratingsCount')}</p></div>}{r && room.phase === "results" && <><div className="personal-result"><strong>{room.config.noPoints ? t('legacy.s255') : !room.scoresVisible ? t('legacy.s256') : `${me.delta >= 0 ? "+" : ""}${me.delta} PTS`}</strong><p>{r.results.filter((result) => result.playerId === me.id).map((result) => result.reason).join(" · ") || t('legacy.s257')}</p></div>{r.answers.find((answer) => answer.authorId === me.id) && <blockquote>{r.answers.find((answer) => answer.authorId === me.id)?.text}</blockquote>}</>}
+      {r?.pitchRating && room.phase === 'results' && <div className="pitch-intermediate-result"><Trophy size={28}/><h2>{player(r.pitchRating.sellerId)?.name}</h2><strong>{r.pitchRating.average.toFixed(1)} / 5</strong><p>{r.pitchRating.ratingsCount} {t('pitch.ratingsCount')}</p></div>}{r && room.phase === "results" && <><PersonalResult room={room}/>{r.answers.find((answer) => answer.authorId === me.id) && <blockquote>{r.answers.find((answer) => answer.authorId === me.id)?.text}</blockquote>}</>}
       {["leaderboard", "podium"].includes(room.phase) && <Leaderboard room={room} final={room.phase === "podium"}/>}
       {waiting && !["reveal", "results", "leaderboard", "podium"].includes(room.phase) && <ControllerWaiting title={room.phase === "rules" ? t('legacy.s258') : t('legacy.s259')} text={room.phase === "rules" ? t(`games.${g.id}.rules`) : t('legacy.s260')}/>}
       <Participation room={room}/>
@@ -1504,6 +1487,12 @@ function Gameplay({ room, request, host, spectator, onMenu }: { room: RoomSnapsh
     {host && <HostControls room={room} request={request}/>}
     {room.phase === "podium" && <button className="button outline full" onClick={onMenu}>{t('legacy.s227')}<ArrowRight size={18}/></button>}
   </div>;
+}
+
+function PersonalResult({room}:{room:RoomSnapshot}) {
+  const {t}=useI18n();
+  const results=room.round!.results.filter(result=>result.playerId===room.me.id),gamePoints=results.reduce((sum,result)=>sum+result.points,0),partyPoints=results.reduce((sum,result)=>sum+(result.partyPoints??result.points),0),noPoints=room.config.noPoints||(room.round?.gameId==='who'&&room.config.whoNoPoints);
+  return <div className="personal-result"><strong>{noPoints?t('legacy.s255'):!room.scoresVisible?t('legacy.s256'):results.length?t('party.gamePoints',{points:gamePoints}):t('party.resultWaiting')}</strong>{!noPoints&&room.scoresVisible&&results.length>0&&partyPoints!==gamePoints&&<span className="party-points">{t('party.partyPoints',{points:partyPoints})}</span>}<p>{results.map(result=>result.reason).join(' · ')||t('legacy.s257')}</p>{!noPoints&&room.config.balanced&&results.length>0&&<small>{t('party.balanceHelp')}</small>}</div>;
 }
 
 function CaptionWriting({ room, action }: { room: RoomSnapshot; action: (data: Action) => Promise<Ack> }) {
@@ -1532,18 +1521,26 @@ function CaptionPreparation({ room }: { room: RoomSnapshot }) {
 
 function CaptionPresentation({ room, request, host }: { room: RoomSnapshot; request: Request; host: boolean }) {
   const { t } = useI18n();
+  const [sending, setSending] = useState(false);
+  const pending = useRef(false);
+  const playbackCommand = async (payload: Omit<Parameters<ClientEvents['room:caption-control']>[0], 'revision'>) => {
+    if (pending.current) return;
+    pending.current = true;
+    setSending(true);
+    try { await request('room:caption-control',{...payload,revision:room.captions!.playback.revision}); } finally { pending.current = false; setSending(false); }
+  };
   const data = room.captions;
   const story = data?.currentStory;
   if (!data || !story) return null;
   const presenter = room.players.find((player) => player.id === story.presenterId);
-  const canControl = host || story.presenterId === room.me.id;
+  const canControl = host;
   const frame = story.scene.frames[data.slideIndex];
   const line = story.lines.find((item) => item.frameIndex === data.slideIndex);
   return <div className="caption-presentation"><div className="speaker-badge">{presenter && <Avatar player={presenter}/>}<div><small>{story.presenterId === room.me.id ? t('captions.present') : t('captions.listen')}</small><h2>{presenter?.name}</h2></div></div>
     {frame && <figure className="cinema-phone-frame"><img src={serverResource(frame.url)} alt={story.title}/><figcaption className={`film-subtitle subtitle-${frame.subtitlePosition}`}>{line?.text}</figcaption></figure>}
     <p>{t('captions.manual')}</p><div className="cinema-turn"><span>{data.presentationIndex + 1} / {data.storyCount}</span><span>{data.slideIndex + 1} / {story.scene.frames.length}</span></div>
-    {canControl && <div className="caption-slide-controls"><button className="button outline" disabled={data.slideIndex === 0} aria-label={t('captions.previous')} onClick={() => void request('room:caption-control', { direction: 'previous' })}><ArrowLeft size={19}/>{t('captions.previous')}</button><button className="button primary" disabled={data.slideIndex >= story.scene.frames.length - 1} aria-label={t('captions.next')} onClick={() => void request('room:caption-control', { direction: 'next' })}>{t('captions.next')}<ArrowRight size={19}/></button></div>}
-    {host && <Toggle label={t('captions.automatic')} checked={data.autoSlides} onChange={(autoSlides) => void request('room:caption-control', { autoSlides })}/>}
+    {host && story.scene.clipUrl && <div className="caption-playback-controls"><button data-testid="projection-play-pause" className="button primary" disabled={sending || room.paused} onClick={() => void playbackCommand({playback:data.playback.playing?'pause':'play'})}>{data.playback.playing?<Pause size={19}/>:<Play size={19}/>} {t(data.playback.playing?'party.pauseProjection':'party.playProjection')}</button><button className="button outline" disabled={sending} onClick={() => void playbackCommand({playback:'restart'})}><RotateCcw size={19}/>{t('party.restartProjection')}</button><label className="field-label">{t('party.projectionMode')}<select value={data.playback.mode} disabled={sending} onChange={event => void playbackCommand({mode:event.target.value as 'video'|'slides'})}><option value="video">{t('party.video')}</option><option value="slides">{t('party.slides')}</option></select></label></div>}
+    {canControl && data.playback.mode==='slides' && <div className="caption-slide-controls"><button className="button outline" disabled={sending || data.slideIndex === 0} aria-label={t('captions.previous')} onClick={() => void playbackCommand({ direction: 'previous' })}><ArrowLeft size={19}/>{t('captions.previous')}</button><button className="button primary" disabled={sending || data.slideIndex >= story.scene.frames.length - 1} aria-label={t('captions.next')} onClick={() => void playbackCommand({ direction: 'next' })}>{t('captions.next')}<ArrowRight size={19}/></button></div>}
   </div>;
 }
 
@@ -1565,12 +1562,33 @@ function ControllerWaiting({ title, text }: { title: string; text: string }) {
 
 function HostControls({ room, request }: { room: RoomSnapshot; request: Request }) {
   const { t } = useI18n();
+  const [sending, setSending] = useState(false);
+  const [transferTo, setTransferTo] = useState('');
+  const pending = useRef(false);
+  const sentTransition = useRef('');
+  const cooldown = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(()=>()=>{if(cooldown.current)clearTimeout(cooldown.current);},[]);
+  const command = async (event: Event, payload: unknown = {}) => {
+    if (pending.current) return;
+    if (event === 'room:advance' && ((!room.advanceCommand?.enabled && !(payload as {skip?:boolean}).skip) || sentTransition.current === room.transitionId)) return;
+    pending.current = true;
+    setSending(true);
+    const unlockAt = Date.now()+(event==='room:advance' && room.round?.gameId==='pitch' && room.round.pitchStage==='wheel'?3200:800);
+    if (event === 'room:advance') sentTransition.current = room.transitionId;
+    try {
+      const ack = await request(event, event === 'room:advance' ? { ...(payload as object), transitionId: room.transitionId } : payload);
+      if (!ack.ok) sentTransition.current = '';
+    } finally { cooldown.current=setTimeout(()=>{pending.current=false;setSending(false);},Math.max(0,unlockAt-Date.now())); }
+  };
   return <section className="panel controller-host-controls"><div className="eyebrow"><Crown size={15}/>{t('legacy.s262')}</div>
-    {room.phase === "podium" ? <><button className="button primary full" onClick={() => void request("room:replay")}>{t('legacy.s263')}<Shuffle size={18}/></button><button className="button outline full" onClick={() => { void request("room:replay").then((ack) => { if (ack.ok) return request("room:configure", structuredClone(DEFAULT_CONFIG)); }); }}>{t('legacy.s264')}<Plus size={18}/></button></> : <button className="button primary" aria-label={t('legacy.s111')} onClick={() => void request("room:advance")}>{room.phase === "presenting" ? t('legacy.s265') : t('legacy.s111')}<ArrowRight size={18}/></button>}
-    {room.phase !== "podium" && <button className="button outline" onClick={() => void request("room:pause", { paused: !room.paused })}>{room.paused ? <><Play size={17}/>{t('legacy.s266')}</> : <><Pause size={17}/>{t('legacy.s267')}</>}</button>}
-    {room.round?.gameId === "who" && room.phase === "voting" && <button className="text-button" onClick={() => void request("room:advance", { skip: true })}>{t('legacy.s268')}<Shuffle size={16}/></button>}
+    {room.advanceCommand && <button data-testid="controller-advance" className="button primary" disabled={sending || room.paused || !room.advanceCommand.enabled} onClick={() => void command('room:advance')}>{sending ? <LoaderCircle size={18} className="spin"/> : <ArrowRight size={18}/>}<span>{room.advanceCommand.label}</span></button>}
+    {room.phase === "podium" && room.podiumStep>=3 && <><button className="button primary full" disabled={sending} onClick={() => void command("room:replay")}>{t('legacy.s263')}<Shuffle size={18}/></button><button className="button outline full" disabled={sending} onClick={() => { void request("room:replay").then((ack) => { if (ack.ok) return request("room:configure", structuredClone(DEFAULT_CONFIG)); }); }}>{t('legacy.s264')}<Plus size={18}/></button></>}
+    {room.phase !== "podium" && <button className="button outline" disabled={sending} onClick={() => void command("room:pause", { paused: !room.paused })}>{room.paused ? <><Play size={17}/>{t('legacy.s266')}</> : <><Pause size={17}/>{t('legacy.s267')}</>}</button>}
+    {['writing','prepare','voting'].includes(room.phase) && room.collectionClosed && room.progress.some(progress=>progress.completed<progress.total) && <button data-testid="reopen-collection" className="button outline" disabled={sending || room.paused} onClick={()=>void command('room:reopen-collection',{transitionId:room.transitionId,seconds:0})}><RotateCcw size={18}/>{t('party.reopenCollection')}</button>}
+    {room.round?.gameId === "who" && room.phase === "voting" && <button className="text-button" disabled={sending} onClick={() => void command("room:advance", { skip: true })}>{t('legacy.s268')}<Shuffle size={16}/></button>}
     {room.phase === "presenting" && <p className="small muted">{t('legacy.s269')}</p>}
     {["writing", "prepare", "voting", "presenting"].includes(room.phase) && <details><summary>{t('legacy.s270')}</summary><p className="small muted">{t('legacy.s271')}</p><div className="skip-player-list">{room.players.filter((player) => !player.spectator).map((player) => <button className="text-button" key={player.id} onClick={() => void request("room:skip-player", { playerId: player.id })}>{t('legacy.s272')}{player.name}{!player.connected && " (déconnecté)"}</button>)}</div></details>}
+    <details><summary>{t('party.transferTitle')}</summary><label className="field-label">{t('party.transferHelp')}<select value={transferTo} onChange={event => setTransferTo(event.target.value)}><option value="">—</option>{room.players.filter(player => player.id !== room.me.id && player.connected && !player.spectator).map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><button className="button outline" disabled={sending || !transferTo} onClick={() => void command('room:transfer-control', { playerId: transferTo })}>{t('party.transfer')}</button></details>
   </section>;
 }
 

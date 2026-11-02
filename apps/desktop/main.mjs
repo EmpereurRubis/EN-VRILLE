@@ -62,7 +62,7 @@ function sanitizePreferences(patch) {
   if (patch.show && typeof patch.show === 'object') {
     const show = { ...(next.show || {}) };
     for (const key of ['master', 'music', 'voice', 'sfx']) if (Number.isFinite(patch.show[key])) show[key] = Math.max(0, Math.min(1, patch.show[key]));
-    for (const key of ['musicEnabled', 'voiceEnabled', 'sfxEnabled', 'subtitles', 'reducedMotion']) if (typeof patch.show[key] === 'boolean') show[key] = patch.show[key];
+    for (const key of ['musicEnabled', 'voiceEnabled', 'sfxEnabled', 'tickEnabled', 'subtitles', 'reducedMotion']) if (typeof patch.show[key] === 'boolean') show[key] = patch.show[key];
     if (['slow', 'normal', 'fast'].includes(patch.show.textSpeed)) show.textSpeed = patch.show.textSpeed;
     next.show = show;
   }
@@ -149,7 +149,7 @@ else {
         if (!response.ok) throw new Error('network');
         const health = await response.json();
         if (health.protocolVersion !== PROTOCOL_VERSION) { await showLauncher('protocol'); return false; }
-        const target = new URL(serverUrl); target.searchParams.set('lang', locale); target.searchParams.set('desktop', '1');
+        const target = new URL(serverUrl); target.searchParams.set('lang', locale); target.searchParams.set('desktop', '1'); target.searchParams.set('display', '1');
         await window.loadURL(target.href); loadingPlatform = false; return true;
       } catch (error) { log(`Platform unavailable: ${error.message}`); await showLauncher('network'); return false; }
     });

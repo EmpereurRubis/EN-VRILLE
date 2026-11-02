@@ -1,5 +1,6 @@
 /** Increment only when the client/server event contract becomes incompatible. */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
+export type ClientKind = "DISPLAY_CLIENT" | "PLAYER_CLIENT";
 export const GAME_IDS = [
   "mythos",
   "pitch",
@@ -164,7 +165,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   allowedGames: ["mythos", "pitch", "who", "captions"],
   allowRepeats: false,
   approximateMinutes: 20,
-  answerSeconds: 60,
+  answerSeconds: 120,
   voteSeconds: 30,
   presentationSeconds: 45,
   transitionSeconds: 10,
@@ -175,7 +176,7 @@ export const DEFAULT_CONFIG: RoomConfig = {
   noPoints: false,
   reactionsEnabled: true,
   secretRoles: false,
-  autoAdvance: true,
+  autoAdvance: false,
   language: "fr",
   captionLength: "long",
   captionAutoSlides: false,
@@ -202,7 +203,7 @@ export interface PlayerView {
   roundWins: number;
   gameWins: number;
   bestGame?: GameId;
-  history: { gameId: GameId; points: number; reason: string }[];
+  history: { gameId: GameId; points: number; gamePoints?: number; reason: string }[];
 }
 export interface Product {
   name: string;
@@ -280,6 +281,14 @@ export interface CaptionsView {
   currentStory?: CaptionStoryView;
   stories?: CaptionStoryView[];
   awards?: CaptionAwards;
+  playback: CinemaPlayback;
+}
+export interface CinemaPlayback {
+  mode: "video" | "slides";
+  playing: boolean;
+  positionMs: number;
+  updatedAt: number;
+  revision: string;
 }
 export interface PrivateCaptionsView {
   storyId?: string;
@@ -302,6 +311,7 @@ export interface AnswerView {
 export interface RoundResult {
   playerId: string;
   points: number;
+  partyPoints: number;
   reason: string;
   votes?: number;
   rating?: number;
@@ -325,6 +335,10 @@ export interface RoundView {
   currentProduct?: Product;
   currentSpeakerId?: string;
   presentationIndex: number;
+  revealIndex: number;
+  resultIndex: number;
+  answerCount: number;
+  pitchStage?: "wheel" | "selected" | "speaking";
   courtStep?: string;
   roles?: CourtRoles;
   submittedCount: number;
@@ -336,10 +350,11 @@ export interface RoundView {
   votesByPlayer?: Record<string, string>;
   title?: string;
   pitchFinalResults?: boolean;
-  pitchRating?: { sellerId: string; average: number; ratingsCount: number };
+  pitchRating?: { sellerId: string; average: number; ratingsCount: number; humor: number; conviction: number; creativity: number; points: number; partyPoints: number };
 }
 export interface PrivateView {
   id: string;
+  clientKind: ClientKind;
   eligible: boolean;
   submitted: boolean;
   prepared: boolean;
@@ -370,6 +385,13 @@ export interface ReactionView {
 export interface RoomSnapshot {
   code: string;
   hostId: string;
+  controllerConnected: boolean;
+  podiumStep: number;
+  transitionId: string;
+  collectionClosed: boolean;
+  advanceCommand: { label: string; enabled: boolean } | null;
+  pairingCode?: string;
+  recoveryRequests?: { requestId: string; playerId: string; name: string }[];
   phase: Phase;
   phaseStartedAt: number;
   progress: ParticipationProgress[];
@@ -396,7 +418,8 @@ export interface RoomSnapshot {
 }
 export interface Session {
   code: string;
-  playerId: string;
+  clientId: string;
+  clientKind: ClientKind;
   token: string;
 }
 export interface Ack {
@@ -404,6 +427,7 @@ export interface Ack {
   error?: string;
   room?: RoomSnapshot;
   session?: Session;
+  recoveryRequestId?: string;
 }
 export type Action =
   | { type: "prepared" }
@@ -422,7 +446,7 @@ export type Action =
   | { type: "verdict"; guilty: boolean; bestPlayerId?: string };
 export interface ClientEvents {
   "room:create": (
-    data: { name: string; avatar: string; hostPlays?: boolean },
+    data: Record<string, never>,
     ack: (result: Ack) => void,
   ) => void;
   "room:join": (
@@ -430,6 +454,10 @@ export interface ClientEvents {
     ack: (result: Ack) => void,
   ) => void;
   "room:resume": (data: Session, ack: (result: Ack) => void) => void;
+  "room:claim-control": (data: { pairingCode: string }, ack: (result: Ack) => void) => void;
+  "room:transfer-control": (data: { playerId: string }, ack: (result: Ack) => void) => void;
+  "room:recovery-request": (data: { code: string; name: string }, ack: (result: Ack) => void) => void;
+  "room:approve-recovery": (data: { requestId: string }, ack: (result: Ack) => void) => void;
   "room:ready": (data: { ready: boolean }, ack: (result: Ack) => void) => void;
   "room:configure": (data: RoomConfig, ack: (result: Ack) => void) => void;
   "room:start": (
@@ -440,11 +468,12 @@ export interface ClientEvents {
   "room:react": (data: { reaction: string }, ack: (result: Ack) => void) => void;
   "room:skip-player": (data: { playerId: string }, ack: (result: Ack) => void) => void;
   "room:product-suggestion": (data: Record<string, never>, ack: (result: Ack) => void) => void;
-  "room:caption-control": (data: { direction?: "next" | "previous"; autoSlides?: boolean }, ack: (result: Ack) => void) => void;
+  "room:caption-control": (data: { direction?: "next" | "previous"; autoSlides?: boolean; playback?: "play" | "pause" | "restart"; mode?: "video" | "slides"; revision: string }, ack: (result: Ack) => void) => void;
   "room:advance": (
-    data: { skip?: boolean },
+    data: { transitionId: string; skip?: boolean },
     ack: (result: Ack) => void,
   ) => void;
+  "room:reopen-collection": (data: { transitionId: string; seconds: number }, ack: (result: Ack) => void) => void;
   "room:pause": (data: { paused: boolean }, ack: (result: Ack) => void) => void;
   "room:replay": (
     data: Record<string, never>,
@@ -457,5 +486,6 @@ export interface ClientEvents {
 }
 export interface ServerEvents {
   "room:state": (room: RoomSnapshot) => void;
+  "room:recovered": (result: Ack) => void;
   "server:error": (message: string) => void;
 }

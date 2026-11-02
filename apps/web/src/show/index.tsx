@@ -31,10 +31,10 @@ export function IntroSplash() {
   return <div className="show-opening" role="dialog" aria-label={showText(language,'ui.044')}><motion.div initial={{ opacity: 0, scale: .75, rotate: -7 }} animate={{ opacity: 1, scale: 1, rotate: -3 }} transition={{ type: 'spring', damping: 13 }}><span>{showText(language,'ui.045')}</span><strong>EN<br/>VRILLE<em>✳</em></strong><p>{showText(language,'ui.046')}</p></motion.div><button onClick={() => { cue('confirm'); dismiss(); }}>{showText(language,'ui.047')} <ArrowRight size={17}/></button></div>;
 }
 export function MainMenu({ onCreate, onJoin, onRules, onSettings, onCredits, desktopOffline = false, onStart, starting = false }: { onCreate: () => void; onJoin: () => void; onRules: () => void; onSettings: () => void; onCredits: () => void; desktopOffline?: boolean; onStart?: () => void | Promise<void>; starting?: boolean }) {
-  const { reducedMotion, cue, setMusicScene, fadeMusic, preferences, updatePreferences } = useShowPreferences();
+  const { reducedMotion, cue, setMusicScene, setMusicTheme, fadeMusic, preferences, updatePreferences } = useShowPreferences();
   const { language, t } = useI18n(), fr = language === 'fr';
   const [leaving, setLeaving] = useState(false);
-  useEffect(() => { setMusicScene(true); return () => setMusicScene(false); }, [setMusicScene]);
+  useEffect(() => { setMusicTheme('menu'); setMusicScene(true); return () => setMusicScene(false); }, [setMusicScene, setMusicTheme]);
   const click = (callback: () => void) => { cue('confirm'); callback(); };
   const start = async () => { if (starting || leaving) return; setLeaving(true); cue('confirm'); try { await fadeMusic(450); await onStart?.(); } finally { setLeaving(false); } };
   return <section className={`show-menu ${desktopOffline ? 'show-launcher' : ''} ${reducedMotion ? 'show-reduced-motion' : ''}`} aria-label="Menu principal EN VRILLE">

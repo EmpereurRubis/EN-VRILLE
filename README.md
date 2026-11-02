@@ -8,6 +8,8 @@ Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, l
 
 Le guide [PC et Steam](deploy/docs/PC-Steam.md) décrit la construction, les deux pipelines, la compatibilité réseau et la préparation SteamPipe. La [fiche produit et les visuels](marketing/Steam.md) sont préparés dans `marketing`. La publication Steam nécessite les identifiants officiels et une validation par l’éditeur ; aucune publication Steam automatique n’est configurée.
 
+La refonte du parcours PC/téléphones, le contrôle manuel des jeux et leur état fonctionnel sont décrits dans [le suivi d'implémentation](docs/IMPLEMENTATION.md). Les résultats reproductibles, livrables Windows et limites de recette sont dans [le bilan de validation](docs/VALIDATION.md).
+
 ## Démarrer sur Windows / VS Code
 
 Prérequis : **Node.js 22.12 ou supérieur**, npm et Git. Aucun compte joueur, aucune clé d’IA et aucun service payant ne sont nécessaires.
@@ -19,7 +21,7 @@ npm ci
 npm run dev
 ```
 
-Ouvrir **http://localhost:5173**, préparer le programme, choisir un pseudo et créer un salon. Prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Le créateur peut participer ou rester animateur. Le lien « Écran TV » permet de rejoindre avec une session spectateur indépendante.
+Ouvrir **http://localhost:5173/?display=1** sur le PC et créer un salon : il contient **zéro joueur**. Prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Chaque participant rejoint sur son téléphone avec le QR code, le lien ou le code du salon. Un téléphone devient maître de soirée en saisissant le code d'association à usage unique affiché séparément sur le PC. La configuration et le lancement se font ensuite sur ce téléphone.
 
 Pour les téléphones sur le même Wi-Fi, utiliser `http://ADRESSE_IP_LAN_DU_PC:5173` sur **tous** les appareils, y compris le PC qui crée le salon. Autoriser les connexions à Node sur le réseau privé Windows. Les invitations utilisent l’origine publique configurée ; copier `.env.example` vers `.env` puis régler `PUBLIC_URL=http://ADRESSE_IP_LAN_DU_PC:5173`. Le mode local fonctionne sans Internet une fois les dépendances installées.
 
@@ -28,30 +30,35 @@ Sans PostgreSQL configuré, le serveur de développement enregistre les parties 
 ```powershell
 npm run typecheck
 npm run build
+npm test
+npx playwright install chromium
+npm run test:browser
 ```
 
 `npm run typecheck` compile les contrats TypeScript sans produire de distribution. `npm run build` produit le serveur et les ressources Web ; `npm run desktop:dist` ajoute leur empaquetage Windows.
 
 ## Jouer
 
-1. L’hôte choisit Sur mesure ou Surprise, prépare les jeux et options, puis crée le salon et partage son code, son lien ou son QR code.
-2. Les joueurs choisissent leur pseudo et leur avatar, puis se déclarent prêts.
-3. L’hôte prépare une playlist : ajout, répétition, ordre et nombre de manches ; ou sélectionne le mode aléatoire et ses jeux autorisés.
-4. Le bouton « Afficher la scène » transforme le PC en plateau public ; « Afficher ma manette » retrouve les actions privées. Un spectateur utilise directement la scène. Les présentations et débats se font à voix haute, en présentiel ou avec votre outil vocal habituel.
-5. Le serveur compte les participants réellement concernés : réponses, préparations, notes complètes ou seuls jurés pour le verdict. Les actions complètes clôturent l’attente. Après une déconnexion, un délai de dix secondes permet de reprendre sa session avant l’exclusion du quorum courant ; l’hôte peut aussi passer un joueur.
-6. Les réponses sont révélées anonymement avant le vote, puis les auteurs et points apparaissent aux résultats. Les prises de parole du Tribunal et des vendeurs attendent toujours le signal de l’hôte, même lorsque leur minuteur est terminé. L’hôte peut mettre en pause et contrôler l’enchaînement automatique des autres séquences.
+1. Le PC crée le salon et affiche le spectacle. Son identité `DISPLAY_CLIENT` ne figure jamais parmi les joueurs et ne peut ni répondre, ni voter, ni configurer la soirée.
+2. Les joueurs choisissent leur pseudo et leur avatar sur leurs téléphones, puis se déclarent prêts. Le premier arrivé ne reçoit aucun droit de contrôle.
+3. Un joueur saisit le code d'association privé pour devenir maître de soirée. Ce code est consommé immédiatement ; il n'apparaît jamais dans l'URL ou le QR public. Le maître choisit Sur mesure ou Surprise, les jeux, leur ordre et les options, puis lance la soirée depuis son téléphone.
+4. Le maître de soirée joue comme les autres. Son panneau de commande contextualisé reste distinct de sa saisie. Les présentations et débats se font à voix haute, en présentiel ou avec votre outil vocal habituel.
+5. Le serveur compte seulement les joueurs éligibles à chaque action. Quand X = Z, la collecte se ferme et attend le signal du maître de soirée. Une déconnexion n'exclut jamais automatiquement un joueur ; le maître peut explicitement passer sa participation. Son propre départ suspend la soirée, sans révélation automatique.
+6. Mythos révèle une seule réponse anonyme par clic, puis ouvre le vote et révèle les auteurs/résultats un par un. Les notes des vendeurs, verdicts, classements et transitions restent à l'écran jusqu'au signal suivant. Le mode automatique est désactivé, y compris pour les anciens salons qui l'avaient activé.
 
-Le Plateau des Mythos rapporte 100 points par vote et un bonus de 150 aux gagnants ex æquo. Qui parmi nous récompense la prédiction du choix majoritaire (100 points) et la personne désignée (50), avec un mode sans points. Au Tribunal, les jurés votent le verdict : une égalité acquitte l’accusé. Le procureur ou la défense gagnent selon le verdict ; les jurés ne gagnent pas automatiquement pour avoir suivi la majorité. Les coefficients et l’équilibrage sont configurables.
+Le Plateau des Mythos rapporte 100 points par vote et un bonus de 150 aux gagnants ex æquo. Qui parmi nous rapporte **100 points à chaque votant ayant choisi une personne arrivée en tête**, égalités comprises ; la personne désignée ne reçoit aucun bonus. Une variante permet de jouer sans points. Au Tribunal, les jurés votent le verdict : une égalité acquitte l’accusé. Le procureur ou la défense gagnent selon le verdict ; les jurés ne gagnent pas automatiquement pour avoir suivi la majorité. Les coefficients et l’équilibrage sont configurables.
 
-Dans Téléachat de l’Enfer, chacun invente un produit ou demande une idée privée à House Decoy, puis peut la modifier avant validation. Les produits sont redistribués sans retour à leur créateur. Chaque vendeur est noté immédiatement après sa présentation sur humour, conviction et créativité (1 à 5), avec un résultat intermédiaire. Les scores et le bonus du créateur sont attribués une seule fois en fin de manche. Le mode produits aléatoires reste disponible.
+Dans Vends-moi cette Merde !, chacun invente un produit ou demande une idée privée à House Decoy, puis peut la modifier avant validation. Aucun objet manquant n'est remplacé secrètement : les absences sont traitées explicitement. Les textes exacts sont redistribués sans retour à leur créateur, une fois chacun. La roue représente l'ordre choisi par le serveur ; le maître déclenche la roue, la présentation puis les votes. Chaque vendeur est noté sur humour, conviction et créativité (1 à 5). « Ouvrir les rideaux » révèle ses notes, y compris pour le dernier vendeur, et les conserve jusqu'au clic suivant. Les scores et le bonus du créateur sont attribués une seule fois en fin de manche ; les idées House Decoy n'attribuent pas de bonus créateur. Le mode produits aléatoires reste séparé.
 
-Dans Sous-titres Interdits, chaque joueur commence un film et ajoute un dialogue à un autre film à chaque tour. Les versions courtes comptent jusqu’à 4 ou 5 images ; la version complète compte une image par joueur. La manette montre uniquement l’image courante et les dialogues précédents. L’écran TV garde les films secrets pendant l’écriture. Après la préparation privée, chacun présente un film en doublage oral, avec des images pilotées par l’hôte. Le défilement automatique ne termine jamais la prise de parole. Trois prix distinguent le film collectif (distinction sans points), l’interprète (300 points) et la réplique (250 points à son auteur), avant coefficients et équilibrage.
+Dans Le Scénario part en vrille (anciennement Sous-titres Interdits), chaque joueur commence un film et ajoute un dialogue à un autre film à chaque tour. Les versions courtes comptent jusqu’à 4 ou 5 moments ; la version complète compte un moment par joueur. La manette montre uniquement le photogramme courant et les dialogues précédents. L’écran TV garde les films secrets pendant l’écriture. Après la préparation privée, chacun présente une vidéo en doublage oral, avec les sous-titres synchronisés aux timecodes. Le maître pilote lecture, pause, reprise et retour au début depuis son téléphone ; le diaporama reste disponible en repli. La fin du clip ne termine jamais la prise de parole. Trois prix distinguent le film collectif (distinction sans points), l’interprète (300 points) et la réplique (250 points à son auteur), avant coefficients et équilibrage.
 
-Un rafraîchissement conserve l’identité grâce à une session privée propre à l’onglet. Ne partagez pas votre jeton de reconnexion. Un nouveau participant arrivé pendant une manche attend une étape compatible en spectateur. L’écran TV peut rester spectateur et afficher la soirée sans devenir une manette.
+Les sessions privées sont mémorisées durablement sur l'appareil, séparément pour l'écran et le joueur. La reprise retrouve la même identité, ses réponses, ses votes, son score et ses droits. Un seul onglet reste actif pour une identité ; reprendre ailleurs déconnecte le précédent. Sur un nouvel appareil, code et pseudo créent seulement une demande : le maître doit l'approuver et le jeton précédent est alors invalidé. Ne partagez pas votre jeton de reconnexion. Un nouvel invité arrivé pendant une manche attend une étape compatible. Les versions 2 et 3 du protocole ne sont pas compatibles : mettre à jour serveur, web et client Windows ensemble.
 
-Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. Le menu utilise une composition jazz originale jouée localement. La voix utilise les voix françaises ou anglaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. La langue de la manette est indépendante de celle du plateau. Les textes libres des joueurs ne sont jamais traduits. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par l’hôte et sont limitées à une toutes les deux secondes par joueur.
+Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. Le menu, le lobby et les cinq jeux disposent d'arrangements originaux synthétisés localement, avec fondus et baisse du volume pendant une prise de parole ou une projection. Le tic-tac est optionnel et limité aux dix dernières secondes d'un vrai timer de collecte. Les téléphones restent silencieux. La voix utilise les voix françaises ou anglaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. La langue de la manette est indépendante de celle du plateau. Les textes libres des joueurs ne sont jamais traduits. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par le maître et sont limitées à une toutes les deux secondes par joueur.
 
 Le mode global sans points conserve les actions et résultats sans modifier les scores. Les missions secrètes optionnelles demandent de glisser un mot dans une réponse ou une invention compatible et rapportent un bonus fixe de 50 points ; leur consigne reste sur la manette du joueur. Ce bonus est lui aussi annulé dans le mode sans points.
+
+L'équilibrage distingue points du mini-jeu et points de soirée : un bon pronostic reste annoncé **+100 au jeu**, puis sa contribution au classement est affichée séparément. Un budget théorique de 1000 points par type de jeu est réparti sur ses manches et tient compte de son plafond de score ; ajouter des manches ou des votants ne lui donne pas mécaniquement plus de poids. Les coefficients permettent un choix volontaire différent. Désactiver l'équilibrage conserve les barèmes bruts dans le classement.
 
 ## Architecture et contrats
 
@@ -76,16 +83,19 @@ Les événements Socket.IO sont définis dans `packages/shared/src/index.ts` :
 | Événement client | Action |
 | --- | --- |
 | `room:create`, `room:join`, `room:resume` | Créer, rejoindre, retrouver une session |
+| `room:claim-control`, `room:transfer-control` | Association à usage unique et transfert explicite du maître de soirée |
+| `room:recovery-request`, `room:approve-recovery` | Demande d'identité sur nouvel appareil puis approbation privée |
 | `room:ready`, `room:configure`, `room:start` | Préparer et démarrer la soirée |
 | `room:action` | Réponse, produit, préparation terminée, vote, notation ou verdict |
 | `room:product-suggestion` | Idée House Decoy privée et modifiable, sans validation automatique |
-| `room:caption-control` | Image précédente/suivante et défilement automatique, réservés à l’hôte |
-| `room:advance`, `room:pause` | Commandes réservées à l’hôte |
+| `room:caption-control` | Lecture/pause/retour début, vidéo/diaporama et images, protégés par une révision |
+| `room:advance`, `room:pause` | Commandes du maître ; `transitionId` obligatoire pour avancer |
+| `room:reopen-collection` | Rouvrir explicitement une collecte expirée incomplète sans effacer les contributions |
 | `room:skip-player` | Passer un participant pour l’action courante, réservé à l’hôte |
 | `room:react` | Réaction éphémère avec limite par joueur |
 | `room:replay`, `room:leave` | Rejouer ou quitter |
 
-Chaque requête reçoit un acquittement `{ ok, error?, session?, room? }`. Le serveur émet `room:state` individuellement après les changements. Les clients transmettent une intention ; aucun identifiant de votant fourni dans une action ne fait autorité.
+Chaque requête reçoit un acquittement `{ ok, error?, session?, room? }`. Le serveur émet `room:state` individuellement après les changements et `room:recovered` sur le nouvel appareil approuvé. Les clients transmettent une intention ; aucun identifiant de votant fourni dans une action ne fait autorité. Les frontières publiques/privées, états, commandes et vérifications sont détaillés dans [le suivi d'implémentation](docs/IMPLEMENTATION.md).
 
 La machine suit `lobby → party-intro → intro → rules → writing / prepare / presenting → reveal → voting → results → leaderboard → transition → podium`. Chaque jeu utilise les étapes adaptées : plusieurs présentations pour les ventes, interventions successives au Tribunal, vote direct pour Qui parmi nous. `phaseStartedAt`, les échéances et `progress` viennent du serveur ; les révélations et compteurs de la scène s’appuient sur ces données. Chaque jeu définit sa préparation, les entrées autorisées, le vote et le calcul des points. Pour ajouter un jeu, étendre le catalogue et le contrat partagé, le moteur, la bibliothèque et sa vue React.
 
@@ -191,7 +201,7 @@ Pour restaurer, arrêter **api**, conserver la sauvegarde de l’état courant, 
 - **502 après recréation API** : redémarrer aussi `web` pour renouveler la résolution du nom Docker si nécessaire.
 - **Socket déconnecté** : activer WebSocket sur le proxy externe, conserver les routes `/socket.io`, vérifier HTTPS et `PUBLIC_URL`. N’exposer aucun port API supplémentaire.
 - **QR code inaccessible** : utiliser une URL atteignable depuis le téléphone ; `localhost` sur le téléphone désigne le téléphone.
-- **Scores perdus sur un nouvel onglet** : reprendre l’onglet de la session existante. Un nouveau navigateur n’est pas automatiquement la même personne.
+- **Reprendre une identité** : utiliser « Reprendre ma partie » sur le même appareil ; sur un autre, demander sa récupération et la faire approuver sur le téléphone du maître.
 
 Les mécanismes de healthcheck et `depends_on: service_healthy` suivent la [documentation Docker Compose](https://docs.docker.com/compose/how-tos/startup-order/). Le proxy WebSocket suit les [directives officielles Nginx](https://nginx.org/en/docs/http/websocket.html). Le parcours Repository et les variables sont décrits dans la [documentation Portainer](https://docs.portainer.io/user/docker/stacks/add). La publication utilise les [actions GHCR recommandées par GitHub](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images).
 

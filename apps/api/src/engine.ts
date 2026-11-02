@@ -37,6 +37,8 @@ import {
   topTargets,
   whoScores,
   writingScores,
+  normalizationFactors,
+  normalizePartyPoints,
 } from "./rules.js";
 
 export interface EngineOptions {
@@ -49,7 +51,6 @@ export interface EngineOptions {
   onError?: (error: unknown) => void;
 }
 const STEPS = ["accusation", "defense", "questions", "final"];
-const RECONNECT_GRACE = 10_000;
 const REACTION_TTL = 6_000;
 const MISSION_WORDS = ["cornichon", "chaussette", "pamplemousse", "licorne", "trombone", "moustache"];
 const MESSAGES = [
@@ -63,6 +64,7 @@ function check(condition: unknown, message: string): asserts condition {
 
 export class GameEngine {
   readonly rooms = new Map<string, Room>();
+  readonly recoveryRequests = new Map<string, { requestId: string; code: string; playerId: string; name: string; expiresAt: number }>();
   content: ContentItem[] = structuredClone(CONTENT);
   cinema: CinemaScene[] = structuredClone(cinemaCatalogue as CinemaScene[]);
   decoys: DecoyProduct[] = structuredClone(decoyCatalogue as DecoyProduct[]);
@@ -105,15 +107,27 @@ export class GameEngine {
       room.config = { ...structuredClone(DEFAULT_CONFIG), ...room.config };
       room.phaseStartedAt ??= room.updatedAt;
       room.phaseExcludedIds ??= [];
+      room.display ??= { id: randomUUID(), tokenHash: "", connected: false };
+      room.display.connected = false;
+      room.transitionId = randomUUID();
+      room.collectionClosed ??= false;
+      room.podiumStep ??= 0;
       room.reactions = [];
       room.lastReactionAt = {};
       room.usedDecoyIds ??= [];
       room.usedCinemaIds ??= [];
+      room.normalizationFactors ??= normalizationFactors(room.playlist, room.round?.participantIds.length || room.players.filter((player) => !player.spectator).length, room.config.secretRoles);
       if (room.round) {
+        room.round.revealIndex ??= 0;
+        room.round.resultIndex ??= 0;
+        for (const result of room.round.results) result.partyPoints ??= result.points;
         room.round.prepared ??= [];
         room.round.missions ??= {};
         room.round.pitchRatedSellerIds ??= [];
         room.round.suggestions ??= {};
+        if (room.round.captions) room.round.captions.playback ??= {
+          mode: "video", playing: false, positionMs: 0, updatedAt: this.now(), revision: randomUUID(),
+        };
         if (room.round.gameId === "pitch")
           room.round.presentationIndex = Math.min(Math.max(0, room.round.presentationIndex), Math.max(0, room.round.products.length - 1));
         if (room.round.gameId === "captions" && !room.round.captions && !room.round.scored) {
@@ -126,12 +140,12 @@ export class GameEngine {
         player.disconnectedAt = this.now();
       }
       if (room.phase !== "lobby" && room.phase !== "podium") {
-        room.remaining = room.paused
-          ? room.remaining
-          : Math.max(1000, (room.deadline || this.now() + 30_000) - this.now());
+        room.remaining = room.paused ? room.remaining : room.deadline === null ? null : Math.max(0, room.deadline - this.now());
+        room.pausedForController = room.pausedForController || !room.paused;
         room.paused = true;
         room.pausedAt = this.now();
         room.deadline = null;
+        if (room.round?.captions) room.round.captions.playback.playing = false;
         room.message = "Salon restauré. L’hôte peut reprendre la soirée.";
       }
       this.rooms.set(room.code, room);
@@ -170,7 +184,8 @@ export class GameEngine {
     return player;
   }
   private host(room: Room, id: string) {
-    check(room.hostId === id, "Cette action est réservée à l’hôte.");
+    check(room.hostId === id && this.getPlayer(room, id).connected && !this.getPlayer(room, id).spectator,
+      "Cette action est réservée au maître de soirée sur son téléphone.");
   }
   private makePlayer(
     name: string,
@@ -204,7 +219,7 @@ export class GameEngine {
       },
     };
   }
-  create(name: string, avatar: string, hostPlays = true) {
+  create() {
     check(
       this.rooms.size < 1000,
       "Le serveur est complet. Réessayez plus tard.",
@@ -217,13 +232,17 @@ export class GameEngine {
         () => alphabet[randomInt(alphabet.length)],
       ).join("");
     } while (this.rooms.has(code));
-    const { player, token } = this.makePlayer(name, avatar, 0);
-    player.ready = true;
-    player.spectator = !hostPlays;
+    const token = randomBytes(32).toString("base64url");
+    const display = { id: randomUUID(), tokenHash: this.hash(token), connected: true };
     const room: Room = {
       code,
-      hostId: player.id,
-      players: [player],
+      hostId: "",
+      display,
+      pairingCode: String(randomInt(100_000, 1_000_000)),
+      transitionId: randomUUID(),
+      collectionClosed: false,
+      podiumStep: 0,
+      players: [],
       config: structuredClone(DEFAULT_CONFIG),
       phase: "lobby",
       phaseStartedAt: this.now(),
@@ -243,10 +262,11 @@ export class GameEngine {
       usedDecoyIds: [],
       usedCinemaIds: [],
       gameStartScores: {},
+      normalizationFactors: {},
     };
     this.rooms.set(code, room);
     this.changed(room);
-    return { room, session: { code, playerId: player.id, token } };
+    return { room, session: { code, clientId: display.id, clientKind: "DISPLAY_CLIENT" as const, token } };
   }
   join(code: string, name: string, avatar: string, spectator = false) {
     const room = this.getRoom(code);
@@ -276,11 +296,13 @@ export class GameEngine {
     player.waiting = !spectator && player.spectator;
     room.players.push(player);
     this.changed(room);
-    return { room, session: { code: room.code, playerId: player.id, token } };
+    return { room, session: { code: room.code, clientId: player.id, clientKind: "PLAYER_CLIENT" as const, token } };
   }
   resume(session: Session) {
     const room = this.getRoom(session.code);
-    const player = this.getPlayer(room, session.playerId);
+    const isDisplay = session.clientKind === "DISPLAY_CLIENT";
+    const player = isDisplay ? room.display : this.getPlayer(room, session.clientId);
+    check(player.id === session.clientId, "Session introuvable.");
     const incoming = Buffer.from(this.hash(session.token), "hex"),
       expected = Buffer.from(player.tokenHash, "hex");
     check(
@@ -288,12 +310,11 @@ export class GameEngine {
         timingSafeEqual(incoming, expected),
       "Session expirée ou jeton incorrect.",
     );
-    if (!player.connected && player.disconnectedAt !== undefined &&
-        this.now() - player.disconnectedAt >= RECONNECT_GRACE &&
-        room.round?.participantIds.includes(player.id) && !room.phaseExcludedIds.includes(player.id))
-      room.phaseExcludedIds.push(player.id);
     player.connected = true;
-    delete player.disconnectedAt;
+    if (!isDisplay) {
+      delete (player as Player).disconnectedAt;
+      if (room.hostId === player.id && room.pausedForController) this.restoreControllerPause(room);
+    }
     this.completeIfReady(room);
     this.changed(room);
     return room;
@@ -301,30 +322,81 @@ export class GameEngine {
   disconnect(code: string, id: string) {
     const room = this.rooms.get(code);
     if (!room) return;
+    if (room.display.id === id) {
+      room.display.connected = false;
+      this.changed(room);
+      return;
+    }
     const p = room.players.find((p) => p.id === id);
     if (!p) return;
     p.connected = false;
     p.disconnectedAt = this.now();
+    if (room.hostId === id && !room.paused && !["lobby", "podium"].includes(room.phase)) {
+      this.freeze(room);
+      room.pausedForController = true;
+      room.message = room.config.language === "en" ? "Waiting for the party controller to reconnect." : "En attente de la reconnexion du maître de soirée.";
+    }
     this.changed(room);
   }
   leave(code: string, id: string) {
     const room = this.getRoom(code);
+    if (room.display.id === id) {
+      this.disconnect(code, id);
+      return;
+    }
     const p = this.getPlayer(room, id);
+    check(room.hostId !== id, "Transférez le rôle de maître de soirée avant de quitter.");
     p.connected = false;
-    p.disconnectedAt = this.now() - RECONNECT_GRACE;
+    p.disconnectedAt = this.now();
     p.spectator = true;
     p.waiting = false;
     p.tokenHash = "";
     if (room.phase === "lobby")
       room.players = room.players.filter((p) => p.id !== id);
-    if (room.hostId === id)
-      room.hostId =
-        room.players.find((p) => p.connected && !p.spectator)?.id ||
-        room.players.find((p) => p.connected)?.id ||
-        room.players[0]?.id ||
-        "";
     this.completeIfReady(room);
     this.changed(room);
+  }
+  claimControl(code: string, id: string, pairingCode: string) {
+    const room = this.getRoom(code), player = this.getPlayer(room, id);
+    check(room.phase === "lobby" && !room.hostId && room.pairingCode, "Le rôle a déjà été associé.");
+    check(player.connected && !player.spectator, "Rejoignez comme joueur pour conduire la soirée.");
+    check(timingSafeEqual(Buffer.from(this.hash(pairingCode)), Buffer.from(this.hash(room.pairingCode))), "Code d’association incorrect.");
+    room.hostId = id;
+    delete room.pairingCode;
+    room.transitionId = randomUUID();
+    this.changed(room);
+  }
+  transferControl(code: string, id: string, playerId: string) {
+    const room = this.getRoom(code);
+    this.host(room, id);
+    const target = this.getPlayer(room, playerId);
+    check(target.connected && !target.spectator && target.id !== id, "Choisissez un autre joueur connecté.");
+    room.hostId = target.id;
+    room.transitionId = randomUUID();
+    this.changed(room);
+  }
+  requestRecovery(code: string, name: string) {
+    const room = this.getRoom(code);
+    const player = room.players.find((p) => p.name.toLocaleLowerCase("fr") === cleanText(name).toLocaleLowerCase("fr"));
+    check(player && player.tokenHash && room.hostId, "Aucune identité récupérable avec ce pseudo dans ce salon.");
+    const request = { requestId: randomUUID(), code: room.code, playerId: player.id, name: player.name, expiresAt: this.now() + 120_000 };
+    this.recoveryRequests.set(request.requestId, request);
+    this.changed(room);
+    return request;
+  }
+  approveRecovery(code: string, id: string, requestId: string): Session {
+    const room = this.getRoom(code);
+    this.host(room, id);
+    const request = this.recoveryRequests.get(requestId);
+    check(request && request.code === code && request.expiresAt > this.now(), "La demande de récupération a expiré.");
+    const player = this.getPlayer(room, request.playerId);
+    const token = randomBytes(32).toString("base64url");
+    player.tokenHash = this.hash(token);
+    player.connected = true;
+    delete player.disconnectedAt;
+    this.recoveryRequests.delete(requestId);
+    this.changed(room);
+    return { code, clientId: player.id, clientKind: "PLAYER_CLIENT", token };
   }
   ready(code: string, id: string, ready: boolean) {
     const room = this.getRoom(code);
@@ -409,6 +481,7 @@ export class GameEngine {
       check(this.cinema.filter((scene) => this.sceneAllowed(room, scene, this.captionTurns(room, players.length))).length >= players.length,
         "La bibliothèque doit contenir une scène autorisée différente par joueur, avec assez d’images pour cette durée.");
     room.playlist = playlist;
+    room.normalizationFactors = normalizationFactors(playlist, players.length, room.config.secretRoles);
     room.gameIndex = 0;
     room.roundNumber = 1;
     this.beginGame(room);
@@ -417,15 +490,19 @@ export class GameEngine {
   }
   private setPhase(room: Room, phase: Phase, seconds: number | null) {
     room.phase = phase;
+    room.transitionId = randomUUID();
+    room.collectionClosed = false;
+    if (phase === "podium") room.podiumStep = 0;
     room.phaseStartedAt = this.now();
     room.phaseExcludedIds = room.round?.participantIds.filter((id) => {
       const player = this.getPlayer(room, id);
-      return player.spectator || (!player.connected && this.now() - (player.disconnectedAt ?? this.now()) >= RECONNECT_GRACE);
+      return player.spectator;
     }) || [];
     room.paused = false;
     delete room.pausedAt;
     room.remaining = null;
-    room.deadline = seconds === null ? null : this.now() + seconds * 1000;
+    const timed = ["writing", "prepare", "voting", "presenting"].includes(phase);
+    room.deadline = !timed || seconds === null || seconds === 0 ? null : this.now() + seconds * 1000;
   }
   private beginGame(room: Room) {
     room.gameStartScores = Object.fromEntries(
@@ -496,6 +573,8 @@ export class GameEngine {
       prepared: [],
       missions: {},
       presentationIndex: 0,
+      revealIndex: 0,
+      resultIndex: 0,
       results: [],
       scored: false,
       voteCounts: {},
@@ -514,6 +593,8 @@ export class GameEngine {
           sellerId,
         };
       });
+      round.products = shuffled(round.products, this.random);
+      round.sellerOrder = round.products.map((product) => product.sellerId!);
     }
     if (item.gameId === "court") {
       const previous =
@@ -552,6 +633,7 @@ export class GameEngine {
       round.captions = {
         turn: 0, turns, slideIndex: 0, autoSlides: room.config.captionAutoSlides,
         slideStartedAt: this.now(), awardVotes: {},
+        playback: { mode: "video", playing: false, positionMs: 0, updatedAt: this.now(), revision: randomUUID() },
         stories: scenes.map((scene, i) => ({
           id: randomUUID(), starterId: participants[i]!, presenterId: presenters[i]!,
           scene: { ...structuredClone(scene), frames: Array.from({ length: turns }, (_, frameIndex) =>
@@ -569,6 +651,30 @@ export class GameEngine {
     for (const p of room.players) p.delta = 0;
     this.setPhase(room, "intro", 4);
   }
+  private freeze(room: Room) {
+    room.remaining = room.deadline === null ? null : Math.max(0, room.deadline - this.now());
+    room.deadline = null;
+    room.paused = true;
+    room.pausedAt = this.now();
+    const playback = room.round?.captions?.playback;
+    if (playback?.playing) {
+      playback.positionMs += Math.max(0, this.now() - playback.updatedAt);
+      playback.playing = false;
+      playback.updatedAt = this.now();
+      playback.revision = randomUUID();
+    }
+  }
+  private restoreControllerPause(room: Room) {
+    const pauseDuration = Math.max(0, this.now() - (room.pausedAt ?? this.now()));
+    room.phaseStartedAt += pauseDuration;
+    if (room.round?.captions) room.round.captions.slideStartedAt += pauseDuration;
+    room.deadline = room.remaining === null ? null : this.now() + room.remaining;
+    room.remaining = null;
+    room.paused = false;
+    delete room.pausedAt;
+    delete room.pausedForController;
+    room.transitionId = randomUUID();
+  }
   pause(code: string, id: string, paused: boolean) {
     const room = this.getRoom(code);
     this.host(room, id);
@@ -578,10 +684,7 @@ export class GameEngine {
     );
     if (paused === room.paused) return;
     if (paused) {
-      room.remaining = Math.max(0, (room.deadline || this.now()) - this.now());
-      room.deadline = null;
-      room.paused = true;
-      room.pausedAt = this.now();
+      this.freeze(room);
     } else {
       if (!room.round) {
         this.beginRound(room);
@@ -590,23 +693,19 @@ export class GameEngine {
           "Il manque encore des joueurs pour reprendre ce jeu.",
         );
       } else {
-        const pauseDuration = this.now() - (room.pausedAt ?? this.now());
-        room.phaseStartedAt += pauseDuration;
-        if (room.round.captions) room.round.captions.slideStartedAt += pauseDuration;
-        room.deadline = this.now() + (room.remaining ?? 8000);
-        room.remaining = null;
-        room.paused = false;
-        delete room.pausedAt;
+        this.restoreControllerPause(room);
       }
     }
+    room.transitionId = randomUUID();
     this.changed(room);
   }
-  advance(code: string, id: string, skip = false) {
+  advance(code: string, id: string, transitionId: string, skip = false) {
     const room = this.getRoom(code);
     this.host(room, id);
+    check(transitionId === room.transitionId, "Cette commande a déjà été exécutée ou appartient à une ancienne étape.");
     check(!room.paused, "Reprenez la partie avant d’avancer.");
     check(
-      room.phase !== "lobby" && room.phase !== "podium",
+      room.phase !== "lobby" && (room.phase !== "podium" || room.podiumStep < 3),
       "Cette étape ne peut pas être passée.",
     );
     if (skip) {
@@ -616,29 +715,47 @@ export class GameEngine {
       );
       this.beginRound(room);
       room.message = "Question suivante. Aucun point attribué.";
-    } else this.next(room);
+    } else {
+      check(this.advanceCommand(room)?.enabled, "La participation n’est pas terminée. Attendez les joueurs ou passez explicitement les absents.");
+      this.next(room);
+    }
+    room.transitionId = randomUUID();
+    this.changed(room);
+  }
+  reopenCollection(code: string, id: string, transitionId: string, seconds: number) {
+    const room = this.getRoom(code);
+    this.host(room, id);
+    check(transitionId === room.transitionId, "Cette commande a déjà été exécutée ou appartient à une ancienne étape.");
+    check(!room.paused, "Reprenez la partie avant de rouvrir la collecte.");
+    check(["writing", "prepare", "voting"].includes(room.phase) && room.collectionClosed,
+      "Seule une collecte terminée peut être rouverte.");
+    check(this.progress(room).some((row) => row.completed < row.total), "Tous les joueurs éligibles ont déjà terminé.");
+    check(Number.isInteger(seconds) && seconds >= 0 && seconds <= 900, "Le délai doit être compris entre 0 et 900 secondes.");
+    room.collectionClosed = false;
+    room.deadline = seconds === 0 ? null : this.now() + seconds * 1000;
+    room.remaining = null;
+    room.transitionId = randomUUID();
+    room.message = room.config.language === "en" ? "Collection reopened. Previous submissions are safe."
+      : "Collecte rouverte. Les participations déjà validées sont conservées.";
     this.changed(room);
   }
   private prepareProducts(room: Room) {
     const round = room.round!;
-    // Missing inventions receive a library fallback so no absent player can block the distribution.
-    const own = round.participantIds.map((id, index) => {
+    const participants = this.eligible(room);
+    check(participants.length >= 2, "Il faut au moins deux inventions pour distribuer les objets.");
+    const own = participants.map((id) => {
       const submitted = round.products.find((p) => p.creatorId === id);
-      if (submitted) return submitted;
-      const fallback = this.decoys.length ? this.drawDecoy(room) : undefined;
-      return {
-        ...(fallback ? { name: fallback.name, description: fallback.description, generated: true } : {
-          name: `Le bouton panique n°${index + 1}`,
-          description:
-            "Ne fait rien, mais avec une assurance absolument remarquable.",
-        }),
-      };
+      check(submitted, "Une invention manque. Passez explicitement le joueur absent avant de distribuer.");
+      return submitted;
     });
     const distributed = derangement(own, this.random);
+    round.participantIds = participants;
     round.products = distributed.map((product, i) => ({
       ...product,
-      sellerId: round.participantIds[i],
+      sellerId: participants[i],
     }));
+    round.products = shuffled(round.products, this.random);
+    round.sellerOrder = round.products.map((product) => product.sellerId!);
   }
   private captionTurns(room: Room, players: number) {
     return room.config.captionLength === "short" ? Math.min(4, players) : room.config.captionLength === "normal" ? Math.min(5, players) : players;
@@ -679,7 +796,7 @@ export class GameEngine {
   }
   suggestProduct(code: string, id: string) {
     const room = this.getRoom(code), player = this.getPlayer(room, id), round = room.round;
-    check(!room.paused && room.phase === "writing" && round?.gameId === "pitch" &&
+    check(!room.paused && !room.collectionClosed && room.phase === "writing" && round?.gameId === "pitch" &&
       player.connected && this.eligible(room).includes(id), "La machine à idées est disponible pendant la création de votre objet.");
     check(!round.submitted.includes(id), "Votre invention est déjà validée.");
     const suggestion = this.drawDecoy(room);
@@ -687,11 +804,12 @@ export class GameEngine {
     round.suggestions[id] = { token: randomUUID(), ...suggestion };
     this.changed(room);
   }
-  captionControl(code: string, id: string, control: { direction?: "next" | "previous"; autoSlides?: boolean }) {
+  captionControl(code: string, id: string, control: { direction?: "next" | "previous"; autoSlides?: boolean; playback?: "play" | "pause" | "restart"; mode?: "video" | "slides"; revision: string }) {
     const room = this.getRoom(code), round = room.round, cinema = round?.captions;
     check(!room.paused && room.phase === "presenting" && round && cinema, "Le projecteur n’est pas encore ouvert.");
+    this.host(room, id);
     const story = cinema.stories[round.presentationIndex]!;
-    check(id === room.hostId || id === story.presenterId, "Seuls le présentateur et l’hôte peuvent piloter les diapositives.");
+    check(control.revision === cinema.playback.revision, "Cette commande de projection a déjà été exécutée.");
     if (control.autoSlides !== undefined) {
       this.host(room, id);
       cinema.autoSlides = control.autoSlides;
@@ -699,6 +817,14 @@ export class GameEngine {
     if (control.direction)
       cinema.slideIndex = Math.max(0, Math.min(story.scene.frames.length - 1, cinema.slideIndex + (control.direction === "next" ? 1 : -1)));
     cinema.slideStartedAt = this.now();
+    const playback = cinema.playback;
+    if (playback.playing) playback.positionMs += Math.max(0, this.now() - playback.updatedAt);
+    if (control.mode) playback.mode = control.mode;
+    if (control.playback === "restart") playback.positionMs = 0;
+    if (control.playback) playback.playing = control.playback !== "pause";
+    if (control.direction) playback.positionMs = story.scene.frames[cinema.slideIndex]!.timecodeMs;
+    playback.updatedAt = this.now();
+    playback.revision = randomUUID();
     this.changed(room);
   }
   private finishRound(room: Room) {
@@ -724,6 +850,12 @@ export class GameEngine {
   }
   private next(room: Room) {
     const round = room.round;
+    if (room.phase === "podium") {
+      check(room.podiumStep < 3, "Le podium est entièrement révélé.");
+      room.podiumStep++;
+      room.phaseStartedAt = this.now();
+      return;
+    }
     if (room.phase === "transition") {
       room.gameIndex++;
       room.roundNumber = 1;
@@ -761,10 +893,16 @@ export class GameEngine {
           this.setPhase(room, "prepare", room.config.answerSeconds);
         } else {
           round.answers = shuffled(round.answers, this.random);
-          this.setPhase(room, "reveal", Math.min(24, Math.max(4, round.answers.length * 2.5)));
+          round.revealIndex = 0;
+          this.setPhase(room, "reveal", null);
         }
         break;
       case "reveal":
+        if (round.gameId === "mythos" && round.revealIndex < round.answers.length - 1) {
+          round.revealIndex++;
+          this.setPhase(room, "reveal", null);
+          break;
+        }
         this.setPhase(room, round.captions ? "prepare" : "voting", round.captions ? room.config.answerSeconds : room.config.voteSeconds);
         this.completeIfReady(room);
         break;
@@ -774,25 +912,37 @@ export class GameEngine {
         if (round.captions) {
           round.captions.slideIndex = 0;
           round.captions.slideStartedAt = this.now();
+          round.captions.playback = { ...round.captions.playback, playing: true, positionMs: 0, updatedAt: this.now(), revision: randomUUID() };
         }
+        if (round.gameId === "pitch") round.pitchStage = "wheel";
         this.setPhase(room, "presenting", room.config.presentationSeconds);
         break;
       case "presenting":
         if (round.gameId === "pitch") {
-          this.setPhase(room, "voting", room.config.voteSeconds);
-          this.completeIfReady(room);
+          if (round.pitchStage === "wheel") {
+            round.pitchStage = "selected";
+            this.setPhase(room, "presenting", null);
+          } else if (round.pitchStage === "selected") {
+            round.pitchStage = "speaking";
+            this.setPhase(room, "presenting", room.config.presentationSeconds);
+          } else {
+            this.setPhase(room, "voting", room.config.voteSeconds);
+            this.completeIfReady(room);
+          }
           break;
         }
         round.presentationIndex++;
         if (round.captions && round.presentationIndex < round.captions.stories.length) {
           round.captions.slideIndex = 0;
           round.captions.slideStartedAt = this.now();
+          round.captions.playback = { ...round.captions.playback, playing: true, positionMs: 0, updatedAt: this.now(), revision: randomUUID() };
           this.setPhase(room, "presenting", room.config.presentationSeconds);
         } else if (round.gameId === "court" && round.presentationIndex < STEPS.length) {
           round.courtStep = STEPS[round.presentationIndex];
           this.setPhase(room, "presenting", room.config.presentationSeconds);
         } else {
           if (round.captions) round.presentationIndex = round.captions.stories.length - 1;
+          if (round.captions) round.captions.playback = { ...round.captions.playback, playing: false, updatedAt: this.now(), revision: randomUUID() };
           this.setPhase(room, "voting", room.config.voteSeconds);
           this.completeIfReady(room);
         }
@@ -802,17 +952,29 @@ export class GameEngine {
           round.pitchRatedSellerIds ??= [];
           const seller = round.products[round.presentationIndex]?.sellerId;
           if (seller && !round.pitchRatedSellerIds.includes(seller)) round.pitchRatedSellerIds.push(seller);
-          if (round.presentationIndex === round.products.length - 1) this.score(room);
-          this.setPhase(room, "results", round.scored ? 10 : 6);
+          this.setPhase(room, "results", null);
         } else {
           this.score(room);
-          this.setPhase(room, "results", 10);
+          round.resultIndex = 0;
+          this.setPhase(room, "results", null);
         }
         break;
       case "results":
+        if (round.gameId === "mythos" && round.resultIndex < round.answers.length - 1) {
+          round.resultIndex++;
+          this.setPhase(room, "results", null);
+          break;
+        }
         if (round.gameId === "pitch" && !round.scored) {
-          round.presentationIndex++;
-          this.setPhase(room, "presenting", room.config.presentationSeconds);
+          if (round.presentationIndex < round.products.length - 1) {
+            round.presentationIndex++;
+            round.pitchStage = "wheel";
+            this.setPhase(room, "presenting", null);
+          } else {
+            this.score(room);
+            round.pitchFinalResults = true;
+            this.setPhase(room, "results", null);
+          }
           break;
         }
         if (!room.config.noPoints && (room.config.leaderboard === "round" ||
@@ -826,6 +988,11 @@ export class GameEngine {
     }
   }
   tick() {
+    for (const [requestId, request] of this.recoveryRequests) if (request.expiresAt <= this.now()) {
+      this.recoveryRequests.delete(requestId);
+      const room = this.rooms.get(request.code);
+      if (room) this.changed(room);
+    }
     for (const room of this.rooms.values()) {
       let dirty = false;
       const recent = room.reactions.filter((r) => this.now() - r.createdAt < REACTION_TTL);
@@ -833,19 +1000,8 @@ export class GameEngine {
         room.reactions = recent;
         dirty = true;
       }
-      if (room.round) {
-        for (const id of room.round.participantIds) {
-          const player = this.getPlayer(room, id);
-          if (!player.connected && this.now() - (player.disconnectedAt ?? this.now()) >= RECONNECT_GRACE &&
-              !room.phaseExcludedIds.includes(id)) {
-            room.phaseExcludedIds.push(id);
-            dirty = true;
-          }
-        }
-        if (!room.paused && dirty) this.completeIfReady(room);
-      }
       const cinema = room.round?.captions;
-      if (!room.paused && room.phase === "presenting" && cinema?.autoSlides &&
+      if (!room.paused && room.phase === "presenting" && cinema?.playback.mode === "slides" && cinema.autoSlides &&
           this.now() - cinema.slideStartedAt >= room.config.captionSlideSeconds * 1000) {
         const story = cinema.stories[room.round!.presentationIndex]!;
         if (cinema.slideIndex < story.scene.frames.length - 1) {
@@ -855,33 +1011,59 @@ export class GameEngine {
         }
       }
       if (!room.paused && room.deadline !== null && this.now() >= room.deadline) {
-        try {
-          // An oral contribution is never interrupted by a timer. The host owns its closing signal.
-          if (this.manualAdvanceRequired(room)) {
-            room.deadline = null;
-            room.remaining = 0;
-          } else this.next(room);
-          dirty = true;
-        } catch (error) {
-          room.paused = true;
-          room.pausedAt = this.now();
-          room.remaining = 8000;
-          room.deadline = null;
-          room.message = error instanceof Error ? error.message : "Partie mise en pause.";
-          dirty = true;
-          this.options.onError?.(error);
-        }
+        // Expiry closes the collection, never reveals content or interrupts a speaker.
+        if (["writing", "prepare", "voting"].includes(room.phase)) room.collectionClosed = true;
+        room.deadline = null;
+        room.remaining = null;
+        dirty = true;
       }
       if (dirty) this.changed(room);
-      if (!room.players.some((p) => p.connected) && this.now() - room.updatedAt > 7 * 86400_000) {
+      if (!room.display.connected && !room.players.some((p) => p.connected) && this.now() - room.updatedAt > 7 * 86400_000) {
         this.rooms.delete(room.code);
         this.writes = this.writes.catch(() => {}).then(() => this.options.store.deleteRoom(room.code));
       }
     }
   }
   private manualAdvanceRequired(room: Room) {
-    return room.phase === "presenting" || (!room.config.autoAdvance &&
-      ["party-intro", "intro", "rules", "reveal", "results", "leaderboard", "transition"].includes(room.phase));
+    return room.phase !== "lobby" && (room.phase !== "podium" || room.podiumStep < 3);
+  }
+  private advanceCommand(room: Room): RoomSnapshot["advanceCommand"] {
+    if (room.phase === "lobby" || room.phase === "podium" && room.podiumStep >= 3) return null;
+    const en = room.config.language === "en";
+    const text = (fr: string, english: string) => en ? english : fr;
+    const round = room.round;
+    let label = text("Continuer", "Continue");
+    switch (room.phase) {
+      case "party-intro": label = text("Présenter le premier jeu", "Introduce the first game"); break;
+      case "intro": label = text("Découvrir les règles", "Show the rules"); break;
+      case "rules": label = text("À vous de jouer !", "Let's play!"); break;
+      case "writing": label = round?.gameId === "mythos"
+        ? text("Révéler la première réponse", "Reveal the first answer")
+        : round?.gameId === "pitch" ? text("Distribuer les inventions", "Deal the inventions")
+        : round?.captions && round.captions.turn < round.captions.turns - 1 ? text("Faire circuler les scènes", "Pass the scenes")
+        : text("Préparer les projections", "Prepare the screenings"); break;
+      case "reveal": label = round?.gameId === "mythos" && round.revealIndex < round.answers.length - 1
+        ? text("Réponse suivante", "Next answer") : round?.captions ? text("Préparer le doublage", "Prepare the dubbing") : text("Lancer le vote", "Open voting"); break;
+      case "prepare": label = round?.gameId === "pitch" ? text("Préparer la roue", "Bring on the wheel") : round?.captions ? text("Lancer la projection", "Start the screening") : text("Ouvrir le procès", "Open the trial"); break;
+      case "presenting": label = round?.gameId === "pitch"
+        ? round.pitchStage === "wheel" ? text("Faire tourner la roue", "Spin the wheel")
+          : round.pitchStage === "selected" ? text("Lancer la présentation", "Start the presentation") : text("Ouvrir les votes", "Open voting")
+        : round?.captions && round.presentationIndex < round.captions.stories.length - 1 ? text("Projection suivante", "Next screening")
+        : round?.gameId === "court" && round.presentationIndex < STEPS.length - 1 ? text("Intervention suivante", "Next speaker") : text("Ouvrir les votes", "Open voting"); break;
+      case "voting": label = round?.gameId === "pitch" ? text("Ouvrir les rideaux", "Open the curtains")
+        : round?.gameId === "court" ? text("Verdict !", "Verdict!") : round?.gameId === "who" ? text("Dévoiler les votes", "Reveal the votes") : text("Révéler les résultats", "Reveal the results"); break;
+      case "results": label = round?.gameId === "mythos" && round.resultIndex < round.answers.length - 1 ? text("Résultat suivant", "Next result")
+        : round?.gameId === "pitch" && !round.scored ? round.presentationIndex < round.products.length - 1 ? text("Vendeur suivant", "Next seller") : text("Voir les résultats finaux", "Show the final results")
+        : room.config.noPoints || room.config.leaderboard === "final" ? text("Manche suivante", "Next round") : text("Voir le classement", "Show the leaderboard"); break;
+      case "leaderboard": label = text("Manche suivante", "Next round"); break;
+      case "transition": label = text("Prochain jeu", "Next game"); break;
+      case "podium": label = room.podiumStep === 0 ? text("Révéler la troisième place", "Reveal third place")
+        : room.podiumStep === 1 ? text("Révéler la deuxième place", "Reveal second place") : text("Couronner le gagnant", "Crown the winner"); break;
+    }
+    const controllerConnected = room.players.some((player) => player.id === room.hostId && player.connected && !player.spectator);
+    const collected = !["writing", "prepare", "voting"].includes(room.phase) || room.collectionClosed;
+    const completeInventions = room.phase !== "writing" || round?.gameId !== "pitch" || this.eligible(room).every((id) => round.products.some((product) => product.creatorId === id));
+    return { label, enabled: !room.paused && controllerConnected && collected && completeInventions };
   }
   private eligible(room: Room) {
     return room.round?.participantIds.filter((id) => {
@@ -949,7 +1131,11 @@ export class GameEngine {
   private completeIfReady(room: Room) {
     if (room.paused || !["writing", "prepare", "voting"].includes(room.phase)) return;
     const rows = this.progress(room);
-    if (rows.length && rows.every((p) => p.completed === p.total)) this.next(room);
+    if (rows.length && rows.every((p) => p.completed === p.total)) {
+      room.collectionClosed = true;
+      room.deadline = null;
+      room.remaining = null;
+    }
   }
   skipPlayer(code: string, hostId: string, playerId: string) {
     const room = this.getRoom(code);
@@ -980,6 +1166,7 @@ export class GameEngine {
       action = actionSchema.parse(input),
       round = room.round;
     check(!room.paused, "La partie est en pause.");
+    check(!room.collectionClosed, "La collecte est terminée. Votre participation déjà enregistrée est conservée.");
     check(
       round && round.participantIds.includes(id) && !player.spectator && player.connected,
       "Vous pourrez participer à la prochaine manche.",
@@ -1129,7 +1316,7 @@ export class GameEngine {
   private score(room: Room) {
     const round = room.round!;
     if (round.scored) return;
-    let results: RoundResult[] = [];
+    let results: Omit<RoundResult, "partyPoints">[] = [];
     if (round.captions) {
       const cinema = round.captions;
       const categoryVotes = (award: "film" | "actor" | "line") => Object.fromEntries(
@@ -1170,7 +1357,7 @@ export class GameEngine {
           rating: Math.round(average * 10) / 10,
           reason: "Moyenne humour, conviction et créativité",
         });
-        if (product.creatorId && average >= 4)
+        if (product.creatorId && !product.generated && average >= 4)
           results.push({
             playerId: product.creatorId,
             points: 100,
@@ -1206,28 +1393,26 @@ export class GameEngine {
     const ranks = this.ranked(room);
     for (const player of room.players)
       player.previousRank = ranks.find((p) => p.id === player.id)?.rank || 0;
-    const balance =
-      room.config.balanced && (round.gameId === "mythos" || (round.gameId === "captions" && !round.captions))
-        ? Math.min(1, 4 / Math.max(1, round.participantIds.length - 1))
-        : 1;
-    round.results = results.map((r) => ({
-      ...r,
-      points: room.config.noPoints ? 0 : Math.round(
-        r.points * balance * room.config.coefficients[round.gameId],
-      ),
-    }));
-    // The optional personal challenge grants the advertised fixed bonus, independently of game normalization.
+    // Fixed at launch: reconnects and absent players cannot change the value of earlier rounds.
+    const factor = room.config.balanced ? room.normalizationFactors[round.gameId] ?? 1 : 1;
+    round.results = results.map((r) => {
+      const points = room.config.noPoints ? 0 : Math.round(r.points * room.config.coefficients[round.gameId]);
+      return { ...r, points, partyPoints: normalizePartyPoints(points, factor) };
+    });
+    // Keep the advertised 50 game points; the party contribution uses the same factor and reserved ceiling.
     for (const [playerId, mission] of Object.entries(round.missions))
       if (mission.completed) round.results.push({
         playerId, points: room.config.noPoints ? 0 : 50, reason: "Mission secrète : mot imposé placé",
+        partyPoints: room.config.noPoints ? 0 : normalizePartyPoints(50, factor),
       });
     for (const result of round.results) {
       const p = this.getPlayer(room, result.playerId);
-      p.score += result.points;
-      p.delta += result.points;
+      p.score += result.partyPoints;
+      p.delta += result.partyPoints;
       p.history.push({
         gameId: round.gameId,
-        points: result.points,
+        points: result.partyPoints,
+        gamePoints: result.points,
         reason: result.reason,
       });
     }
@@ -1251,8 +1436,10 @@ export class GameEngine {
     this.promote(room);
     room.round = undefined;
     room.playlist = [];
+    room.normalizationFactors = {};
     room.gameIndex = 0;
     room.roundNumber = 0;
+    room.podiumStep = 0;
     room.usedContentIds = [];
     room.usedDecoyIds = [];
     room.usedCinemaIds = [];
@@ -1276,20 +1463,23 @@ export class GameEngine {
     });
   }
   snapshot(room: Room, id: string): RoomSnapshot {
-    const player = this.getPlayer(room, id),
-      round = room.round;
+    const isDisplay = room.display.id === id;
+    check(isDisplay || room.players.some((player) => player.id === id), "Session introuvable.");
+    const round = room.round;
+    const mythosResult = round?.gameId === "mythos" && room.phase === "results";
+    const currentAnswer = mythosResult ? round.answers[round.resultIndex] : undefined;
     const reveal =
       room.phase === "results" ||
       room.phase === "leaderboard" ||
       room.phase === "transition" ||
       room.phase === "podium";
     const revealProductOrigin = reveal && round?.scored;
-    const scoresVisible =
+    const scoresVisible = !mythosResult && (
       room.phase === "lobby" ||
       room.phase === "podium" ||
       room.phase === "leaderboard" ||
       (room.config.leaderboard === "round" && room.phase === "results") ||
-      (room.config.leaderboard !== "final" && room.phase === "transition");
+      (room.config.leaderboard !== "final" && room.phase === "transition"));
     const ranked = this.ranked(room);
     const displayOrder = scoresVisible
       ? ranked
@@ -1338,7 +1528,8 @@ export class GameEngine {
     const phaseAllowsAnswers =
       round?.gameId !== "court" && !round?.captions && (room.phase === "reveal" || room.phase === "voting" || reveal);
     const currentProduct =
-      round?.gameId === "pitch" && ["presenting", "voting", "results"].includes(room.phase)
+      round?.gameId === "pitch" && ["presenting", "voting", "results"].includes(room.phase) &&
+        !(room.phase === "presenting" && round.pitchStage === "wheel")
         ? round.products[round.presentationIndex]
         : undefined;
     let currentSpeakerId = currentProduct?.sellerId;
@@ -1348,6 +1539,11 @@ export class GameEngine {
     const ownLine = assignedStory?.lines.find((line) => line.frameIndex === cinema!.turn && line.authorId === id);
     const currentNotes = currentProduct?.sellerId && round ? Object.values(round.ratings).map((ratings) => ratings[currentProduct.sellerId!]).filter((note): note is [number, number, number] => !!note) : [];
     const currentAverage = currentNotes.length ? currentNotes.reduce((sum, notes) => sum + (notes[0] + notes[1] + notes[2]) / 3, 0) / currentNotes.length : 0;
+    const noteAverage = (index: number) => currentNotes.length ? Math.round(currentNotes.reduce((sum, notes) => sum + notes[index]!, 0) / currentNotes.length * 10) / 10 : 0;
+    const answers = room.phase === "reveal" && round?.gameId === "mythos" ? round.answers.slice(round.revealIndex, round.revealIndex + 1)
+      : mythosResult ? currentAnswer ? [currentAnswer] : [] : round?.answers || [];
+    const visibleResults = mythosResult ? round!.results.filter((result) => result.playerId === currentAnswer?.authorId) : round?.results || [];
+    const visibleVoteCounts = mythosResult ? currentAnswer ? { [currentAnswer.id]: round!.voteCounts[currentAnswer.id] || 0 } : {} : round?.voteCounts;
     if (round?.roles && room.phase === "presenting")
       currentSpeakerId =
         round.courtStep === "accusation"
@@ -1375,12 +1571,19 @@ export class GameEngine {
     return {
       code: room.code,
       hostId: room.hostId,
+      controllerConnected: room.players.some((player) => player.id === room.hostId && player.connected && !player.spectator),
+      podiumStep: room.podiumStep,
+      transitionId: room.transitionId,
+      collectionClosed: room.collectionClosed,
+      advanceCommand: this.advanceCommand(room),
+      pairingCode: isDisplay && room.phase === "lobby" && !room.hostId ? room.pairingCode : undefined,
+      recoveryRequests: id === room.hostId ? [...this.recoveryRequests.values()].filter((request) => request.code === room.code && request.expiresAt > this.now())
+        .map(({ requestId, playerId, name }) => ({ requestId, playerId, name })) : undefined,
       phase: room.phase,
       phaseStartedAt: room.phaseStartedAt,
       progress: this.progress(room),
       manualAdvanceRequired: this.manualAdvanceRequired(room),
-      awaitingHost: this.manualAdvanceRequired(room) && !room.paused &&
-        (room.deadline === null || this.now() >= room.deadline),
+      awaitingHost: !!this.advanceCommand(room)?.enabled || !!room.pausedForController,
       reactions: room.config.reactionsEnabled ? structuredClone(room.reactions.filter((r) => this.now() - r.createdAt < REACTION_TTL)) : [],
       config: structuredClone(room.config),
       players,
@@ -1396,7 +1599,7 @@ export class GameEngine {
             category: round.category,
             mediaUrl: round.mediaUrl,
             answers: phaseAllowsAnswers
-              ? round.answers.map((a) => ({
+              ? answers.map((a) => ({
                   id: a.id,
                   text: a.text,
                   ...(reveal || round.gameId === "court"
@@ -1414,19 +1617,22 @@ export class GameEngine {
               : undefined,
             currentSpeakerId,
             presentationIndex: round.presentationIndex,
+            revealIndex: round.revealIndex,
+            resultIndex: round.resultIndex,
+            answerCount: round.answers.length,
+            pitchStage: round.pitchStage,
             courtStep: round.courtStep,
             roles: round.roles ? structuredClone(round.roles) : undefined,
             submittedCount: this.eligible(room).filter((p) => round.submitted.includes(p)).length,
             eligibleCount: this.progress(room)[0]?.total ?? this.eligible(room).length,
             votedCount: room.phase === "voting" ? this.progress(room)[0]?.completed || 0 : 0,
             results: reveal
-              ? round.results.map((r) => ({
+              ? visibleResults.map((r) => ({
                   ...r,
-                  points: scoresVisible ? r.points : 0,
                 }))
               : [],
             verdict: reveal ? round.verdict : undefined,
-            voteCounts: reveal ? structuredClone(round.voteCounts) : undefined,
+            voteCounts: reveal ? structuredClone(visibleVoteCounts) : undefined,
             votesByPlayer:
               reveal && !room.config.anonymousVotes
                 ? structuredClone(
@@ -1434,14 +1640,18 @@ export class GameEngine {
                   )
                 : undefined,
             title: reveal ? round.title : undefined,
-            pitchFinalResults: round.gameId === "pitch" ? round.scored : undefined,
+            pitchFinalResults: round.gameId === "pitch" ? !!round.pitchFinalResults : undefined,
             pitchRating: round.gameId === "pitch" && room.phase === "results" && currentProduct?.sellerId ? {
               sellerId: currentProduct.sellerId, average: Math.round(currentAverage * 10) / 10, ratingsCount: currentNotes.length,
+              humor: noteAverage(0), conviction: noteAverage(1), creativity: noteAverage(2),
+              points: room.config.noPoints ? 0 : Math.round(currentAverage * 100 * room.config.coefficients.pitch),
+              partyPoints: room.config.noPoints ? 0 : normalizePartyPoints(Math.round(currentAverage * 100 * room.config.coefficients.pitch), room.config.balanced ? room.normalizationFactors.pitch ?? 1 : 1),
             } : undefined,
           }
         : undefined,
-      me: {
+      me: isDisplay ? { id, clientKind: "DISPLAY_CLIENT", eligible: false, submitted: false, prepared: false, voted: false } : {
         id,
+        clientKind: "PLAYER_CLIENT",
         eligible: this.eligible(room).includes(id) &&
           (room.phase !== "voting" || this.voters(room).includes(id)),
         submitted: round?.submitted.includes(id) || false,
@@ -1493,6 +1703,7 @@ export class GameEngine {
         stories: ["voting", "results", "leaderboard", "transition", "podium"].includes(room.phase)
           ? cinema.stories.map((story) => this.captionStoryView(story, reveal)) : undefined,
         awards: reveal && cinema.awards ? structuredClone(cinema.awards) : undefined,
+        playback: structuredClone(cinema.playback),
       } : undefined,
     };
   }

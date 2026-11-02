@@ -171,7 +171,7 @@
       },
       {
         "title": "Le chrono tourne",
-        "text": "Vous avez {answer} secondes. Dès que tout le monde a répondu, on continue."
+        "text": "Vous avez {answer} secondes. Quand tous ont répondu, le maître de soirée révèle chaque réponse."
       },
       {
         "title": "Place aux mythos",
@@ -261,7 +261,7 @@
       },
       {
         "title": "L’instinct collectif",
-        "text": "100 points si votre choix suit la majorité, 50 aux personnes les plus désignées."
+        "text": "+100 points si vous votez pour une personne arrivée en tête, égalités incluses. Aucun point automatique pour la personne désignée."
       }
     ],
     "captions": [

@@ -22,9 +22,9 @@ export const configSchema = z
     allowedGames: z.array(gameSchema).min(1).max(5),
     allowRepeats: z.boolean(),
     approximateMinutes: z.number().min(5).max(180),
-    answerSeconds: z.number().int().min(15).max(180),
-    voteSeconds: z.number().int().min(10).max(120),
-    presentationSeconds: z.number().int().min(15).max(180),
+    answerSeconds: z.number().int().min(0).max(600),
+    voteSeconds: z.number().int().min(0).max(300),
+    presentationSeconds: z.number().int().min(0).max(600),
     transitionSeconds: z.number().int().min(3).max(60),
     anonymousVotes: z.boolean(),
     allowVoteChange: z.boolean(),
@@ -33,7 +33,7 @@ export const configSchema = z
     noPoints: z.boolean().default(false),
     reactionsEnabled: z.boolean().default(true),
     secretRoles: z.boolean().default(false),
-    autoAdvance: z.boolean().default(true),
+    autoAdvance: z.boolean().default(false),
     language: z.enum(["fr", "en"]).default("fr"),
     captionLength: z.enum(["short", "normal", "long"]).default("long"),
     captionAutoSlides: z.boolean().default(false),
@@ -150,20 +150,37 @@ export function writingScores(
 }
 export function whoScores(votes: Record<string, string>, noPoints = false) {
   const { counts, winners } = topTargets(votes);
-  const result = new Map<string, number>();
-  for (const [voter, target] of Object.entries(votes))
-    if (winners.includes(target)) result.set(voter, 100);
-  for (const target of winners)
-    result.set(target, (result.get(target) || 0) + 50);
   return {
     counts,
     winners,
-    results: [...result].map(([playerId, points]) => ({
+    results: Object.entries(votes).map(([playerId, target]) => ({
       playerId,
-      points: noPoints ? 0 : points,
-      reason: "Instinct collectif et prix de la suspicion",
+      points: noPoints ? 0 : winners.includes(target) ? 100 : 0,
+      reason: noPoints ? "Ambiance sans points" : winners.includes(target)
+        ? "+100 : votre choix figure en tête du vote, égalités incluses"
+        : "+0 : votre choix n’est pas arrivé en tête du vote",
     })),
   };
+}
+/** A fixed party budget per game, independent of the number of questions or voters. */
+export function normalizationFactors(playlist: readonly PlaylistItem[], playerCount: number, secretRoles = false): Partial<Record<GameId, number>> {
+  const rounds: Partial<Record<GameId, number>> = {}, ceilings: Partial<Record<GameId, number>> = {};
+  for (const item of playlist) {
+    const maximum: Record<GameId, number> = {
+      mythos: 100 * Math.max(0, playerCount - 1) + 150,
+      who: 100,
+      pitch: item.pitchMode === "invented" ? 600 : 500,
+      court: 450,
+      captions: 550,
+    };
+    const mission = secretRoles && (item.gameId === "mythos" || item.gameId === "pitch" && item.pitchMode === "invented") ? 50 : 0;
+    rounds[item.gameId] = (rounds[item.gameId] || 0) + item.rounds;
+    ceilings[item.gameId] = Math.max(ceilings[item.gameId] || 0, maximum[item.gameId] + mission);
+  }
+  return Object.fromEntries(Object.entries(rounds).map(([id, count]) => [id, 1000 / ((ceilings[id as GameId] || 1) * count!)]));
+}
+export function normalizePartyPoints(points: number, factor: number) {
+  return Math.round(points * factor);
 }
 export function buildPlaylist(
   config: RoomConfig,

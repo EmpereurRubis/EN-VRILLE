@@ -171,7 +171,7 @@
       },
       {
         "title": "The clock is ticking",
-        "text": "You have {answer} seconds. As soon as everyone answers, the show continues."
+        "text": "You have {answer} seconds. Once everyone has answered, the party host reveals each answer."
       },
       {
         "title": "Make way for the liars",
@@ -261,7 +261,7 @@
       },
       {
         "title": "Collective instinct",
-        "text": "100 points if your choice follows the majority, 50 to the most nominated people."
+        "text": "+100 points for picking a leading choice, including ties. No automatic points for the person selected."
       }
     ],
     "captions": [

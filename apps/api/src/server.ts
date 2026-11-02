@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 import { Server, type Socket } from "socket.io";
 import { z } from "zod";
 import { GAMES, AVATARS, PROTOCOL_VERSION } from "@en-vrille/shared";
-import type { Ack, Session } from "@en-vrille/shared";
+import type { Ack, Session, ClientKind } from "@en-vrille/shared";
 import type { ContentItem } from "@en-vrille/content";
 import { GameEngine, type EngineOptions } from "./engine.js";
 import { defaultStore, type Store } from "./store.js";
@@ -33,8 +33,9 @@ const profile = z
   .strict();
 const sessionSchema = z
   .object({
-    code: z.string().regex(/^[A-Z0-9]{6}$/i),
-    playerId: z.string().uuid(),
+    code: z.string().regex(/^[A-Z0-9]{6}$/i).transform((code) => code.toUpperCase()),
+    clientId: z.string().uuid(),
+    clientKind: z.enum(["DISPLAY_CLIENT", "PLAYER_CLIENT"]),
     token: z.string().min(40).max(100),
   })
   .strict();
@@ -186,14 +187,15 @@ export async function createGameServer(options: GameServerOptions = {}) {
     onError: logger,
   });
   await engine.initialize();
-  const identities = new Map<string, { code: string; playerId: string }>();
+  const identities = new Map<string, { code: string; clientId: string; clientKind: ClientKind }>();
   const liveSessions = new Map<string, string>();
+  const recoverySockets = new Map<string, string>();
   engine.onChange = (room) => {
     for (const [socketId, identity] of identities)
       if (identity.code === room.code)
         io.to(socketId).emit(
           "room:state",
-          engine.snapshot(room, identity.playerId),
+          engine.snapshot(room, identity.clientId),
         );
   };
   const health = (_req: express.Request, res: express.Response) =>
@@ -475,7 +477,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
     return found;
   }
   function attach(socket: Socket, session: Session) {
-    const key = `${session.code}:${session.playerId}`,
+    const key = `${session.code}:${session.clientId}`,
       oldId = liveSessions.get(key);
     if (oldId && oldId !== socket.id) {
       const previous = io.sockets.sockets.get(oldId);
@@ -489,7 +491,8 @@ export async function createGameServer(options: GameServerOptions = {}) {
     liveSessions.set(key, socket.id);
     identities.set(socket.id, {
       code: session.code,
-      playerId: session.playerId,
+      clientId: session.clientId,
+      clientKind: session.clientKind,
     });
   }
   io.on("connection", (socket) => {
@@ -528,7 +531,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
                 result.room = current
                   ? engine.snapshot(
                       engine.getRoom(current.code),
-                      current.playerId,
+                      current.clientId,
                     )
                   : undefined;
               }
@@ -557,20 +560,20 @@ export async function createGameServer(options: GameServerOptions = {}) {
       const i = identity(socket);
       return {
         ok: true,
-        room: engine.snapshot(engine.getRoom(i.code), i.playerId),
+        room: engine.snapshot(engine.getRoom(i.code), i.clientId),
       };
     };
     register("room:create", (data) => {
       noSession();
       if (!limiter.allow(`create:${address}`, 15, 3600_000))
         throw new Error("Trop de salons créés. Réessayez plus tard.");
-      const p = profile.extend({ hostPlays: z.boolean().optional() }).parse(data);
-      const { room, session } = engine.create(p.name, p.avatar, p.hostPlays);
+      z.object({}).strict().parse(data);
+      const { room, session } = engine.create();
       attach(socket, session);
       return {
         ok: true,
         session,
-        room: engine.snapshot(room, session.playerId),
+        room: engine.snapshot(room, session.clientId),
       };
     });
     register("room:join", (data) => {
@@ -594,7 +597,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
       return {
         ok: true,
         session,
-        room: engine.snapshot(room, session.playerId),
+        room: engine.snapshot(room, session.clientId),
       };
     });
     register("room:resume", (data) => {
@@ -605,89 +608,136 @@ export async function createGameServer(options: GameServerOptions = {}) {
       return {
         ok: true,
         session,
-        room: engine.snapshot(room, session.playerId),
+        room: engine.snapshot(room, session.clientId),
       };
+    });
+    register("room:claim-control", (data) => {
+      const p = z.object({ pairingCode: z.string().regex(/^\d{6}$/) }).strict().parse(data), i = identity(socket);
+      if (!limiter.allow(`pairing:${address}:${i.code}`, 10, 60_000)) throw new Error("Trop de tentatives d’association. Patientez une minute.");
+      engine.claimControl(i.code, i.clientId, p.pairingCode);
+      return state();
+    });
+    register("room:transfer-control", (data) => {
+      const p = z.object({ playerId: z.string().uuid() }).strict().parse(data), i = identity(socket);
+      engine.transferControl(i.code, i.clientId, p.playerId);
+      return state();
+    });
+    register("room:recovery-request", (data) => {
+      noSession();
+      const p = z.object({ code: z.string().regex(/^[a-z0-9]{6}$/i), name: z.string().trim().min(2).max(22) }).strict().parse(data);
+      if (!limiter.allow(`recovery:${address}`, 5, 60_000)) throw new Error("Trop de demandes. Patientez une minute.");
+      for (const [requestId, targetSocketId] of recoverySockets) {
+        const previous = engine.recoveryRequests.get(requestId);
+        if (!previous || targetSocketId === socket.id) {
+          engine.recoveryRequests.delete(requestId);
+          recoverySockets.delete(requestId);
+        }
+      }
+      const request = engine.requestRecovery(p.code, p.name);
+      recoverySockets.set(request.requestId, socket.id);
+      return { ok: true, recoveryRequestId: request.requestId };
+    });
+    register("room:approve-recovery", async (data) => {
+      const p = z.object({ requestId: z.string().uuid() }).strict().parse(data), i = identity(socket);
+      const targetId = recoverySockets.get(p.requestId), target = targetId ? io.sockets.sockets.get(targetId) : undefined;
+      if (!target || identities.has(target.id)) throw new Error("Le nouvel appareil n’attend plus cette récupération.");
+      const session = engine.approveRecovery(i.code, i.clientId, p.requestId);
+      recoverySockets.delete(p.requestId);
+      attach(target, session);
+      await engine.flush();
+      target.emit("room:recovered", { ok: true, session, room: engine.snapshot(engine.getRoom(session.code), session.clientId) });
+      return state();
     });
     register("room:ready", (data) => {
       const p = z.object({ ready: z.boolean() }).strict().parse(data),
         i = identity(socket);
-      engine.ready(i.code, i.playerId, p.ready);
+      engine.ready(i.code, i.clientId, p.ready);
       return state();
     });
     register("room:configure", (data) => {
       const config = configSchema.parse(data),
         i = identity(socket);
-      engine.configure(i.code, i.playerId, config);
+      engine.configure(i.code, i.clientId, config);
       return state();
     });
     register("room:start", () => {
       const i = identity(socket);
-      engine.start(i.code, i.playerId);
+      engine.start(i.code, i.clientId);
       return state();
     });
     register("room:action", (data) => {
       const action = actionSchema.parse(data),
         i = identity(socket);
-      engine.action(i.code, i.playerId, action);
+      engine.action(i.code, i.clientId, action);
       return state();
     });
     register("room:product-suggestion", (data) => {
       z.object({}).strict().parse(data);
       const i = identity(socket);
-      engine.suggestProduct(i.code, i.playerId);
+      engine.suggestProduct(i.code, i.clientId);
       return state();
     });
     register("room:caption-control", (data) => {
-      const p = z.object({ direction: z.enum(["next", "previous"]).optional(), autoSlides: z.boolean().optional() }).strict()
-        .refine((control) => control.direction !== undefined || control.autoSlides !== undefined).parse(data),
+      const p = z.object({ direction: z.enum(["next", "previous"]).optional(), autoSlides: z.boolean().optional(), playback: z.enum(["play", "pause", "restart"]).optional(), mode: z.enum(["video", "slides"]).optional(), revision: z.string().uuid() }).strict()
+        .refine((control) => control.direction !== undefined || control.autoSlides !== undefined || control.playback !== undefined || control.mode !== undefined).parse(data),
         i = identity(socket);
-      engine.captionControl(i.code, i.playerId, p);
+      engine.captionControl(i.code, i.clientId, p);
       return state();
     });
     register("room:react", (data) => {
       const p = z.object({ reaction: z.string().max(16) }).strict().parse(data),
         i = identity(socket);
-      engine.react(i.code, i.playerId, p.reaction);
+      engine.react(i.code, i.clientId, p.reaction);
       return state();
     });
     register("room:skip-player", (data) => {
       const p = z.object({ playerId: z.string().uuid() }).strict().parse(data),
         i = identity(socket);
-      engine.skipPlayer(i.code, i.playerId, p.playerId);
+      engine.skipPlayer(i.code, i.clientId, p.playerId);
       return state();
     });
     register("room:advance", (data) => {
-      const p = z.object({ skip: z.boolean().optional() }).strict().parse(data),
+      const p = z.object({ transitionId: z.string().uuid(), skip: z.boolean().optional() }).strict().parse(data),
         i = identity(socket);
-      engine.advance(i.code, i.playerId, p.skip);
+      engine.advance(i.code, i.clientId, p.transitionId, p.skip);
+      return state();
+    });
+    register("room:reopen-collection", (data) => {
+      const p = z.object({ transitionId: z.string().uuid(), seconds: z.number().int().min(0).max(900) }).strict().parse(data),
+        i = identity(socket);
+      engine.reopenCollection(i.code, i.clientId, p.transitionId, p.seconds);
       return state();
     });
     register("room:pause", (data) => {
       const p = z.object({ paused: z.boolean() }).strict().parse(data),
         i = identity(socket);
-      engine.pause(i.code, i.playerId, p.paused);
+      engine.pause(i.code, i.clientId, p.paused);
       return state();
     });
     register("room:replay", () => {
       const i = identity(socket);
-      engine.replay(i.code, i.playerId);
+      engine.replay(i.code, i.clientId);
       return state();
     });
     register("room:leave", () => {
       const i = identity(socket);
+      engine.leave(i.code, i.clientId);
       identities.delete(socket.id);
-      liveSessions.delete(`${i.code}:${i.playerId}`);
-      engine.leave(i.code, i.playerId);
+      liveSessions.delete(`${i.code}:${i.clientId}`);
       return { ok: true };
     });
     socket.on("disconnect", () => {
+      for (const [requestId, targetId] of recoverySockets) if (targetId === socket.id) {
+        engine.recoveryRequests.delete(requestId);
+        recoverySockets.delete(requestId);
+      }
       const i = identities.get(socket.id);
       if (!i) return;
       identities.delete(socket.id);
-      const key = `${i.code}:${i.playerId}`;
+      const key = `${i.code}:${i.clientId}`;
       if (liveSessions.get(key) === socket.id) {
         liveSessions.delete(key);
-        engine.disconnect(i.code, i.playerId);
+        engine.disconnect(i.code, i.clientId);
       }
     });
   });
