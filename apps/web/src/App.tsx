@@ -78,15 +78,14 @@ import { CinemaAdmin } from './CinemaAdmin';
 const socket: Socket<ServerEvents, ClientEvents> = io(serverOrigin || undefined, {
   autoConnect: false,
   reconnection: true,
-  auth: { protocolVersion: PROTOCOL_VERSION, clientKind: isDesktop ? "desktop" : "web" },
+  auth: callback => callback({ protocolVersion: PROTOCOL_VERSION, clientKind: isDesktop ? "desktop" : "web" }),
 });
 type StoredSession = Session & { label?: string };
-const pageParameters = new URLSearchParams(location.search);
-const displayPage = isDesktop || pageParameters.get('display') === '1' || pageParameters.get('screen') === '1';
+const displayPage = isDesktop;
 const sessionKey = (kind: Session['clientKind']) => `vrille-session:v3:${serverOrigin || location.origin}:${kind}`;
 function readStoredSession(): StoredSession | null {
   try {
-    const kind = displayPage ? 'DISPLAY_CLIENT' : pageParameters.has('room') ? 'PLAYER_CLIENT' : sessionStorage.getItem('vrille-client-kind') || 'PLAYER_CLIENT';
+    const kind = displayPage ? 'DISPLAY_CLIENT' : 'PLAYER_CLIENT';
     const value = JSON.parse(localStorage.getItem(sessionKey(kind as Session['clientKind'])) || 'null') as StoredSession | null;
     return value?.token && value.clientKind === kind ? value : null;
   } catch { return null; }
@@ -203,10 +202,12 @@ function App() {
   const launchErrorReason = new URLSearchParams(location.search).get('connectionError');
   const { preference: theme, setPreference: setTheme, isDark } = useTheme();
   const [room, setRoom] = useState<RoomSnapshot | null>(null);
+  const currentRoom = useRef<RoomSnapshot | null>(null);
+  currentRoom.current = room;
   const [resumeSession, setResumeSession] = useState<StoredSession | null>(readStoredSession);
   const activeSession = useRef<StoredSession | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
-  const [dialog, setDialog] = useState<"create" | "join" | "settings" | "credits" | null>(
+  const [dialog, setDialog] = useState<"settings" | "credits" | null>(
     null,
   );
   const [error, setError] = useState("");
@@ -223,7 +224,7 @@ function App() {
     setToast(message);
     window.setTimeout(() => setToast(""), 3500);
   }, []);
-  const request = useCallback(
+  const emitRequest = useCallback(
     async (event: Event, payload: unknown = {}): Promise<Ack> => {
       setError("");
       // The remembered display name is device metadata, outside the strict session contract.
@@ -271,8 +272,19 @@ function App() {
     },
     [],
   );
+  const request = useCallback(async (event: Event, payload: unknown = {}): Promise<Ack> => {
+    const snapshot = currentRoom.current;
+    if (snapshot && snapshot.displayStatus.state !== 'connected' && event.startsWith('room:') &&
+        !['room:resume', 'room:leave', 'room:join', 'room:recovery-request'].includes(event)) {
+      const message = translate(snapshot.displayStatus.state === 'expired' ? 'displayStatus.expired' : 'displayStatus.waiting', document.documentElement.lang === 'en' ? 'en' : 'fr');
+      setError(message);
+      return { ok: false, error: message };
+    }
+    return emitRequest(event, payload);
+  }, [emitRequest]);
   useEffect(() => {
     if (launcher) return;
+    let resumeRetry: number | undefined;
     const connect = () => {
       setConnected(true);
       setConnectionError("");
@@ -280,13 +292,18 @@ function App() {
         const s = activeSession.current;
         if (s && resumedSocket.current !== socket.id) {
           resumedSocket.current = socket.id;
-          void request("room:resume", s);
+          const resume = async () => {
+            const ack = await request('room:resume', s);
+            if (!ack.ok && socket.connected && activeSession.current?.clientId === s.clientId)
+              resumeRetry = window.setTimeout(resume, 10_000);
+          };
+          void resume();
         }
       } catch {
         /* Keep the recovery token after a temporary connection failure. */
       }
     };
-    const disconnect = () => setConnected(false);
+    const disconnect = () => { setConnected(false); window.clearTimeout(resumeRetry); };
     const connectionFailed = (error: Error) => setConnectionError(error.message || "Le serveur ne répond pas.");
     const recovered = (ack: Ack) => {
       if (!ack.ok || !ack.session || !ack.room) return;
@@ -307,6 +324,7 @@ function App() {
     socket.connect();
     if (socket.connected) connect();
     return () => {
+      window.clearTimeout(resumeRetry);
       socket.off("connect", connect);
       socket.off("disconnect", disconnect);
       socket.off("connect_error", connectionFailed);
@@ -319,10 +337,6 @@ function App() {
     try { localStorage.setItem("vrille-reduced", JSON.stringify(reduced)); } catch { /* optional storage */ }
     void desktop?.setPreferences?.({ reduced }).catch(() => {});
   }, [reduced]);
-  useEffect(() => {
-    const invitedCode = new URLSearchParams(location.search).get('room')?.toUpperCase();
-    if (invitedCode && (!resumeSession || resumeSession.code !== invitedCode)) setDialog('join');
-  }, []);
   const leave = async () => {
     const ack = await request("room:leave");
     if (ack.ok) {
@@ -335,7 +349,7 @@ function App() {
     }
   };
   const createDisplay = async () => {
-    if (creating.current) return;
+    if (creating.current || !displayPage) return;
     creating.current = true;
     setBusy(true);
     const ack = await request('room:create');
@@ -365,7 +379,7 @@ function App() {
           >
             <BrandMark />
           </button>
-          {!room && !admin && !launcher && (
+          {displayPage && !room && !admin && !launcher && (
             <nav className="desktop-nav" aria-label={t('legacy.s007')}>
               <button
                 className={screen === "games" ? "nav-active" : ""}
@@ -454,14 +468,13 @@ function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
               >
-                {screen === "home" ? (
-                  <section className="room-access page-width">
+                {!displayPage || screen === "home" ? (
+                  <section className={`room-access page-width ${!displayPage ? 'join-access' : ''}`}>
                     <div className="eyebrow">EN VRILLE !</div>
                     <h1>{t(displayPage ? 'party.accessTitle' : 'party.mobileTitle')}</h1>
                     <p>{t(displayPage ? 'party.accessHelp' : 'party.mobileHelp')}</p>
                     {resumeSession && <div className="resume-session panel"><strong>{t('party.resumeTitle', { name: resumeSession.label || resumeSession.code })}</strong><span>{t('party.room', { code: resumeSession.code })}</span><button data-testid="resume-session" className="button primary" disabled={busy || !connected} onClick={async () => { setBusy(true); const ack = await request('room:resume', resumeSession); if (ack.ok) setDialog(null); setBusy(false); }}>{t('party.resume')}</button></div>}
-                    <div className="room-access-actions"><button data-testid="create-display" className="button primary large" disabled={busy || !connected} onClick={() => void createDisplay()}><Monitor size={23}/>{t('party.createDisplay')}</button>{!displayPage && <button className="button outline large" onClick={() => setDialog('join')}><Gamepad2 size={23}/>{t('menu.join')}</button>}</div>
-                    <p className="muted">{t('party.separateDevices')}</p>
+                    {displayPage ? <><div className="room-access-actions"><button data-testid="create-display" className="button primary large" disabled={busy || !connected} onClick={() => void createDisplay()}><Monitor size={23}/>{t('party.createDisplay')}</button></div><p className="muted">{t('party.separateDevices')}</p></> : <div className="join-access-form panel"><IdentityForm busy={busy || !connected} request={request} submit={async data => { setBusy(true); const ack = await request('room:join', data); if (ack.ok) setDialog(null); setBusy(false); }}/></div>}
                   </section>
                 ) : screen === "games" ? (
                   <GameCatalog onCreate={() => void createDisplay()} />
@@ -485,14 +498,9 @@ function App() {
         <AnimatePresence>
           {dialog && (
             <Modal
-              wide={dialog === 'create'}
               title={
                 dialog === "credits" ? t('legacy.s029')
-                : dialog === "settings"
-                  ? t('legacy.s030')
-                  : dialog === "create"
-                    ? t('legacy.s031')
-                    : t('legacy.s032')
+                  : t('legacy.s030')
               }
               close={() => setDialog(null)}
             >
@@ -534,16 +542,7 @@ function App() {
                   <CinemaCredits />
                   <button className="button primary full" onClick={() => setDialog(null)}>{t('legacy.s043')}</button>
                 </div>
-              ) : dialog === "create" ? (
-                <button className="button primary full" disabled={busy} onClick={() => void createDisplay()}>{t('party.createDisplay')}</button>
-              ) : (
-                <IdentityForm busy={busy} request={request} submit={async (data) => {
-                  setBusy(true);
-                  const ack = await request("room:join", data);
-                  setBusy(false);
-                  if (ack.ok) setDialog(null);
-                }} />
-              )}
+              ) : null}
             </Modal>
           )}
         </AnimatePresence>
@@ -860,14 +859,32 @@ function Room({ room, request, notify, onLeave }: { room: RoomSnapshot; request:
   const host = room.me.id === room.hostId;
   const display = room.me.clientKind === 'DISPLAY_CLIENT';
   const me = room.players.find((player) => player.id === room.me.id);
+  const displayDisconnected = room.displayStatus.state !== 'connected';
   return (
-    <div data-testid="phase" data-phase={room.phase} data-client-kind={room.me.clientKind} className={`room-page ${display ? "scene-room" : "page-width controller-room"}`}>
+    <div data-testid="phase" data-phase={room.phase} data-client-kind={room.me.clientKind} data-display-status={room.displayStatus.state} className={`room-page ${display ? "scene-room" : "page-width controller-room"} ${displayDisconnected ? 'display-disconnected' : ''}`}>
+      {displayDisconnected && <DisplayConnectionStatus room={room} onLeave={onLeave}/>}
+      <fieldset className="display-room-content" disabled={displayDisconnected} aria-disabled={displayDisconnected}>
       {!display && host && <RecoveryApprovals room={room} request={request}/>}
       {display ? <SceneStage room={room} host={false} request={request}/>
         : room.phase === "lobby" ? host ? <Lobby room={room} request={request} notify={notify} host={host}/> : <ControllerLobby room={room} request={request}/>
         : <Gameplay room={room} request={request} host={host} spectator={!!me?.spectator} onMenu={onLeave}/>}
+      </fieldset>
     </div>
   );
+}
+
+function DisplayConnectionStatus({ room, onLeave }: { room: RoomSnapshot; onLeave: () => void }) {
+  const { t } = useI18n();
+  const [now, setNow] = useState(Date.now());
+  const serverOffset = useRef(room.serverTime - Date.now());
+  useEffect(() => { serverOffset.current = room.serverTime - Date.now(); }, [room.serverTime]);
+  useEffect(() => {
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+  const status = room.displayStatus.state;
+  const seconds = room.displayStatus.reconnectUntil === null ? null : Math.max(0, Math.ceil((room.displayStatus.reconnectUntil - now - serverOffset.current) / 1000));
+  return <section data-testid="display-status" className="display-status" role="status" aria-live="polite"><Monitor size={32}/><div><h2>{t(status === 'expired' ? 'displayStatus.expired' : 'displayStatus.waiting')}</h2><p>{t(status === 'expired' ? 'displayStatus.expiredHelp' : 'displayStatus.preserved')}</p>{seconds !== null && status !== 'expired' && <small>{t('displayStatus.reconnectWindow', { seconds })}</small>}</div>{status === 'expired' && <button className="button outline" onClick={onLeave}>{t('displayStatus.leave')}</button>}</section>;
 }
 
 function RecoveryApprovals({room,request}:{room:RoomSnapshot;request:Request}) {

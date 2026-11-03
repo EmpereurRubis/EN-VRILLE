@@ -30,7 +30,6 @@
       "main.mjs",
       "preload.cjs",
       "security.mjs",
-      "steam.mjs",
       "renderer/**/*",
       "assets/icon.ico",
       "assets/icon.png",

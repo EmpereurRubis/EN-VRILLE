@@ -28,18 +28,20 @@ La plateforme et les WebSockets utilisent l’origine du serveur choisi ; le rev
 
 ## Versions et mises à jour
 
-Le protocole courant est `PROTOCOL_VERSION = 2`, défini dans le paquet partagé et annoncé par `/api/health` et `/api/ready`. Le PC et le Web présentent ce numéro à Socket.IO. Les versions précédentes, y compris un client sans numéro, reçoivent une erreur explicite demandant la mise à jour. Déployer ensemble les nouvelles images Web et API avant de distribuer le client PC 1.2.0.
+Le protocole courant est `PROTOCOL_VERSION = 5`, défini dans le paquet partagé et annoncé par `/api/health` et `/api/ready`. Le PC et le Web présentent ce numéro à Socket.IO. Les versions précédentes, y compris un client sans numéro, reçoivent une erreur explicite demandant la mise à jour. Déployer ensemble les nouvelles images Web et API et le client PC compatible. Aucune authentification Steam n'intervient dans la création ou la reprise d'une partie.
 
 Une modification serveur compatible avec ce protocole ne demande pas de mise à jour Steam : l’interface de la plateforme est chargée après « DÉMARRER ». Les ressources du menu d’accueil sont embarquées et nécessitent une nouvelle distribution pour être mises à jour. Pour une rupture de protocole, préparer une migration des clients avant la mise à jour de production. La version du PC est celle de `apps/desktop/package.json`.
 
 Les préférences et journaux se trouvent dans le dossier utilisateur Electron, hors de l’installation. Les salons, scores et sessions restent dans PostgreSQL. Conserver `SESSION_SECRET` entre les mises à jour serveur. Une reconnexion automatique retrouve la partie ; un redémarrage API restaure les salons en pause.
 
-## Steamworks et SteamPipe
+## Publication SteamPipe
 
-`steam.mjs` fournit le point d’intégration du SDK sans rendre Steam nécessaire au lancement. Aucun AppID, SDK privé, succès, overlay ou contrôle de possession n’est inventé. L’identité Steam et la validation des tickets d’hôte restent à brancher avec les accès officiels avant une commercialisation qui exigerait une preuve de possession. Les téléphones ne demandent aucun compte Steam. La création Web reste disponible pour le développement et le déploiement actuel.
+Steam sert uniquement à vendre, distribuer et mettre à jour le binaire Windows. Le jeu et la création de salons fonctionnent sans SDK Steamworks, DRM personnalisé, ticket d'authentification, clé Publisher ou compte Steam actif. Les téléphones ne demandent aucune installation et le site public ne crée pas de partie.
+
+Le serveur conserve les protections élémentaires de création (type de client déclaré, limite par IP, antiflood et quota global). Elles limitent les abus sans prétendre authentifier l'acheteur. La déconnexion de l'écran suspend la salle ; `DISPLAY_RECONNECT_SECONDS` définit son délai de récupération et la session privée du PC permet son retour.
 
 1. Créer l’application et le dépôt Windows dans le compte Steamworks de l’éditeur ; relever leurs vrais identifiants.
-2. Télécharger le SDK officiel avec ce compte et conserver ses outils hors du dépôt Git.
+2. Construire le jeu avec `npm run desktop:dist`. Seul l'outil officiel SteamPipe/SteamCMD est nécessaire pour téléverser ensuite les fichiers, pas pour jouer ni pour compiler le client.
 3. Définir `STEAM_APP_ID` et `STEAM_DEPOT_ID` dans l’environnement de préparation, puis exécuter `npm run steam:prepare`.
 4. Inspecter `apps/desktop/steam/output/content` et le manifeste. Les deux fichiers VDF restent en mode **Preview** ; sans identifiants, leurs valeurs sont des marqueurs explicitement non utilisables.
 5. Utiliser le `steamcmd` officiel pour lancer `+run_app_build` avec le chemin absolu du fichier `app_build.vdf`. Ouvrir une session Steam Guard avec le compte de build ; ne pas stocker de mot de passe dans un script ou la CI.
@@ -54,4 +56,4 @@ Installer sur un Windows x64 propre, lancer depuis Steam puis depuis l’exécut
 
 L’accès public nécessite que le DNS, le certificat et le proxy de `envrille.erubis.fr` soient opérationnels. Rejoindre une partie depuis un réseau mobile permet de confirmer que les invitations et les connexions passent par cette installation publique.
 
-La fiche produit, les visuels et les captures sont préparés dans [`marketing`](../../marketing/Steam.md). Les performances minimales, la signature de l’éditeur, les fonctionnalités Steamworks et la validation commerciale restent à confirmer sur les machines et le compte de publication concernés.
+La fiche produit, les visuels et les captures sont préparés dans [`marketing`](../../marketing/Steam.md). Les performances minimales, la signature de l’éditeur et la validation commerciale restent à confirmer sur les machines et le compte de publication concernés.

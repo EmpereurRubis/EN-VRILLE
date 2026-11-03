@@ -1,5 +1,9 @@
 /** Increment only when the client/server event contract becomes incompatible. */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 5;
+export interface DisplayStatus {
+  state: "connected" | "reconnecting" | "expired";
+  reconnectUntil: number | null;
+}
 export type ClientKind = "DISPLAY_CLIENT" | "PLAYER_CLIENT";
 export const GAME_IDS = [
   "mythos",
@@ -384,6 +388,7 @@ export interface ReactionView {
 }
 export interface RoomSnapshot {
   code: string;
+  displayStatus: DisplayStatus;
   hostId: string;
   controllerConnected: boolean;
   podiumStep: number;

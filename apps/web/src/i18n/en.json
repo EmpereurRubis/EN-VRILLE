@@ -2,8 +2,8 @@
   "party": {
     "accessTitle": "Set up the big screen",
     "accessHelp": "Create a room, then everyone joins on their own phone.",
-    "mobileTitle": "Your phone is your controller",
-    "mobileHelp": "Join the room shown on the television. To set up a party, create its room on the big screen.",
+    "mobileTitle": "Join your friends’ party!",
+    "mobileHelp": "Enter the code shown on the television, choose your name and get ready to play.",
     "createDisplay": "Create a party on this screen",
     "separateDevices": "This screen presents the show. Every player, including the host controller, plays on their phone.",
     "resumeTitle": "Resume my game as {name}",
@@ -51,6 +51,14 @@
     "wheelReady": "The wheel awaits your signal",
     "wheelWaiting": "The party host starts the draw on their phone.",
     "wheelSelected": "Get your sales pitch ready! The party host will give the signal to begin."
+  },
+  "displayStatus": {
+    "waiting": "The main screen disconnected. Waiting for it to return.",
+    "expired": "The room has closed: the main screen did not return in time.",
+    "preserved": "The party is paused. Players, answers and scores are preserved while the PC game reconnects.",
+    "expiredHelp": "A new party can be created from the PC game.",
+    "reconnectWindow": "Time left to reconnect: {seconds} s",
+    "leave": "Back to the home screen"
   },
   "menu": {
     "play": "PLAY",

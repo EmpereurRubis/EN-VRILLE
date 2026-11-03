@@ -2,8 +2,8 @@
   "party": {
     "accessTitle": "Installez le grand écran",
     "accessHelp": "Créez le salon, puis rejoignez-le chacun depuis votre téléphone.",
-    "mobileTitle": "Votre téléphone devient la manette",
-    "mobileHelp": "Rejoignez le salon affiché à la télévision. Pour préparer une soirée, créez le salon sur le grand écran.",
+    "mobileTitle": "Rejoins la soirée de tes amis !",
+    "mobileHelp": "Entre le code affiché sur la télévision, choisis ton pseudo et prépare-toi à jouer.",
     "createDisplay": "Créer une partie sur cet écran",
     "separateDevices": "Cet écran présente la soirée. Tous les joueurs, y compris le maître de soirée, jouent sur leur téléphone.",
     "resumeTitle": "Reprendre ma partie en tant que {name}",
@@ -51,6 +51,14 @@
     "wheelReady": "La roue attend votre signal",
     "wheelWaiting": "Le maître de soirée déclenche le tirage depuis son téléphone.",
     "wheelSelected": "Préparez votre argumentaire ! La présentation commencera au signal du maître de soirée."
+  },
+  "displayStatus": {
+    "waiting": "L’écran principal s’est déconnecté. En attente de son retour.",
+    "expired": "Le salon est fermé : l’écran principal n’est pas revenu à temps.",
+    "preserved": "La partie est en pause. Les joueurs, les réponses et les scores sont conservés pendant la reconnexion du jeu PC.",
+    "expiredHelp": "Une nouvelle soirée peut être créée depuis le jeu PC.",
+    "reconnectWindow": "Délai de reconnexion restant : {seconds} s",
+    "leave": "Revenir à l’accueil"
   },
   "menu": {
     "play": "DÉMARRER",

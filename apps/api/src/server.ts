@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer } from "node:http";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
+import { isIP } from "node:net";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Server, type Socket } from "socket.io";
@@ -24,6 +25,7 @@ export interface GameServerOptions {
   random?: EngineOptions["random"];
   sessionSecret?: string;
   logger?: (error: unknown) => void;
+  displayReconnectSeconds?: number;
 }
 const profile = z
   .object({
@@ -108,6 +110,12 @@ export async function createGameServer(options: GameServerOptions = {}) {
   const publicUrl =
     options.publicUrl || process.env.PUBLIC_URL || "http://localhost:5173";
   const sessionSecret = options.sessionSecret || process.env.SESSION_SECRET;
+  const displayReconnectSeconds = options.displayReconnectSeconds ?? Number(process.env.DISPLAY_RECONNECT_SECONDS || 120);
+  if (!Number.isInteger(displayReconnectSeconds) || displayReconnectSeconds < 5 || displayReconnectSeconds > 3600)
+    throw new Error("DISPLAY_RECONNECT_SECONDS doit être un entier entre 5 et 3600 secondes.");
+  const trustedHops = Number(process.env.TRUST_PROXY ?? (process.env.NODE_ENV === "production" ? 1 : 0));
+  if (!Number.isInteger(trustedHops) || trustedHops < 0 || trustedHops > 10)
+    throw new Error("TRUST_PROXY doit être un entier entre 0 et 10 sauts de proxy de confiance.");
   if (
     process.env.NODE_ENV === "production" &&
     (!sessionSecret || sessionSecret.length < 32)
@@ -126,7 +134,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
     (process.env.NODE_ENV !== "production" &&
       /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin));
   app.disable("x-powered-by");
-  app.set("trust proxy", Number(process.env.TRUST_PROXY || 1));
+  app.set("trust proxy", trustedHops);
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "same-origin");
@@ -185,6 +193,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
     random: options.random,
     sessionSecret,
     onError: logger,
+    displayReconnectSeconds,
   });
   await engine.initialize();
   const identities = new Map<string, { code: string; clientId: string; clientKind: ClientKind }>();
@@ -495,8 +504,18 @@ export async function createGameServer(options: GameServerOptions = {}) {
       clientKind: session.clientKind,
     });
   }
+  function clientAddress(socket: Socket) {
+    const remote = socket.handshake.address;
+    if (trustedHops === 0 || !isIP(remote)) return remote;
+    const raw = socket.handshake.headers["x-forwarded-for"];
+    const forwarded = typeof raw === "string"
+      ? raw.split(",").reverse().map(value => value.trim()).filter(value => isIP(value) !== 0)
+      : [];
+    const chain = [remote, ...forwarded];
+    return chain[Math.min(trustedHops, chain.length - 1)]!;
+  }
   io.on("connection", (socket) => {
-    const address = socket.handshake.address;
+    const address = clientAddress(socket);
     if (!limiter.allow(`connect:${address}`, 150, 60_000)) {
       socket.emit(
         "server:error",
@@ -563,8 +582,14 @@ export async function createGameServer(options: GameServerOptions = {}) {
         room: engine.snapshot(engine.getRoom(i.code), i.clientId),
       };
     };
+    const requireDesktop = () => {
+      // Product routing only: this client hint is deliberately not an authentication mechanism.
+      if (socket.handshake.auth?.clientKind !== "desktop")
+        throw new Error("Créez et reprenez l’écran de votre soirée depuis l’application PC EN VRILLE !.");
+    };
     register("room:create", (data) => {
       noSession();
+      requireDesktop();
       if (!limiter.allow(`create:${address}`, 15, 3600_000))
         throw new Error("Trop de salons créés. Réessayez plus tard.");
       z.object({}).strict().parse(data);
@@ -603,6 +628,7 @@ export async function createGameServer(options: GameServerOptions = {}) {
     register("room:resume", (data) => {
       noSession();
       const session = sessionSchema.parse(data);
+      if (session.clientKind === "DISPLAY_CLIENT") requireDesktop();
       const room = engine.resume(session);
       attach(socket, session);
       return {

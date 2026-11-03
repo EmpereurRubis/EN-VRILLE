@@ -3,7 +3,6 @@ import { appendFileSync, mkdirSync, readFileSync, renameSync, writeFileSync } fr
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { contentSecurityPolicy, DEFAULT_SERVER_URL, isLocalDocument, isPlatformDocument, PROTOCOL_VERSION, resolveLocalAsset, validateExternalUrl, validateServerUrl } from './security.mjs';
-import { initializeSteam } from './steam.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
@@ -14,7 +13,6 @@ if (process.env.ENVRILLE_USER_DATA_DIR) {
 app.setAppUserModelId('fr.erubis.envrille');
 let window;
 let serverUrl = DEFAULT_SERVER_URL;
-let steam;
 let locale = 'fr';
 let preferences = {};
 let windowSettings = { fullscreen: true, width: 1600, height: 900 };
@@ -117,7 +115,6 @@ else {
     try { const stored = JSON.parse(readFileSync(settingsPath(), 'utf8')); locale = stored.locale === 'en' ? 'en' : 'fr'; preferences = sanitizePreferences(stored.preferences || {}); } catch { /* Fresh installation. */ }
     try { const saved = JSON.parse(readFileSync(settingsPath(), 'utf8')).window; if (saved && typeof saved.fullscreen === 'boolean' && Number.isInteger(saved.width) && Number.isInteger(saved.height) && saved.width >= 960 && saved.width <= 3840 && saved.height >= 600 && saved.height <= 2160) windowSettings = saved; } catch { /* Default display settings. */ }
     log(`EN VRILLE ${app.getVersion()}, protocol ${PROTOCOL_VERSION}; offline launcher; starting.`);
-    steam = await initializeSteam({ logger: log });
     session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
     session.defaultSession.setPermissionCheckHandler(() => false);
     protocol.handle('app', async request => {
@@ -151,7 +148,7 @@ else {
         if (health.protocolVersion !== PROTOCOL_VERSION) { await showLauncher('protocol'); return false; }
         const target = new URL(serverUrl); target.searchParams.set('lang', locale); target.searchParams.set('desktop', '1'); target.searchParams.set('display', '1');
         await window.loadURL(target.href); loadingPlatform = false; return true;
-      } catch (error) { log(`Platform unavailable: ${error.message}`); await showLauncher('network'); return false; }
+      } catch { log('Platform unavailable.'); await showLauncher('network'); return false; }
     });
     ipcMain.handle('desktop:return-launcher', async event => { trustedSender(event); await showLauncher(); });
     ipcMain.handle('desktop:set-language', (event, language) => { trustedSender(event); return setLocale(language); });
@@ -175,7 +172,6 @@ else {
     createWindow();
   }).catch(error => { log(`Startup failed: ${error.message}`); dialog.showErrorBox('EN VRILLE ! — démarrage', String(error.message)); app.quit(); });
   app.on('window-all-closed', () => app.quit());
-  app.on('will-quit', () => steam?.shutdown());
   process.on('uncaughtException', error => { log(`Uncaught: ${error.stack}`); dialog.showErrorBox('EN VRILLE !', 'Une erreur inattendue est survenue. Consulte le journal du jeu puis relance-le.'); app.quit(); });
   process.on('unhandledRejection', error => log(`Unhandled promise: ${error instanceof Error ? error.stack : error}`));
 }

@@ -24,6 +24,7 @@ import type {
   CinemaScene,
   DecoyProduct,
   CaptionStoryView,
+  DisplayStatus,
 } from "@en-vrille/shared";
 import type { Player, Room, Round } from "./model.js";
 import type { Store } from "./store.js";
@@ -47,6 +48,7 @@ export interface EngineOptions {
   random?: (max: number) => number;
   publicUrl?: string;
   sessionSecret?: string;
+  displayReconnectSeconds?: number;
   onChange?: (room: Room) => void;
   onError?: (error: unknown) => void;
 }
@@ -75,9 +77,13 @@ export class GameEngine {
   private readonly random: (max: number) => number;
   private readonly publicUrl: string;
   private readonly sessionSecret: string;
+  private readonly displayReconnectMs: number;
   constructor(private options: EngineOptions) {
     this.now = options.now || Date.now;
     this.random = options.random || randomInt;
+    const grace = options.displayReconnectSeconds ?? 120;
+    check(Number.isInteger(grace) && grace >= 1 && grace <= 3600, "Délai de reconnexion de l’écran invalide.");
+    this.displayReconnectMs = grace * 1000;
     this.publicUrl = (options.publicUrl || "http://localhost:5173").replace(
       /\/$/,
       "",
@@ -107,8 +113,10 @@ export class GameEngine {
       room.config = { ...structuredClone(DEFAULT_CONFIG), ...room.config };
       room.phaseStartedAt ??= room.updatedAt;
       room.phaseExcludedIds ??= [];
-      room.display ??= { id: randomUUID(), tokenHash: "", connected: false };
+      room.display ??= { id: randomUUID(), tokenHash: "", connected: false, reconnectUntil: null };
       room.display.connected = false;
+      room.manualPaused ??= room.paused && !room.pausedForController && !room.pausedForDisplay;
+      room.display.reconnectUntil ??= this.now() + this.displayReconnectMs;
       room.transitionId = randomUUID();
       room.collectionClosed ??= false;
       room.podiumStep ??= 0;
@@ -148,6 +156,9 @@ export class GameEngine {
         if (room.round?.captions) room.round.captions.playback.playing = false;
         room.message = "Salon restauré. L’hôte peut reprendre la soirée.";
       }
+      if (!room.paused) this.freeze(room);
+      room.pausedForDisplay = true;
+      room.message = this.displayMessage(room);
       this.rooms.set(room.code, room);
     }
   }
@@ -184,8 +195,30 @@ export class GameEngine {
     return player;
   }
   private host(room: Room, id: string) {
+    this.requireDisplay(room);
     check(room.hostId === id && this.getPlayer(room, id).connected && !this.getPlayer(room, id).spectator,
       "Cette action est réservée au maître de soirée sur son téléphone.");
+  }
+  private displayStatus(room: Room): DisplayStatus {
+    if (room.display.expiredAt !== undefined || room.display.reconnectUntil !== null && this.now() >= room.display.reconnectUntil)
+      return { state: "expired", reconnectUntil: room.display.reconnectUntil };
+    return { state: room.display.connected ? "connected" : "reconnecting", reconnectUntil: room.display.reconnectUntil };
+  }
+  private displayMessage(room: Room) {
+    const en = room.config.language === "en";
+    return this.displayStatus(room).state === "expired"
+      ? en ? "This party expired because its main display did not return." : "Ce salon a expiré : son écran principal n’est pas revenu."
+      : en ? "The main display disconnected. Waiting for its return." : "L’écran principal s’est déconnecté. En attente de son retour.";
+  }
+  private requireDisplay(room: Room) {
+    check(this.displayStatus(room).state === "connected", this.displayMessage(room));
+  }
+  private suspendDisplay(room: Room) {
+    if (!room.paused) this.freeze(room);
+    room.pausedForDisplay = true;
+    room.display.reconnectUntil ??= this.now() + this.displayReconnectMs;
+    room.transitionId = randomUUID();
+    room.message = this.displayMessage(room);
   }
   private makePlayer(
     name: string,
@@ -233,7 +266,7 @@ export class GameEngine {
       ).join("");
     } while (this.rooms.has(code));
     const token = randomBytes(32).toString("base64url");
-    const display = { id: randomUUID(), tokenHash: this.hash(token), connected: true };
+    const display = { id: randomUUID(), tokenHash: this.hash(token), connected: true, reconnectUntil: null };
     const room: Room = {
       code,
       hostId: "",
@@ -254,6 +287,7 @@ export class GameEngine {
       roundNumber: 0,
       deadline: null,
       paused: false,
+      manualPaused: false,
       remaining: null,
       message: "La soirée commence avec vous.",
       createdAt: this.now(),
@@ -270,6 +304,7 @@ export class GameEngine {
   }
   join(code: string, name: string, avatar: string, spectator = false) {
     const room = this.getRoom(code);
+    check(this.displayStatus(room).state !== "expired", "Ce salon a expiré après la déconnexion de son écran principal.");
     check(
       room.players.length < 24,
       "Ce salon est complet (24 participants et spectateurs).",
@@ -310,7 +345,13 @@ export class GameEngine {
         timingSafeEqual(incoming, expected),
       "Session expirée ou jeton incorrect.",
     );
+    if (isDisplay) check(this.displayStatus(room).state !== "expired", "Le délai de récupération de ce salon est écoulé.");
     player.connected = true;
+    if (isDisplay) {
+      room.display.reconnectUntil = null;
+      delete room.pausedForDisplay;
+      if (!room.hostId || this.getPlayer(room, room.hostId).connected) this.restoreControllerPause(room);
+    }
     if (!isDisplay) {
       delete (player as Player).disconnectedAt;
       if (room.hostId === player.id && room.pausedForController) this.restoreControllerPause(room);
@@ -324,6 +365,7 @@ export class GameEngine {
     if (!room) return;
     if (room.display.id === id) {
       room.display.connected = false;
+      this.suspendDisplay(room);
       this.changed(room);
       return;
     }
@@ -331,8 +373,8 @@ export class GameEngine {
     if (!p) return;
     p.connected = false;
     p.disconnectedAt = this.now();
-    if (room.hostId === id && !room.paused && !["lobby", "podium"].includes(room.phase)) {
-      this.freeze(room);
+    if (room.hostId === id && !["lobby", "podium"].includes(room.phase)) {
+      if (!room.paused) this.freeze(room);
       room.pausedForController = true;
       room.message = room.config.language === "en" ? "Waiting for the party controller to reconnect." : "En attente de la reconnexion du maître de soirée.";
     }
@@ -342,10 +384,14 @@ export class GameEngine {
     const room = this.getRoom(code);
     if (room.display.id === id) {
       this.disconnect(code, id);
+      room.display.expiredAt = this.now();
+      room.message = this.displayMessage(room);
+      this.changed(room);
       return;
     }
     const p = this.getPlayer(room, id);
-    check(room.hostId !== id, "Transférez le rôle de maître de soirée avant de quitter.");
+    check(room.hostId !== id || this.displayStatus(room).state === "expired", "Transférez le rôle de maître de soirée avant de quitter.");
+    if (room.hostId === id) room.hostId = "";
     p.connected = false;
     p.disconnectedAt = this.now();
     p.spectator = true;
@@ -358,6 +404,7 @@ export class GameEngine {
   }
   claimControl(code: string, id: string, pairingCode: string) {
     const room = this.getRoom(code), player = this.getPlayer(room, id);
+    this.requireDisplay(room);
     check(room.phase === "lobby" && !room.hostId && room.pairingCode, "Le rôle a déjà été associé.");
     check(player.connected && !player.spectator, "Rejoignez comme joueur pour conduire la soirée.");
     check(timingSafeEqual(Buffer.from(this.hash(pairingCode)), Buffer.from(this.hash(room.pairingCode))), "Code d’association incorrect.");
@@ -400,6 +447,7 @@ export class GameEngine {
   }
   ready(code: string, id: string, ready: boolean) {
     const room = this.getRoom(code);
+    this.requireDisplay(room);
     check(room.phase === "lobby", "La partie a déjà commencé.");
     const p = this.getPlayer(room, id);
     check(!p.spectator, "Les spectateurs n’ont pas besoin de se préparer.");
@@ -664,7 +712,9 @@ export class GameEngine {
       playback.revision = randomUUID();
     }
   }
-  private restoreControllerPause(room: Room) {
+  private restoreControllerPause(room: Room, controllerReturned = true) {
+    if (controllerReturned) delete room.pausedForController;
+    if (room.pausedForDisplay || room.pausedForController || room.manualPaused || !room.paused) return;
     const pauseDuration = Math.max(0, this.now() - (room.pausedAt ?? this.now()));
     room.phaseStartedAt += pauseDuration;
     if (room.round?.captions) room.round.captions.slideStartedAt += pauseDuration;
@@ -672,8 +722,8 @@ export class GameEngine {
     room.remaining = null;
     room.paused = false;
     delete room.pausedAt;
-    delete room.pausedForController;
     room.transitionId = randomUUID();
+    room.message = room.config.language === "en" ? "The party can continue." : "La soirée peut reprendre.";
   }
   pause(code: string, id: string, paused: boolean) {
     const room = this.getRoom(code);
@@ -684,8 +734,10 @@ export class GameEngine {
     );
     if (paused === room.paused) return;
     if (paused) {
-      this.freeze(room);
+      room.manualPaused = true;
+      if (!room.paused) this.freeze(room);
     } else {
+      room.manualPaused = false;
       if (!room.round) {
         this.beginRound(room);
         check(
@@ -796,6 +848,7 @@ export class GameEngine {
   }
   suggestProduct(code: string, id: string) {
     const room = this.getRoom(code), player = this.getPlayer(room, id), round = room.round;
+    this.requireDisplay(room);
     check(!room.paused && !room.collectionClosed && room.phase === "writing" && round?.gameId === "pitch" &&
       player.connected && this.eligible(room).includes(id), "La machine à idées est disponible pendant la création de votre objet.");
     check(!round.submitted.includes(id), "Votre invention est déjà validée.");
@@ -995,6 +1048,15 @@ export class GameEngine {
     }
     for (const room of this.rooms.values()) {
       let dirty = false;
+      if (room.display.expiredAt === undefined && !room.display.connected) {
+        if (!room.pausedForDisplay) { this.suspendDisplay(room); dirty = true; }
+        if (room.display.reconnectUntil !== null && this.now() >= room.display.reconnectUntil) {
+          room.display.expiredAt = this.now();
+          room.transitionId = randomUUID();
+          room.message = this.displayMessage(room);
+          dirty = true;
+        }
+      }
       const recent = room.reactions.filter((r) => this.now() - r.createdAt < REACTION_TTL);
       if (recent.length !== room.reactions.length) {
         room.reactions = recent;
@@ -1063,7 +1125,7 @@ export class GameEngine {
     const controllerConnected = room.players.some((player) => player.id === room.hostId && player.connected && !player.spectator);
     const collected = !["writing", "prepare", "voting"].includes(room.phase) || room.collectionClosed;
     const completeInventions = room.phase !== "writing" || round?.gameId !== "pitch" || this.eligible(room).every((id) => round.products.some((product) => product.creatorId === id));
-    return { label, enabled: !room.paused && controllerConnected && collected && completeInventions };
+    return { label, enabled: this.displayStatus(room).state === "connected" && !room.paused && controllerConnected && collected && completeInventions };
   }
   private eligible(room: Room) {
     return room.round?.participantIds.filter((id) => {
@@ -1151,6 +1213,7 @@ export class GameEngine {
   }
   react(code: string, id: string, reaction: string) {
     const room = this.getRoom(code), player = this.getPlayer(room, id);
+    this.requireDisplay(room);
     check(player.connected, "Reconnectez-vous pour réagir.");
     check(room.config.reactionsEnabled, "Les réactions sont désactivées.");
     check((REACTIONS as readonly string[]).includes(reaction), "Réaction inconnue.");
@@ -1165,6 +1228,7 @@ export class GameEngine {
       player = this.getPlayer(room, id),
       action = actionSchema.parse(input),
       round = room.round;
+    this.requireDisplay(room);
     check(!room.paused, "La partie est en pause.");
     check(!room.collectionClosed, "La collecte est terminée. Votre participation déjà enregistrée est conservée.");
     check(
@@ -1570,6 +1634,7 @@ export class GameEngine {
         : undefined;
     return {
       code: room.code,
+      displayStatus: this.displayStatus(room),
       hostId: room.hostId,
       controllerConnected: room.players.some((player) => player.id === room.hostId && player.connected && !player.spectator),
       podiumStep: room.podiumStep,

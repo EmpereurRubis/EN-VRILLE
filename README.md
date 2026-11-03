@@ -2,6 +2,8 @@
 
 Le jeu où tes amis sont tes pires ennemis. Cinq mini-jeux, une interface en français et en anglais, une scène TV et un téléphone par joueur. Le présentateur anime la scène tandis que chaque manette conserve ses réponses, produits, notes et missions privés. Le client Windows démarre sur un menu local hors ligne ; « DÉMARRER » ouvre la plateforme du serveur dans la même fenêtre.
 
+Le jeu PC crée et présente la soirée ; le site public sert à rejoindre un salon et retrouver sa session. Steam assure la vente, la distribution et les mises à jour de l'exécutable, sans SDK Steamworks, DRM personnalisé ni vérification de licence intégrés. Les invités et le maître de soirée mobile n'ont besoin ni de Steam, ni d'une installation.
+
 ## Application Windows
 
 Sur Windows, `npm ci` puis `npm run desktop:dist` produisent l’installateur, la version portable et `apps/desktop/release/win-unpacked/EN-VRILLE.exe`. Le dossier complet peut être lancé sans Node.js ni navigateur installé. Le serveur se règle dans les paramètres du jeu ; sa valeur initiale est `https://envrille.erubis.fr`. Les invités rejoignent gratuitement dans leur navigateur.
@@ -19,9 +21,11 @@ npm ci
 npm run dev
 ```
 
-Ouvrir **http://localhost:5173/?display=1** sur le PC et créer un salon : il contient **zéro joueur**. Prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Chaque participant rejoint sur son téléphone avec le QR code, le lien ou le code du salon. Un téléphone devient maître de soirée en saisissant le code d'association à usage unique affiché séparément sur le PC. La configuration et le lancement se font ensuite sur ce téléphone.
+Ouvrir **http://localhost:5173** pour rejoindre un salon. La création se fait depuis le client Windows ; un paramètre `display=1` dans un navigateur ne propose pas la création. Le salon commence avec **zéro joueur**. Prévoir **3 à 12 participants**, ou **5 minimum au Tribunal**. Chaque participant rejoint sur son téléphone avec le QR code, le lien ou le code du salon. Un téléphone devient maître de soirée en saisissant le code d'association à usage unique affiché séparément sur le PC. La configuration et le lancement se font ensuite sur ce téléphone.
 
-Pour les téléphones sur le même Wi-Fi, utiliser `http://ADRESSE_IP_LAN_DU_PC:5173` sur **tous** les appareils, y compris le PC qui crée le salon. Autoriser les connexions à Node sur le réseau privé Windows. Les invitations utilisent l’origine publique configurée ; copier `.env.example` vers `.env` puis régler `PUBLIC_URL=http://ADRESSE_IP_LAN_DU_PC:5173`. Le mode local fonctionne sans Internet une fois les dépendances installées.
+Pour lancer le client PC localement : `npm run dev -w @en-vrille/desktop`, puis régler son serveur sur `http://localhost:5173`. Aucune configuration Steam, clé éditeur ou installation de SDK n'est nécessaire pour jouer ou développer.
+
+Pour les téléphones sur le même Wi-Fi, utiliser `http://ADRESSE_IP_LAN_DU_PC:5173` ; le client Windows conserve `http://localhost:5173`. Autoriser les connexions à Node sur le réseau privé Windows. Les invitations utilisent l’origine publique configurée ; copier `.env.example` vers `.env` puis régler `PUBLIC_URL=http://ADRESSE_IP_LAN_DU_PC:5173`. Le mode local fonctionne sans Internet une fois les dépendances installées.
 
 Sans PostgreSQL configuré, le serveur de développement enregistre les parties dans un fichier privé local, ignoré par Git. Ne jamais exposer ce mode de développement sur Internet. En production, PostgreSQL et des secrets propres à l’installation sont obligatoires.
 
@@ -47,7 +51,11 @@ Dans Vends-moi cette Merde !, chacun invente un produit ou demande une idée pri
 
 Dans Le Scénario part en vrille (anciennement Sous-titres Interdits), chaque joueur commence un film et ajoute un dialogue à un autre film à chaque tour. Les versions courtes comptent jusqu’à 4 ou 5 moments ; la version complète compte un moment par joueur. La manette montre uniquement le photogramme courant et les dialogues précédents. L’écran TV garde les films secrets pendant l’écriture. Après la préparation privée, chacun présente une vidéo en doublage oral, avec les sous-titres synchronisés aux timecodes. Le maître pilote lecture, pause, reprise et retour au début depuis son téléphone ; le diaporama reste disponible en repli. La fin du clip ne termine jamais la prise de parole. Trois prix distinguent le film collectif (distinction sans points), l’interprète (300 points) et la réplique (250 points à son auteur), avant coefficients et équilibrage.
 
-Les sessions privées sont mémorisées durablement sur l'appareil, séparément pour l'écran et le joueur. La reprise retrouve la même identité, ses réponses, ses votes, son score et ses droits. Un seul onglet reste actif pour une identité ; reprendre ailleurs déconnecte le précédent. Sur un nouvel appareil, code et pseudo créent seulement une demande : le maître doit l'approuver et le jeton précédent est alors invalidé. Ne partagez pas votre jeton de reconnexion. Un nouvel invité arrivé pendant une manche attend une étape compatible. Les versions 2 et 3 du protocole ne sont pas compatibles : mettre à jour serveur, web et client Windows ensemble.
+Les sessions privées sont mémorisées durablement sur l'appareil, séparément pour l'écran et le joueur. La reprise retrouve la même identité, ses réponses, ses votes, son score et ses droits. Un seul onglet reste actif pour une identité ; reprendre ailleurs déconnecte le précédent. Sur un nouvel appareil, code et pseudo créent seulement une demande : le maître doit l'approuver et le jeton précédent est alors invalidé. Ne partagez pas votre jeton de reconnexion. Un nouvel invité arrivé pendant une manche attend une étape compatible. Le protocole **5** distingue la présence de l'écran : mettre à jour serveur, web et client Windows ensemble.
+
+Le départ de l'écran principal suspend la salle et conserve temporairement ses réponses et scores. Le PC retrouve son salon avec sa session privée dans le délai `DISPLAY_RECONNECT_SECONDS` (120 secondes par défaut). Cette reconnexion ne demande aucun compte Steam. Les sessions d'écran et les permissions du maître de soirée restent distinctes.
+
+La création est réservée au type de client PC déclaré, avec au plus 15 créations par adresse IP et par heure, un seul salon par connexion et une limite globale de salons. La validation des entrées, l'antiflood et les origines autorisées restent contrôlés par le serveur. Le type de client est une barrière d'usage contournable, pas une authentification forte ni une protection antipiratage.
 
 Le thème clair, sombre ou système est mémorisé sur l’appareil ; le logo conserve sa palette rouge et noir. Les réglages proposent les volumes général, musique, voix et effets, les sous-titres, la vitesse du texte et les animations réduites. Le menu, le lobby et les cinq jeux disposent d'arrangements originaux synthétisés localement, avec fondus et baisse du volume pendant une prise de parole ou une projection. Le tic-tac est optionnel et limité aux dix dernières secondes d'un vrai timer de collecte. Les téléphones restent silencieux. La voix utilise les voix françaises ou anglaises disponibles dans le navigateur, sans service payant ; les sous-titres assurent le relais si aucune voix n’est disponible. La langue de la manette est indépendante de celle du plateau. Les textes libres des joueurs ne sont jamais traduits. L’audio s’active après une interaction avec la page. Les réactions peuvent être désactivées par le maître et sont limitées à une toutes les deux secondes par joueur.
 
@@ -143,8 +151,12 @@ Dans **Environment variables**, saisir :
 | `SESSION_SECRET` | Secret aléatoire d’au moins 32 caractères |
 | `ADMIN_TOKEN` | Un autre secret aléatoire d’au moins 32 caractères |
 | `IMAGE_TAG` | `stable`, ou `sha-<SHA complet>` pour figer une version |
+| `DISPLAY_RECONNECT_SECONDS` | Délai de retour de l'écran principal, 120 par défaut (5 à 3600) |
+| `TRUST_PROXY` | `2` avec le proxy HTTPS existant et le Nginx de la stack ; `1` si Nginx est exposé directement |
 
 `WEB_IMAGE` et `API_IMAGE` permettent de changer le registre ; les valeurs par défaut sont celles ci-dessus. Les secrets sont exclusivement côté API/DB et ne sont pas compilés dans le frontend. Ne pas utiliser les exemples factices en production.
+
+`TRUST_PROXY` indique le nombre de proxys devant l'API pour appliquer les limites à l'adresse du joueur. Le port Web doit rester accessible uniquement par le proxy déclaré ; les ports API et PostgreSQL ne sont pas publiés.
 
 Cliquer **Deploy the stack**. Portainer tire les images **déjà compilées**, initialise PostgreSQL et les tables, attend les contrôles de santé et lance les trois services. Il n’y a ni `build:`, ni bind mount sur le clone Git, ni seconde stack, ni Redis obligatoire, ni port PostgreSQL/API publié.
 
@@ -163,7 +175,7 @@ Avec **Nginx Proxy Manager**, ajouter un Proxy Host :
 
 Si NPM est lui-même dans un conteneur, `127.0.0.1` désigne ce conteneur : utiliser l’IP LAN de l’hôte Docker et mettre `APP_BIND` à cette IP. Restreindre ce port par le pare-feu au réseau/proxy souhaité. Avec Traefik, configurer un service HTTP vers le même port et une route TLS vers votre domaine. Le Nginx embarqué transmet `/api`, `/media`, `/uploads` et `/socket.io` à `api:3001` sur le réseau Docker ; le navigateur reste sous un seul domaine.
 
-Après mise en service, ouvrir le domaine depuis un PC, créer un salon et rejoindre depuis un téléphone **en 4G/5G**, puis un autre navigateur. Contrôler les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code sur cette installation publique.
+Après mise en service, lancer le client Windows, créer un salon puis rejoindre depuis un téléphone **en 4G/5G** et un autre navigateur. Contrôler les réponses privées, les votes synchronisés, le classement, le rafraîchissement et le QR code sur cette installation publique.
 
 ### 4. Mettre à jour et revenir en arrière
 
@@ -210,7 +222,7 @@ Le studio cinéma accepte les vidéos MP4 et WebM jusqu’à 250 Mo. Choisir un 
 
 ## Périmètre de cette version
 
-Cette version comprend le client Windows Electron avec accueil hors ligne, les interfaces scène et manette FR/EN, le présentateur, les cinq jeux, les deux modes de vente, House Decoy, le cinéma collaboratif, l’import vidéo administrateur et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Les fonctionnalités **Steamworks** et l’**hébergement à plusieurs réplicas** restent à intégrer ; aucun bouton ne prétend les activer.
+Cette version comprend le client Windows Electron avec accueil hors ligne, les interfaces scène et manette FR/EN, le présentateur, les cinq jeux, les deux modes de vente, House Decoy, le cinéma collaboratif, l’import vidéo administrateur et le déploiement en une stack. Les conversations vocales se font en présentiel ou via un service externe. Steam sert à distribuer le binaire Windows : aucune fonctionnalité Steamworks n'est nécessaire au fonctionnement du jeu. L'hébergement à plusieurs réplicas reste hors de cette version.
 
 La compilation locale et le déploiement sont deux opérations distinctes. La publication GHCR, le certificat TLS et la configuration du DNS/proxy se suivent dans GitHub et sur votre installation Portainer.
 

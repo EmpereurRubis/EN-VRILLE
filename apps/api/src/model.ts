@@ -87,12 +87,14 @@ export interface Round {
 export interface Room {
   code: string;
   hostId: string;
-  display: { id: string; tokenHash: string; connected: boolean };
+  display: { id: string; tokenHash: string; connected: boolean; reconnectUntil: number | null; expiredAt?: number };
   pairingCode?: string;
   transitionId: string;
   collectionClosed: boolean;
   podiumStep: number;
   pausedForController?: boolean;
+  pausedForDisplay?: boolean;
+  manualPaused?: boolean;
   config: RoomConfig;
   players: Player[];
   phase: Phase;
